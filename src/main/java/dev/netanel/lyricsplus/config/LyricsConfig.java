@@ -11,7 +11,7 @@ import java.nio.file.Path;
 /** All user settings. Saved to config/lyricsplus.json. */
 public final class LyricsConfig {
 
-    public enum DisplayMode { SIDE, SUBTITLE, CENTER, WORLD }
+    public enum DisplayMode { SIDE, SUBTITLE, CENTER, WORLD, SKY }
 
     public enum RevealMode { LINE, WORD, KARAOKE }
 
@@ -20,6 +20,18 @@ public final class LyricsConfig {
     public enum WorldStyle { WORDS, SCATTER, LINE }
 
     public enum ScatterFrom { CENTER, SIDES, BELOW, ABOVE, PLAYER }
+
+    /** Lyric font styles. id = font json under assets/lyricsplus/font, null = vanilla. */
+    public enum FontStyle {
+        MINECRAFT(null), ROUND("round"), BOLD("bold"), HANDWRITTEN("handwritten"), ELEGANT("elegant"),
+        SCRIPT("script"), COMIC("comic"), TALL("tall");
+
+        public final String id;
+
+        FontStyle(String id) {
+            this.id = id;
+        }
+    }
 
     public enum WordAnimation { POP, RISE, DROP, SPIN, NONE }
 
@@ -63,6 +75,11 @@ public final class LyricsConfig {
     public ScatterFrom scatterFrom = ScatterFrom.CENTER;
     public float scatterTilt = 15f;
     public float scatterSizeVariation = 0.3f;
+    public FontStyle font = FontStyle.ROUND;
+    public float skyDistance = 26f;
+    public float skyHeight = 9f;
+    public boolean albumArt = true;
+    public boolean albumColors = false;
 
     // ---- persistence ----
 
@@ -117,6 +134,9 @@ public final class LyricsConfig {
         if (wordAnimation == null) wordAnimation = WordAnimation.POP;
         if (wordColors == null) wordColors = WordColors.HIGHLIGHT;
         if (scatterFrom == null) scatterFrom = ScatterFrom.CENTER;
+        if (font == null) font = FontStyle.ROUND;
+        skyDistance = Math.max(10f, Math.min(60f, skyDistance));
+        skyHeight = Math.max(0f, Math.min(30f, skyHeight));
         scatterSpread = Math.max(0.3f, Math.min(3f, scatterSpread));
         scatterTilt = Math.max(0f, Math.min(45f, scatterTilt));
         scatterSizeVariation = Math.max(0f, Math.min(0.8f, scatterSizeVariation));

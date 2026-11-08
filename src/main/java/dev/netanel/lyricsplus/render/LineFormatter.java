@@ -3,7 +3,10 @@ package dev.netanel.lyricsplus.render;
 import dev.netanel.lyricsplus.LyricsEngine.Snapshot;
 import dev.netanel.lyricsplus.config.LyricsConfig;
 import dev.netanel.lyricsplus.config.LyricsConfig.RevealMode;
+import dev.netanel.lyricsplus.backend.AlbumArt;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
+import net.minecraft.resources.Identifier;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
@@ -24,6 +27,9 @@ public final class LineFormatter {
         }
 
         public static Paint highlight(LyricsConfig cfg) {
+            if (cfg.albumColors && !cfg.highlightRainbow && AlbumArt.dominant() >= 0) {
+                return new Paint(AlbumArt.dominant(), false);
+            }
             return new Paint(cfg.highlightColor, cfg.highlightRainbow);
         }
 
@@ -110,8 +116,16 @@ public final class LineFormatter {
         return out;
     }
 
+    /** Color + the chosen lyrics font. */
     public static Style style(int rgb) {
-        return Style.EMPTY.withColor(TextColor.fromRgb(rgb & 0xFFFFFF));
+        return withFont(Style.EMPTY.withColor(TextColor.fromRgb(rgb & 0xFFFFFF)), LyricsConfig.get().font);
+    }
+
+    public static Style withFont(Style style, LyricsConfig.FontStyle font) {
+        if (font == null || font.id == null) {
+            return style;
+        }
+        return style.withFont(new FontDescription.Resource(Identifier.fromNamespaceAndPath("lyricsplus", font.id)));
     }
 
     public static int rainbowRgb(int index) {

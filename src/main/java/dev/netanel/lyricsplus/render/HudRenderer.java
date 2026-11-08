@@ -5,6 +5,8 @@ import dev.netanel.lyricsplus.LyricsEngine.Status;
 import dev.netanel.lyricsplus.LyricsPlusClient;
 import dev.netanel.lyricsplus.config.LyricsConfig;
 import dev.netanel.lyricsplus.config.LyricsConfig.SidePosition;
+import dev.netanel.lyricsplus.config.LyricsConfig.DisplayMode;
+import dev.netanel.lyricsplus.backend.AlbumArt;
 import dev.netanel.lyricsplus.render.LineFormatter.Paint;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -35,7 +37,8 @@ public final class HudRenderer {
         }
         Font font = Minecraft.getInstance().font;
 
-        boolean card = cfg.titleCard && s.msSinceTrackChange() < 4500;
+        boolean world = cfg.displayMode == DisplayMode.WORLD || cfg.displayMode == DisplayMode.SKY;
+        boolean card = cfg.titleCard && s.msSinceTrackChange() < 4500 && !world;
         if (card) {
             drawTitleCard(g, font, s, cfg);
         }
@@ -49,7 +52,10 @@ public final class HudRenderer {
                     drawCenter(g, font, s, cfg, current);
                 }
             }
-            case WORLD -> drawWorldCompanion(g, font, s, cfg);
+            case WORLD, SKY -> { } // drawn in 3D by WorldLyrics
+        }
+        if (cfg.nowPlaying && !card) {
+            drawNowPlayingPill(g, font, s, cfg);
         }
     }
 
@@ -100,30 +106,21 @@ public final class HudRenderer {
         for (Component c : rows) {
             maxW = Math.max(maxW, Math.round(font.width(c) * sc));
         }
-        if (cfg.nowPlaying) {
-            maxW = Math.max(maxW, Math.round(font.width(nowPlaying(s)) * 0.75f));
-        }
         if (maxW == 0) {
             return;
         }
         maxW = Math.max(maxW, 90);
 
-        int extra = (cfg.nowPlaying ? 10 : 0) + (cfg.progressBar ? 6 : 0);
+        int extra = cfg.progressBar ? 6 : 0;
         int boxH = rows.size() * lineH + extra;
         boolean right = cfg.sidePosition == SidePosition.TOP_RIGHT || cfg.sidePosition == SidePosition.MIDDLE_RIGHT;
         boolean middle = cfg.sidePosition == SidePosition.MIDDLE_LEFT || cfg.sidePosition == SidePosition.MIDDLE_RIGHT;
         int x = right ? g.guiWidth() - MARGIN - maxW : MARGIN;
-        int y = middle ? g.guiHeight() / 2 - boxH / 2 : MARGIN;
+        int y = middle ? g.guiHeight() / 2 - boxH / 2 : MARGIN + (cfg.nowPlaying ? 26 : 0);
 
         background(g, cfg, x - PAD, y - PAD, x + maxW + PAD, y + boxH + PAD - 2);
 
         int cy = y;
-        if (cfg.nowPlaying) {
-            Component np = nowPlaying(s);
-            int w = Math.round(font.width(np) * 0.75f);
-            drawScaled(g, font, np, right ? x + maxW - w : x, cy, 0.75f, 0xFFFFFFFF, cfg.shadow);
-            cy += 10;
-        }
 
         long intoLine = s.positionMs() - s.lineStartMs();
         float anim = cfg.animations ? Math.clamp(intoLine / 180f, 0f, 1f) : 1f;
@@ -248,11 +245,54 @@ public final class HudRenderer {
         }
 
         int argb = (alpha << 24) | 0xFFFFFF;
+        if (cfg.albumArt && AlbumArt.ready() && alpha > 200) {
+            int artS = boxH;
+            int ax = cx - maxW / 2 - 12 - artS - 6;
+            g.fill(ax - 1, y - 1, ax + artS + 1, y + artS + 1, 0x60000000);
+            g.blit(AlbumArt.TEXTURE, ax, y, ax + artS, y + artS, 0f, 1f, 0f, 1f);
+        }
         int lw = Math.round(font.width(label) * 0.75f);
         drawScaled(g, font, label, cx - lw / 2, y, 0.75f, argb, cfg.shadow);
         drawScaled(g, font, title, cx - titleW / 2, y + 8, ts, argb, true);
         int aw = Math.round(font.width(artist) * 1.3f);
         drawScaled(g, font, artist, cx - aw / 2, y + 12 + Math.round(font.lineHeight * ts), 1.3f, argb, cfg.shadow);
+    }
+
+    /** Small rounded-looking pill at the top: cover, title — artist, thin progress line. */
+    private static void drawNowPlayingPill(GuiGraphicsExtractor g, Font font, Snapshot s, LyricsConfig cfg) {
+        Component text = Component.literal((s.playing() ? "" : "❚❚ ") + s.title() + "  ·  " + s.artist());
+        float ts = 0.75f;
+        int maxText = 200;
+        int textW = Math.min(maxText, Math.round(font.width(text) * ts));
+        boolean art = cfg.albumArt && AlbumArt.ready();
+        int h = 20;
+        int w = (art ? 22 : 12) + textW + 10;
+        int x = g.guiWidth() / 2 - w / 2;
+        int y = 4;
+        g.fill(x + 1, y, x + w - 1, y + h, 0xC0101014);
+        g.fill(x, y + 1, x + w, y + h - 1, 0xC0101014);
+        int tx = x + 8;
+        if (art) {
+            g.blit(AlbumArt.TEXTURE, x + 3, y + 3, x + 17, y + 17, 0f, 1f, 0f, 1f);
+            tx = x + 22;
+        } else {
+            g.text(font, Component.literal("♪"), x + 4, y + 6, 0xFF000000 | Paint.highlight(cfg).at(0), false);
+            tx = x + 13;
+        }
+        g.enableScissor(tx, y, tx + textW, y + h);
+        int fullW = Math.round(font.width(text) * ts);
+        int scrollX = 0;
+        if (fullW > textW) { // marquee for long titles
+            long period = (fullW - textW) * 40L + 3000;
+            long t = System.currentTimeMillis() % period;
+            scrollX = (int) Math.max(0, Math.min(fullW - textW, (t - 1500) / 40));
+        }
+        drawScaled(g, font, text, tx - scrollX, y + 7, ts, 0xFFFFFFFF, false);
+        g.disableScissor();
+        if (s.durationMs() > 0) {
+            float p = Math.clamp(s.positionMs() / (float) s.durationMs(), 0f, 1f);
+            g.fill(x + 4, y + h - 2, x + 4 + Math.round((w - 8) * p), y + h - 1, 0xFF000000 | Paint.highlight(cfg).at(0));
+        }
     }
 
     // ---------------------------------------------------------------- helpers

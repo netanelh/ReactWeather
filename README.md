@@ -11,3 +11,11 @@ Synced Spotify lyrics in Minecraft 26.2 (Fabric) with a full customization panel
 
 Lyrics come from [LRCLIB](https://lrclib.net). Song detection (Windows media session / Linux D-Bus)
 is based on [Spotify Lyrics](https://github.com/HBome200/Minecraft-Spotify-Lyrics) by HBome200, MIT license.
+
+### v2.0
+New sidebar panel with a now-playing card (cover, status, progress, play/pause/next/previous),
+8 lyric fonts, "In the sky" mode with a 3D title card, now-playing pill, colors from the album cover,
+and automatic hiding during ads.
+
+Fonts (SIL Open Font License, via Google Fonts): Varela Round, Secular One, Amatic SC, Suez One,
+Pacifico, Bangers, Bebas Neue. Album covers: iTunes Search API.

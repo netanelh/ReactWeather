@@ -1,0 +1,18 @@
+{
+  "providers": [
+    {
+      "type": "ttf",
+      "file": "lyricsplus:script.ttf",
+      "shift": [
+        0,
+        1
+      ],
+      "size": 9,
+      "oversample": 6
+    },
+    {
+      "type": "reference",
+      "id": "minecraft:default"
+    }
+  ]
+}

@@ -172,6 +172,7 @@ public final class LyricsEngine {
         title = t;
         trackChangedAt = System.currentTimeMillis();
         int gen = ++generation;
+        dev.netanel.lyricsplus.backend.AlbumArt.request(a, t);
 
         List<LyricsLine> cached;
         synchronized (cache) {

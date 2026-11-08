@@ -91,7 +91,7 @@ public final class WorldLyrics {
         ClientLevel level = mc.level;
         Player player = mc.player;
 
-        boolean active = cfg.enabled && cfg.displayMode == DisplayMode.WORLD
+        boolean active = cfg.enabled && (cfg.displayMode == DisplayMode.WORLD || cfg.displayMode == DisplayMode.SKY)
                 && level != null && player != null && s.status() != Status.NO_PLAYER && s.status() != Status.AD;
         if (!active) {
             clearAll();
@@ -101,6 +101,8 @@ public final class WorldLyrics {
             lastLevel = level;
             spawned = new Piece[0];
             retiring.clear();
+            card.clear();
+            cardKey = "";
             lineKey = "";
         }
 
@@ -116,13 +118,14 @@ public final class WorldLyrics {
 
         Vec3 base = cfg.worldFollow ? anchor(player, cfg) : fixedBase;
         Vec3 right = cfg.worldFollow ? rightOf(player) : fixedRight;
-        if (!cfg.worldFollow && base.distanceTo(anchor(player, cfg)) > cfg.worldDistance + 6) {
+        if (!cfg.worldFollow && base.distanceTo(anchor(player, cfg)) > dist(cfg) * 1.5 + 6) {
             fixedBase = anchor(player, cfg); // walked away: bring the line back
             fixedRight = rightOf(player);
             base = fixedBase;
             right = fixedRight;
         }
 
+        tickCard(s, cfg, level, base, right);
         if (wordMode) {
             tickWords(s, cfg, level, base, right);
         } else {
@@ -162,9 +165,9 @@ public final class WorldLyrics {
             return;
         }
 
-        float scale = cfg.wordScale;
+        float scale = wscale(cfg);
         float space = font.width(" ") * PX * scale * 1.6f * cfg.wordSpacing;
-        float maxRow = Math.max(2.5f, cfg.worldDistance * 1.3f);
+        float maxRow = Math.max(2.5f, dist(cfg) * 1.3f);
         float rowHeight = font.lineHeight * PX * scale * 1.35f;
         boolean rtl = LineFormatter.isRtl(s.line(0));
 
@@ -204,9 +207,10 @@ public final class WorldLyrics {
     /** Random, non-overlapping spots in front of the player, stable for the whole line. */
     private static void scatterLayout(Snapshot s, LyricsConfig cfg, int n) {
         java.util.Random rnd = new java.util.Random((s.title() + "#" + s.index()).hashCode());
-        float spreadX = cfg.scatterSpread * Math.max(1.2f, cfg.worldDistance * 0.55f);
-        float spreadY = cfg.scatterSpread * Math.max(0.6f, cfg.worldDistance * 0.28f);
-        float minGap = 0.45f * cfg.wordScale;
+        float spreadX = cfg.scatterSpread * Math.max(1.2f, dist(cfg) * 0.55f);
+        float spreadY = cfg.scatterSpread * Math.max(0.6f, dist(cfg) * 0.28f);
+        float minGap = 0.45f * wscale(cfg);
+        spreadX *= 1f; // distances already scale with dist(cfg)
         for (int i = 0; i < n; i++) {
             float bx = 0, by = 0;
             for (int attempt = 0; attempt < 14; attempt++) {
@@ -254,7 +258,7 @@ public final class WorldLyrics {
                 case RANDOM -> new Paint(RANDOM_PALETTE[Math.floorMod(words[i].hashCode() + i, RANDOM_PALETTE.length)], false);
             };
             Component c = Component.literal(t.words()[i]).withStyle(LineFormatter.style(paint.at(i)));
-            float size = cfg.wordScale * p.sizeMul * (current ? cfg.currentWordScale : 1f);
+            float size = wscale(cfg) * p.sizeMul * (current ? cfg.currentWordScale : 1f);
             apply(p, c, cfg, base, right, size, 0f, 255);
         }
     }
@@ -272,7 +276,54 @@ public final class WorldLyrics {
         }
         Piece p = spawned[0];
         p.age++;
-        apply(p, text, cfg, base, right, cfg.wordScale * 0.8f, 0f, 255);
+        apply(p, text, cfg, base, right, wscale(cfg) * 0.8f, 0f, 255);
+    }
+
+    private static final List<Piece> card = new ArrayList<>();
+    private static String cardKey = "";
+
+    /** Big song title in the world when a track starts: title, a line, the artist. */
+    private static void tickCard(Snapshot s, LyricsConfig cfg, ClientLevel level, Vec3 base, Vec3 right) {
+        String key = s.title() + "|" + s.artist();
+        boolean show = cfg.titleCard && !s.title().isBlank() && s.msSinceTrackChange() < 4500;
+        if (!show || !key.equals(cardKey)) {
+            for (Piece p : card) {
+                p.retiredAge = p.age;
+                retiring.add(p);
+            }
+            card.clear();
+            if (!show) {
+                return;
+            }
+        }
+        float f = wscale(cfg);
+        if (card.isEmpty()) {
+            cardKey = key;
+            Paint hl = Paint.highlight(cfg);
+            float top = -0.75f * f - (s.hasLine() ? 0.3f * f : 0f);
+            card.add(cardPiece(level, base, LineFormatter.colorize(s.title(), Paint.text(cfg), 0), top, 1.6f));
+            card.add(cardPiece(level, base, Component.literal("━━━━━━━━━━").withStyle(LineFormatter.style(hl.at(0))),
+                    top + 0.36f * f, 0.9f));
+            card.add(cardPiece(level, base, Component.literal(s.artist()).withStyle(LineFormatter.style(0xBBBBBB)),
+                    top + 0.62f * f, 0.85f));
+        }
+        for (Piece p : card) {
+            p.age++;
+            place(p, base, right, cfg);
+            float k = cfg.animations ? Math.min(1f, p.age / 8f) : 1f;
+            float ease = 1f - (1f - k) * (1f - k);
+            transform(p.entity, f * p.sizeMul * (0.6f + 0.4f * ease), new Vector3f(0, (1f - ease) * 0.3f * factor(cfg), 0), 0f);
+            ((TextDisplayAccessor) p.entity).lyricsplus$setTextOpacity((byte) Math.max(26, Math.round(255 * ease)));
+        }
+    }
+
+    private static Piece cardPiece(ClientLevel level, Vec3 base, Component text, float row, float size) {
+        Piece p = new Piece(spawn(level, base), 0f, row, 0f, 0f, size, -1);
+        TextDisplayAccessor td = (TextDisplayAccessor) p.entity;
+        td.lyricsplus$setText(text);
+        td.lyricsplus$setBackgroundColor(0);
+        td.lyricsplus$setFlags((byte) 1);
+        return p;
     }
 
     private static void tickRetiring(LyricsConfig cfg, ClientLevel level, Vec3 base, Vec3 right) {
@@ -288,7 +339,7 @@ public final class WorldLyrics {
             }
             float k = t / (float) RETIRE_TICKS;
             place(p, base, right, cfg);
-            transform(p.entity, cfg.wordScale * p.sizeMul * (1f - 0.4f * k), new Vector3f(0, k * 0.8f, 0), p.tilt);
+            transform(p.entity, wscale(cfg) * p.sizeMul * (1f - 0.4f * k), new Vector3f(0, k * 0.8f * factor(cfg), 0), p.tilt);
             ((TextDisplayAccessor) p.entity).lyricsplus$setTextOpacity((byte) Math.max(26, Math.round(255 * (1f - k))));
         }
     }
@@ -312,8 +363,8 @@ public final class WorldLyrics {
         float spin = 0f;
         switch (cfg.wordAnimation) {
             case POP -> scale = size * (k < 1f ? 0.2f + 1.0f * ease + 0.15f * (float) Math.sin(k * Math.PI) : 1f);
-            case RISE -> offset.y -= (1f - ease) * 0.5f;
-            case DROP -> offset.y += (1f - ease) * 0.7f;
+            case RISE -> offset.y -= (1f - ease) * 0.5f * factor(cfg);
+            case DROP -> offset.y += (1f - ease) * 0.7f * factor(cfg);
             case SPIN -> spin = (1f - ease) * (float) Math.PI * 2f;
             case NONE -> { }
         }
@@ -335,10 +386,10 @@ public final class WorldLyrics {
             float ease = 1f - (1f - k) * (1f - k) * (1f - k);
             Vec3 from = switch (cfg.scatterFrom) {
                 case CENTER -> base;
-                case SIDES -> base.add(right.scale(Math.signum(p.lateral == 0 ? 1 : p.lateral) * (cfg.worldDistance + 2)));
-                case BELOW -> pos.add(0, -2.5, 0);
-                case ABOVE -> pos.add(0, 2.5, 0);
-                case PLAYER -> base.subtract(forward.scale(cfg.worldDistance - 0.8)).add(0, -0.4, 0);
+                case SIDES -> base.add(right.scale(Math.signum(p.lateral == 0 ? 1 : p.lateral) * (dist(cfg) + 2)));
+                case BELOW -> pos.add(0, -2.5 * factor(cfg), 0);
+                case ABOVE -> pos.add(0, 2.5 * factor(cfg), 0);
+                case PLAYER -> base.subtract(forward.scale(dist(cfg) - 0.8)).add(0, -0.4, 0);
             };
             pos = from.add(pos.subtract(from).scale(ease));
         }
@@ -358,9 +409,30 @@ public final class WorldLyrics {
         return e;
     }
 
+    private static boolean sky(LyricsConfig cfg) {
+        return cfg.displayMode == DisplayMode.SKY;
+    }
+
+    /** How much bigger everything is in the sky, so words keep the same apparent size. */
+    private static float factor(LyricsConfig cfg) {
+        return sky(cfg) ? cfg.skyDistance / 3.5f : 1f;
+    }
+
+    private static float dist(LyricsConfig cfg) {
+        return sky(cfg) ? cfg.skyDistance : cfg.worldDistance;
+    }
+
+    private static float heightOf(LyricsConfig cfg) {
+        return sky(cfg) ? cfg.skyHeight : cfg.worldHeight;
+    }
+
+    private static float wscale(LyricsConfig cfg) {
+        return cfg.wordScale * factor(cfg);
+    }
+
     private static Vec3 anchor(Player player, LyricsConfig cfg) {
         Vec3 flat = flatLook(player);
-        return player.getEyePosition().add(flat.scale(cfg.worldDistance)).add(0, 0.1 + cfg.worldHeight, 0);
+        return player.getEyePosition().add(flat.scale(dist(cfg))).add(0, 0.1 + heightOf(cfg), 0);
     }
 
     private static Vec3 rightOf(Player player) {
@@ -405,6 +477,11 @@ public final class WorldLyrics {
         for (Piece p : retiring) {
             remove(level, p);
         }
+        for (Piece p : card) {
+            remove(level, p);
+        }
+        card.clear();
+        cardKey = "";
         spawned = new Piece[0];
         retiring.clear();
         lineKey = "";
