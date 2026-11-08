@@ -85,6 +85,8 @@ public final class LyricsConfig {
     public boolean albumArt = true;
     public boolean albumColors = false;
     public PanelPosition panelPosition = PanelPosition.CENTER;
+    public boolean hideWhenPaused = true;
+    public boolean seenIntro = false;
 
     // ---- persistence ----
 
@@ -156,6 +158,64 @@ public final class LyricsConfig {
         offsetMs = Math.max(-5000, Math.min(5000, offsetMs));
         backgroundOpacity = Math.max(0f, Math.min(1f, backgroundOpacity));
         worldDistance = Math.max(2f, Math.min(8f, worldDistance));
+    }
+
+    /** One-click looks. Each only changes the fields it cares about. */
+    public enum Preset { SKY_SHOW, KARAOKE, MINIMAL }
+
+    public void apply(Preset p) {
+        enabled = true;
+        switch (p) {
+            case SKY_SHOW -> {
+                displayMode = DisplayMode.SKY;
+                worldStyle = WorldStyle.WORDS;
+                font = FontStyle.SCRIPT;
+                highlightColor = 0xB57BFF;
+                highlightRainbow = false;
+                textColor = 0xFFFFFF;
+                textRainbow = false;
+                albumColors = true;
+                wordAnimation = WordAnimation.POP;
+                wordColors = WordColors.HIGHLIGHT;
+                worldFollow = true;
+                titleCard = true;
+                nowPlaying = true;
+                background = false;
+                shadow = true;
+                animations = true;
+            }
+            case KARAOKE -> {
+                displayMode = DisplayMode.SUBTITLE;
+                revealMode = RevealMode.KARAOKE;
+                font = FontStyle.ROUND;
+                highlightColor = 0x1ED760;
+                highlightRainbow = false;
+                textColor = 0xFFFFFF;
+                textRainbow = false;
+                albumColors = false;
+                background = true;
+                backgroundOpacity = 0.45f;
+                scale = 1.2f;
+                showContextLines = true;
+                titleCard = true;
+                nowPlaying = true;
+                animations = true;
+            }
+            case MINIMAL -> {
+                displayMode = DisplayMode.SIDE;
+                sidePosition = SidePosition.MIDDLE_RIGHT;
+                revealMode = RevealMode.LINE;
+                font = FontStyle.MINECRAFT;
+                textColor = 0xFFFFFF;
+                textRainbow = false;
+                showContextLines = false;
+                titleCard = false;
+                background = false;
+                nowPlaying = false;
+                progressBar = false;
+                scale = 0.8f;
+            }
+        }
     }
 
     public static <E extends Enum<E>> E next(E value) {

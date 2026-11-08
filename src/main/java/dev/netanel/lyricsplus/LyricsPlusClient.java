@@ -87,7 +87,13 @@ public final class LyricsPlusClient implements ClientModInitializer {
             changeOffset(mc, cfg, 100);
         }
 
-        WorldLyrics.tick(ENGINE.snapshot());
+        LyricsEngine.Snapshot snap = ENGINE.snapshot();
+        if (!cfg.seenIntro && mc.player != null && snap.status() == LyricsEngine.Status.READY) {
+            cfg.seenIntro = true; // one-time hint so the panel is easy to find
+            cfg.save();
+            notify(mc, Component.translatable("lyricsplus.msg.intro"));
+        }
+        WorldLyrics.tick(snap);
     }
 
     private static void changeOffset(Minecraft mc, LyricsConfig cfg, int delta) {

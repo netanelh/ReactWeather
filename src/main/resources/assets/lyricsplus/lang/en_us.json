@@ -160,5 +160,15 @@
   "lyricsplus.desc.panel_position": "Move it aside to watch words in front of you",
   "lyricsplus.panel_position.center": "Center",
   "lyricsplus.panel_position.left": "Left",
-  "lyricsplus.panel_position.right": "Right"
+  "lyricsplus.panel_position.right": "Right",
+  "lyricsplus.section.presets": "One-click looks",
+  "lyricsplus.preset.sky_show": "Sky Show",
+  "lyricsplus.preset.sky_show.sub": "Huge words in the sky",
+  "lyricsplus.preset.karaoke": "Karaoke",
+  "lyricsplus.preset.karaoke.sub": "Subtitles that light up",
+  "lyricsplus.preset.minimal": "Minimal",
+  "lyricsplus.preset.minimal.sub": "Small, out of the way",
+  "lyricsplus.label.hide_paused": "Hide when paused",
+  "lyricsplus.desc.hide_paused": "World lyrics vanish 3 s after the music pauses",
+  "lyricsplus.msg.intro": "♫ Lyrics Plus is on – press ; to style your lyrics"
 }

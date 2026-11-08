@@ -85,11 +85,14 @@ public final class LyricsConfigScreen extends Screen {
         switch (PAGES[page]) {
             case "now" -> {
                 rows.add(new NowPlayingRow());
+                rows.add(new HintRow("lyricsplus.hint.keys"));
+                rows.add(new SectionRow("presets"));
+                rows.add(new PresetRow());
+                rows.add(new OffsetRow());
                 rows.add(new SectionRow("quick"));
                 rows.add(new ToggleRow("enabled", () -> cfg.enabled, v -> cfg.enabled = v).desc());
                 rows.add(new ToggleRow("demo", () -> LyricsPlusClient.engine().isDemo(),
                         v -> LyricsPlusClient.engine().setDemo(v)).desc());
-                rows.add(new HintRow("lyricsplus.hint.keys"));
             }
             case "lyrics" -> {
                 rows.add(new SectionRow("lyrics"));
@@ -101,6 +104,7 @@ public final class LyricsConfigScreen extends Screen {
                             d -> cfg.worldStyle = cycle(cfg.worldStyle, d), true)
                             .descKey(() -> "lyricsplus.desc.show." + low(cfg.worldStyle)));
                     rows.add(new ToggleRow("world_follow", () -> cfg.worldFollow, v -> cfg.worldFollow = v).desc());
+                    rows.add(new ToggleRow("hide_paused", () -> cfg.hideWhenPaused, v -> cfg.hideWhenPaused = v).desc());
                 } else {
                     rows.add(new ChoiceRow("show", () -> "lyricsplus.reveal." + low(cfg.revealMode),
                             d -> cfg.revealMode = cycle(cfg.revealMode, d), false)
@@ -271,7 +275,7 @@ public final class LyricsConfigScreen extends Screen {
         boolean doneHover = inside(mouseX, mouseY, px + 8, dy, SIDEBAR_W - 16, 18);
         g.fill(px + 8, dy, px + SIDEBAR_W - 8, dy + 18, doneHover ? accent : CARD_HOVER);
         g.centeredText(font, Component.translatable("lyricsplus.done"), px + SIDEBAR_W / 2, dy + 5, doneHover ? 0xFF101010 : TEXT);
-        small(g, Component.literal("v2.1"), px + 10, dy - 11, 0xFF55555F);
+        small(g, Component.literal("v2.2"), px + 10, dy - 11, 0xFF55555F);
 
         // content header
         g.pose().pushMatrix();
@@ -613,6 +617,15 @@ public final class LyricsConfigScreen extends Screen {
         private final BooleanSupplier rainbow;
         private final Consumer<Boolean> setRainbow;
         private int dragBar = -1;
+        private float hue = -1f; // remembered so black/white/gray don't snap the shade bar to red
+
+        private float hue() {
+            if (hue < 0) {
+                float[] hsv = toHsv(get.getAsInt());
+                hue = hsv[1] < 0.05f ? 0.75f : hsv[0];
+            }
+            return hue;
+        }
 
         ColorRow(String key, IntSupplier get, IntConsumer set, BooleanSupplier rainbow, Consumer<Boolean> setRainbow) {
             super(key);
@@ -659,11 +672,11 @@ public final class LyricsConfigScreen extends Screen {
             for (int i = 0; i < bw; i++) {
                 g.fill(bx + i, y + 40, bx + i + 1, y + 49, 0xFF000000 | LineFormatter.hsv(i / (float) bw, 0.8f, 1f));
             }
-            float[] hsv = toHsv(get.getAsInt());
-            int hk = bx + Math.round(hsv[0] * bw);
+            float h = hue();
+            int hk = bx + Math.round(h * bw);
             g.fill(hk - 1, y + 38, hk + 2, y + 51, 0xFFFFFFFF);
             for (int i = 0; i < bw; i++) {
-                g.fill(bx + i, y + 56, bx + i + 1, y + 65, 0xFF000000 | shade(hsv[0], i / (float) bw));
+                g.fill(bx + i, y + 56, bx + i + 1, y + 65, 0xFF000000 | shade(h, i / (float) bw));
             }
             small(g, Component.translatable("lyricsplus.hint.color"), bx, y + 68, MUTED);
         }
@@ -680,6 +693,8 @@ public final class LyricsConfigScreen extends Screen {
             for (int i = 0; i < LyricsConfig.SWATCHES.length; i++) {
                 if (inside(mx, my, x + 8 + i * (s + 3), y + 22, s, 10)) {
                     set.accept(LyricsConfig.SWATCHES[i]);
+                    float[] hsv = toHsv(LyricsConfig.SWATCHES[i]);
+                    if (hsv[1] >= 0.05f) hue = hsv[0];
                     setRainbow.accept(false);
                     return false;
                 }
@@ -695,8 +710,12 @@ public final class LyricsConfigScreen extends Screen {
         void drag(double mx, double my) {
             float p = (float) Math.clamp((mx - (x + 8)) / (double) (w - 16), 0, 1);
             setRainbow.accept(false);
-            if (dragBar == 0) set.accept(LineFormatter.hsv(p, 0.8f, 1f));
-            else if (dragBar == 1) set.accept(shade(toHsv(get.getAsInt())[0], p));
+            if (dragBar == 0) {
+                hue = p;
+                set.accept(LineFormatter.hsv(p, 0.8f, 1f));
+            } else if (dragBar == 1) {
+                set.accept(shade(hue(), p));
+            }
         }
 
         private int shade(float hue, float t) {
@@ -851,6 +870,93 @@ public final class LyricsConfigScreen extends Screen {
                         case 1 -> MediaKeys.playPause();
                         default -> MediaKeys.next();
                     }
+                }
+            }
+            return false;
+        }
+    }
+
+    /** Three one-click looks. */
+    private final class PresetRow extends Row {
+        PresetRow() {
+            super("presets");
+        }
+
+        @Override
+        int height() {
+            return 30;
+        }
+
+        private int tileW() {
+            return (w - 8) / 3;
+        }
+
+        @Override
+        void render(GuiGraphicsExtractor g, boolean hover, int mx, int my) {
+            LyricsConfig.Preset[] all = LyricsConfig.Preset.values();
+            int tw = tileW();
+            for (int i = 0; i < all.length; i++) {
+                int tx = x + i * (tw + 4);
+                boolean th = inside(mx, my, tx, y, tw, height());
+                g.fill(tx, y, tx + tw, y + height(), th ? CARD_HOVER : CARD);
+                g.fill(tx, y, tx + 2, y + height(), accent());
+                g.centeredText(font, Component.translatable("lyricsplus.preset." + low(all[i])), tx + tw / 2, y + 6, TEXT);
+                g.pose().pushMatrix();
+                g.pose().translate(tx + tw / 2f, y + 18);
+                g.pose().scale(0.7f, 0.7f);
+                g.centeredText(font, Component.translatable("lyricsplus.preset." + low(all[i]) + ".sub"), 0, 0, MUTED);
+                g.pose().popMatrix();
+            }
+        }
+
+        @Override
+        boolean click(double mx, double my) {
+            LyricsConfig.Preset[] all = LyricsConfig.Preset.values();
+            int tw = tileW();
+            for (int i = 0; i < all.length; i++) {
+                if (inside(mx, my, x + i * (tw + 4), y, tw, height())) {
+                    cfg.apply(all[i]);
+                    cfg.save();
+                }
+            }
+            return false;
+        }
+    }
+
+    /** Lyrics too early / late: buttons instead of hidden keys. */
+    private final class OffsetRow extends Row {
+        OffsetRow() {
+            super("offset");
+        }
+
+        private int btnX(int i) {
+            return x + w - 6 - (3 - i) * 40;
+        }
+
+        @Override
+        void render(GuiGraphicsExtractor g, boolean hover, int mx, int my) {
+            card(g, hover);
+            g.text(font, label(), x + 8, y + 7, TEXT, false);
+            String v = String.format(Locale.ROOT, "%+.1fs", cfg.offsetMs / 1000.0);
+            g.text(font, v, btnX(0) - 8 - font.width(v), y + 7, accent(), false);
+            String[] labels = {"-0.1", "0", "+0.1"};
+            for (int i = 0; i < 3; i++) {
+                int bx = btnX(i);
+                boolean bh = inside(mx, my, bx, y + 3, 36, 16);
+                g.fill(bx, y + 3, bx + 36, y + 19, bh ? accent() : 0xFF15151B);
+                g.centeredText(font, Component.literal(labels[i]), bx + 18, y + 7, bh ? 0xFF101010 : TEXT);
+            }
+        }
+
+        @Override
+        boolean click(double mx, double my) {
+            for (int i = 0; i < 3; i++) {
+                if (inside(mx, my, btnX(i), y + 3, 36, 16)) {
+                    cfg.offsetMs = switch (i) {
+                        case 0 -> Math.max(-5000, cfg.offsetMs - 100);
+                        case 1 -> 0;
+                        default -> Math.min(5000, cfg.offsetMs + 100);
+                    };
                 }
             }
             return false;

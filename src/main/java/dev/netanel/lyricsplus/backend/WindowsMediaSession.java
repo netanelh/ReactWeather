@@ -30,6 +30,8 @@ public final class WindowsMediaSession implements AutoCloseable {
     private MemorySegment factory = MemorySegment.NULL;
     private MemorySegment manager = MemorySegment.NULL;
     private MemorySegment session = MemorySegment.NULL;
+    /** Short-lived allocations for one poll; freed in endPoll(). Falls back to the long-lived arena. */
+    private Arena scratch;
 
     private WindowsMediaSession() throws Throwable {
         ownerThread = Thread.currentThread();
@@ -72,8 +74,6 @@ public final class WindowsMediaSession implements AutoCloseable {
             } else {
                 throw hresult("RoInitialize", initHr);
             }
-            if (initHr < 0) throw hresult("RoInitialize", initHr);
-            winRtInitialized = true;
 
             acquireFactory();
             acquireManagerAndSession();
@@ -87,10 +87,42 @@ public final class WindowsMediaSession implements AutoCloseable {
         return new WindowsMediaSession();
     }
 
-    public String getTitle() throws Throwable { return getMediaString(6); }
-    public String getAlbum() throws Throwable { return getMediaString(10); }
-    /** GSMTC media-properties Artist getter (IInspectable slots 0-5; Title=6, Subtitle=7, Artist=8). */
-    public String getArtist() throws Throwable { return getMediaString(9); }
+    /** Start a poll: temporary native memory goes to a scratch arena freed by endPoll(). */
+    public void beginPoll() {
+        endPoll();
+        scratch = Arena.ofConfined();
+    }
+
+    public void endPoll() {
+        if (scratch != null) {
+            scratch.close();
+            scratch = null;
+        }
+    }
+
+    private Arena tmp() {
+        return scratch != null ? scratch : arena;
+    }
+
+    /**
+     * Title, artist and album from ONE media-properties object, so they always belong to
+     * the same track. Slots after IInspectable (0-5): Title=6, Subtitle=7, AlbumArtist=8,
+     * Artist=9, AlbumTitle=10.
+     */
+    public String[] getTitleArtistAlbum() throws Throwable {
+        checkUsable();
+        if (session.address() == 0) return new String[]{"", "", ""};
+        MemorySegment operation = callObjectGetter(session, 7, "TryGetMediaPropertiesAsync");
+        MemorySegment properties = MemorySegment.NULL;
+        try {
+            properties = (MemorySegment) awaitAsyncResult(operation);
+            requirePointer(properties, "media properties");
+            return new String[]{readHString(properties, 6), readHString(properties, 9), readHString(properties, 10)};
+        } finally {
+            if (properties.address() != 0) releaseComObject(properties);
+            releaseComObject(operation);
+        }
+    }
 
 
     public long getPositionMs(boolean isPlaying) throws Throwable {
@@ -114,8 +146,9 @@ public final class WindowsMediaSession implements AutoCloseable {
 
                 long ageMs = System.currentTimeMillis() - updatedEpochMs;
 
-                // Avoid applying an invalid or stale timestamp correction.
-                if (ageMs >= 0 && ageMs <= 5000) {
+                // Players such as browsers only update the timeline on play/pause/seek, so the
+                // correction must apply however old the timestamp is (clamped to the duration below).
+                if (ageMs >= 0) {
                     position += ageMs;
                 }
             }
@@ -206,40 +239,31 @@ public final class WindowsMediaSession implements AutoCloseable {
 
         MethodHandle getResults = comMethod(operation, 8,
                 FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
-        MemorySegment out = arena.allocate(ValueLayout.ADDRESS);
+        MemorySegment out = tmp().allocate(ValueLayout.ADDRESS);
         out.set(ValueLayout.ADDRESS, 0, MemorySegment.NULL);
         int hr = (int) getResults.invokeExact(operation, out);
         if (hr < 0) throw hresult("IAsyncOperation.GetResults", hr);
         return out.get(ValueLayout.ADDRESS, 0);
     }
 
-    private String getMediaString(int slot) throws Throwable {
-        checkUsable();
-        if (session.address() == 0) return "";
-        MemorySegment operation = callObjectGetter(session, 7, "TryGetMediaPropertiesAsync");
-        MemorySegment properties = MemorySegment.NULL;
-        try {
-            properties = (MemorySegment) awaitAsyncResult(operation);
-            requirePointer(properties, "media properties");
-            MemorySegment hstringOut = arena.allocate(ValueLayout.ADDRESS);
+    private String readHString(MemorySegment properties, int slot) throws Throwable {
+        {
+            MemorySegment hstringOut = tmp().allocate(ValueLayout.ADDRESS);
             hstringOut.set(ValueLayout.ADDRESS, 0, MemorySegment.NULL);
             MethodHandle getter = comMethod(properties, slot,
                     FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
             int hr = (int) getter.invokeExact(properties, hstringOut);
-            if (hr < 0) throw hresult(slot == 6 ? "Title" : "Artist", hr);
+            if (hr < 0) throw hresult("media property " + slot, hr);
             MemorySegment hstring = hstringOut.get(ValueLayout.ADDRESS, 0);
             if (hstring.address() == 0) return "";
             try {
-                MemorySegment lengthOut = arena.allocate(ValueLayout.JAVA_INT);
+                MemorySegment lengthOut = tmp().allocate(ValueLayout.JAVA_INT);
                 MemorySegment chars = (MemorySegment) getStringRawBuffer.invokeExact(hstring, lengthOut);
                 int length = lengthOut.get(ValueLayout.JAVA_INT, 0);
                 if (length <= 0) return "";
                 byte[] bytes = chars.reinterpret((long) length * 2).toArray(ValueLayout.JAVA_BYTE);
                 return new String(bytes, StandardCharsets.UTF_16LE);
             } finally { deleteString.invokeExact(hstring); }
-        } finally {
-            if (properties.address() != 0) releaseComObject(properties);
-            releaseComObject(operation);
         }
     }
 
@@ -252,7 +276,7 @@ public final class WindowsMediaSession implements AutoCloseable {
     private long readInt64Getter(MemorySegment object, int slot, String name) throws Throwable {
         MethodHandle getter = comMethod(object, slot,
                 FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
-        MemorySegment out = arena.allocate(ValueLayout.JAVA_LONG);
+        MemorySegment out = tmp().allocate(ValueLayout.JAVA_LONG);
         int hr = (int) getter.invokeExact(object, out);
         if (hr < 0) throw hresult(name, hr);
         return out.get(ValueLayout.JAVA_LONG, 0);
@@ -261,7 +285,7 @@ public final class WindowsMediaSession implements AutoCloseable {
     private int readInt32Getter(MemorySegment object, int slot, String name) throws Throwable {
         MethodHandle getter = comMethod(object, slot,
                 FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
-        MemorySegment out = arena.allocate(ValueLayout.JAVA_INT);
+        MemorySegment out = tmp().allocate(ValueLayout.JAVA_INT);
         int hr = (int) getter.invokeExact(object, out);
         if (hr < 0) throw hresult(name, hr);
         return out.get(ValueLayout.JAVA_INT, 0);
@@ -276,7 +300,7 @@ public final class WindowsMediaSession implements AutoCloseable {
     private MemorySegment callObjectGetterAllowNull(MemorySegment object, int slot, String name) throws Throwable {
         MethodHandle getter = comMethod(object, slot,
                 FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
-        MemorySegment out = arena.allocate(ValueLayout.ADDRESS);
+        MemorySegment out = tmp().allocate(ValueLayout.ADDRESS);
         out.set(ValueLayout.ADDRESS, 0, MemorySegment.NULL);
         int hr = (int) getter.invokeExact(object, out);
         if (hr < 0) throw hresult(name, hr);
@@ -284,11 +308,11 @@ public final class WindowsMediaSession implements AutoCloseable {
     }
 
     private MemorySegment queryInterface(MemorySegment object, UUID iidValue) throws Throwable {
-        MemorySegment iid = writeGuid(arena, iidValue);
+        MemorySegment iid = writeGuid(tmp(), iidValue);
         MethodHandle qi = comMethod(object, 0,
                 FunctionDescriptor.of(ValueLayout.JAVA_INT,
                         ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
-        MemorySegment out = arena.allocate(ValueLayout.ADDRESS);
+        MemorySegment out = tmp().allocate(ValueLayout.ADDRESS);
         out.set(ValueLayout.ADDRESS, 0, MemorySegment.NULL);
         int hr = (int) qi.invokeExact(object, iid, out);
         if (hr < 0) throw hresult("QueryInterface", hr);
@@ -349,6 +373,7 @@ public final class WindowsMediaSession implements AutoCloseable {
             throw new IllegalStateException("Close WindowsMediaSession on the same thread that opened it");
         }
         closed = true;
+        endPoll();
         Throwable failure = null;
         try { releaseComObject(session); } catch (Throwable t) { failure = t; }
         try { releaseComObject(manager); } catch (Throwable t) { if (failure == null) failure = t; else failure.addSuppressed(t); }

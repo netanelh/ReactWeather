@@ -81,6 +81,7 @@ public final class WorldLyrics {
     private static Vec3 fixedRight;
     private static final List<Piece> retiring = new ArrayList<>();
     private static ClientLevel lastLevel;
+    private static long lastPlayingAt = System.currentTimeMillis();
 
     private WorldLyrics() {
     }
@@ -91,7 +92,11 @@ public final class WorldLyrics {
         ClientLevel level = mc.level;
         Player player = mc.player;
 
-        boolean active = cfg.enabled && !mc.gui.hud.isHidden()
+        if (s.playing() || s.demo()) {
+            lastPlayingAt = System.currentTimeMillis();
+        }
+        boolean pausedLong = cfg.hideWhenPaused && System.currentTimeMillis() - lastPlayingAt > 3000;
+        boolean active = cfg.enabled && !mc.gui.hud.isHidden() && !pausedLong
                 && (cfg.displayMode == DisplayMode.WORLD || cfg.displayMode == DisplayMode.SKY)
                 && level != null && player != null && s.status() != Status.NO_PLAYER && s.status() != Status.AD;
         if (!active) {
@@ -138,6 +143,7 @@ public final class WorldLyrics {
     // ------------------------------------------------------------------ layout
 
     private static void layout(Snapshot s, LyricsConfig cfg, boolean wordMode, Player player) {
+        scatter = wordMode && cfg.worldStyle == WorldStyle.SCATTER;
         fixedBase = anchor(player, cfg);
         fixedRight = rightOf(player);
         var font = Minecraft.getInstance().font;
@@ -160,7 +166,6 @@ public final class WorldLyrics {
         sizes = new float[n];
         java.util.Arrays.fill(sizes, 1f);
         spawned = new Piece[n];
-        scatter = cfg.worldStyle == WorldStyle.SCATTER;
         if (scatter) {
             scatterLayout(s, cfg, n);
             return;
@@ -267,6 +272,7 @@ public final class WorldLyrics {
     private static void tickLine(Snapshot s, LyricsConfig cfg, ClientLevel level, Vec3 base, Vec3 right) {
         Component text = HudRenderer.currentComponent(s, cfg);
         if (text.getString().isBlank()) {
+            retireCurrent(); // e.g. "not found" message timed out
             return;
         }
         if (spawned.length == 0) {
@@ -382,7 +388,7 @@ public final class WorldLyrics {
         Vec3 pos = base.add(right.scale(p.lateral)).add(0, -p.row, 0).add(forward.scale(p.depth));
 
         // Scatter mode: fly from the chosen origin to the word's spot.
-        if (scatter && cfg.animations && p.retiredAge < 0 && p.age < 7) {
+        if (scatter && p.index >= 0 && cfg.animations && p.retiredAge < 0 && p.age < 7) {
             float k = p.age / 7f;
             float ease = 1f - (1f - k) * (1f - k) * (1f - k);
             Vec3 from = switch (cfg.scatterFrom) {
@@ -404,7 +410,8 @@ public final class WorldLyrics {
         DisplayAccessor d = (DisplayAccessor) e;
         d.lyricsplus$setBillboardConstraints(Display.BillboardConstraints.CENTER);
         d.lyricsplus$setBrightnessOverride(Brightness.FULL_BRIGHT);
-        d.lyricsplus$setTransformationInterpolationDuration(2);
+        d.lyricsplus$setTransformationInterpolationDuration(1);
+        d.lyricsplus$setViewRange(4f); // keep far sky words visible
         ((TextDisplayAccessor) e).lyricsplus$setLineWidth(400);
         level.addEntity(e);
         return e;
@@ -449,9 +456,9 @@ public final class WorldLyrics {
 
     private static void transform(Display.TextDisplay e, float scale, Vector3f offset, float spin) {
         DisplayAccessor d = (DisplayAccessor) e;
-        d.lyricsplus$setTransformationInterpolationDelay(0);
         d.lyricsplus$setTransformation(new Transformation(
                 offset, new Quaternionf().rotateZ(spin), new Vector3f(scale, scale, scale), new Quaternionf()));
+        d.lyricsplus$setUpdateStartTick(true);
     }
 
     private static void retireCurrent() {
@@ -485,6 +492,8 @@ public final class WorldLyrics {
         cardKey = "";
         spawned = new Piece[0];
         retiring.clear();
+        scatter = false;
+        lastLevel = null;
         lineKey = "";
     }
 }

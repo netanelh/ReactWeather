@@ -79,6 +79,9 @@ public final class LyricsEngine {
     private volatile int generation;
 
     private volatile boolean adPlaying;
+    private final Object stateLock = new Object();
+    private long blankSince = -1;
+    private volatile long retryAt = -1;
     private boolean demo;
     private long demoStart;
 
@@ -126,8 +129,21 @@ public final class LyricsEngine {
             return;
         }
         if (a == null || t == null || t.isBlank()) {
+            // Nothing playing for a moment (players blink empty at track change), then clear.
+            long now = System.currentTimeMillis();
+            if (blankSince < 0) blankSince = now;
+            if (now - blankSince > 1000 && !trackKey.isEmpty()) {
+                synchronized (stateLock) {
+                    trackKey = "";
+                    status = Status.NO_PLAYER;
+                    lines = null;
+                    adPlaying = false;
+                    generation++;
+                }
+            }
             return;
         }
+        blankSince = -1;
         // Ads: hide everything until music comes back. The song before the ad keeps its key,
         // so if it simply resumes we don't replay the title card.
         adPlaying = isAd(a, t, music.getDuration());
@@ -138,6 +154,9 @@ public final class LyricsEngine {
         String key = a + " - " + t;
         if (!key.equals(trackKey)) {
             onTrackChanged(key, a, t);
+        } else if (retryAt > 0 && System.currentTimeMillis() >= retryAt) {
+            retryAt = -1; // last lookup failed because of the network: try again
+            startFetch(key, a, t);
         }
     }
 
@@ -169,39 +188,66 @@ public final class LyricsEngine {
     }
 
     private void onTrackChanged(String key, String a, String t) {
-        trackKey = key;
-        artist = a;
-        title = t;
-        trackChangedAt = System.currentTimeMillis();
-        int gen = ++generation;
-        dev.netanel.lyricsplus.backend.AlbumArt.request(a, t);
-
+        retryAt = -1;
         LyricsFetcher.Result cached;
         synchronized (cache) {
             cached = cache.get(key);
         }
-        if (cached != null) {
-            lines = cached.lines();
-            estimated = cached.estimated();
-            status = cached.lines().isEmpty() ? Status.NOT_FOUND : Status.READY;
-            return;
-        }
-
-        lines = null;
-        estimated = false;
-        status = Status.LOADING;
-        String album = safe(music::getAlbum);
-        long durationSec = music.getDuration();
-
-        fetchThread.submit(() -> {
-            LyricsFetcher.Result result = fetcher.fetch(a, t, album, durationSec);
-            synchronized (cache) {
-                cache.put(key, result);
+        synchronized (stateLock) {
+            trackKey = key;
+            artist = a;
+            title = t;
+            trackChangedAt = System.currentTimeMillis();
+            generation++;
+            if (cached != null) {
+                lines = cached.lines();
+                estimated = cached.estimated();
+                status = cached.lines().isEmpty() ? Status.NOT_FOUND : Status.READY;
             }
-            if (gen == generation) { // ignore results for a song we already skipped
+        }
+        dev.netanel.lyricsplus.backend.AlbumArt.request(a, t);
+        if (cached == null) {
+            startFetch(key, a, t);
+        }
+    }
+
+    private void startFetch(String key, String a, String t) {
+        int gen;
+        synchronized (stateLock) {
+            gen = generation;
+            lines = null;
+            estimated = false;
+            status = Status.LOADING;
+        }
+        MusicManager player = music;
+        fetchThread.submit(() -> {
+            try {
+                // Right after a track change the player may still report the previous length.
+                Thread.sleep(700);
+            } catch (InterruptedException e) {
+                return;
+            }
+            if (gen != generation || player == null) {
+                return;
+            }
+            String album = safe(player::getAlbum);
+            long durationSec = player.getDuration();
+            LyricsFetcher.Result result = fetcher.fetch(a, t, album, durationSec);
+            if (!result.failed()) {
+                synchronized (cache) {
+                    cache.put(key, result);
+                }
+            }
+            synchronized (stateLock) {
+                if (gen != generation) {
+                    return; // a different song is playing now
+                }
                 lines = result.lines();
                 estimated = result.estimated();
                 status = result.lines().isEmpty() ? Status.NOT_FOUND : Status.READY;
+            }
+            if (result.failed()) {
+                retryAt = System.currentTimeMillis() + 30_000;
             }
         });
     }

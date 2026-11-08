@@ -1,60 +1,48 @@
-
 package dev.netanel.lyricsplus.backend;
 
-public final class WindowsMusicManager extends MusicManager
-        implements AutoCloseable {
+/**
+ * Polls the Windows media session on its own thread. Everything about the current track is
+ * published as ONE immutable State, so readers never see a new artist with an old title.
+ */
+public final class WindowsMusicManager extends MusicManager implements AutoCloseable {
 
-    private volatile String artist = "";
-    private volatile String album = "";
-    private volatile String title = "";
-    private volatile long duration;
-    private volatile long position;
-    private volatile boolean playing;
+    private record State(String artist, String title, String album, long durationMs,
+                         long positionMs, long capturedNanos, boolean playing) {
+        static final State EMPTY = new State("", "", "", 0, 0, System.nanoTime(), false);
+    }
 
+    private volatile State state = State.EMPTY;
     private volatile boolean running = true;
     private final Thread worker;
 
-    private volatile long positionCapturedNanos = System.nanoTime();
-
     public WindowsMusicManager() {
-        worker = new Thread(this::runWorker, "Spotify-Lyrics-Windows-Media");
+        worker = new Thread(this::runWorker, "LyricsPlus-Windows-Media");
         worker.setDaemon(true);
         worker.start();
     }
 
     private void runWorker() {
-        // IMPORTANT: open, use, and close the session on this same thread.
+        // The session must be opened, used and closed on this same thread.
         while (running) {
             try (WindowsMediaSession media = WindowsMediaSession.open()) {
                 while (running) {
+                    media.beginPoll();
                     try {
                         if (!media.refreshSession()) {
-                            Thread.sleep(1000);
-                            continue;
+                            state = State.EMPTY; // player closed: nothing is playing
+                        } else {
+                            String[] tad = media.getTitleArtistAlbum();
+                            boolean playing = media.isPlaying();
+                            long duration = media.getDurationMs();
+                            long position = media.getPositionMs(playing);
+                            state = new State(tad[1], tad[0], tad[2], duration, position, System.nanoTime(), playing);
                         }
-
-                        String newArtist = media.getArtist();
-                        String newTitle = media.getTitle();
-                        String newAlbum = media.getAlbum();
-                        boolean newPlaying = media.isPlaying();
-                        long newDuration = media.getDurationMs();
-                        long newPosition = media.getPositionMs(newPlaying);
-
-                        artist = newArtist;
-                        title = newTitle;
-                        album = newAlbum;
-                        duration = newDuration;
-                        position = newPosition;
-                        positionCapturedNanos = System.nanoTime();
-                        playing = newPlaying;
                     } catch (Throwable e) {
-                        // Keep the last valid snapshot if a read fails.
-                        System.err.println(
-                                "[Spotify Lyrics] Windows media read failed: "
-                                        + e.getMessage()
-                        );
+                        // Keep the last snapshot if one read fails.
+                        System.err.println("[Lyrics Plus] Windows media read failed: " + e.getMessage());
+                    } finally {
+                        media.endPoll();
                     }
-
                     Thread.sleep(250);
                 }
             } catch (InterruptedException e) {
@@ -63,10 +51,8 @@ public final class WindowsMusicManager extends MusicManager
                 }
             } catch (Throwable e) {
                 if (running) {
-                    System.err.println(
-                            "[Spotify Lyrics] Windows media initialization failed: "
-                                    + e.getMessage()
-                    );
+                    state = State.EMPTY;
+                    System.err.println("[Lyrics Plus] Windows media initialization failed: " + e.getMessage());
                     try {
                         Thread.sleep(2000);
                     } catch (InterruptedException interrupted) {
@@ -81,45 +67,40 @@ public final class WindowsMusicManager extends MusicManager
 
     @Override
     public String getArtist() {
-        return artist;
+        return state.artist();
     }
 
     @Override
     public String getTitle() {
-        return title;
+        return state.title();
     }
 
     @Override
     public String getAlbum() {
-        return album;
+        return state.album();
     }
 
     @Override
     public long getDuration() {
-        return duration / 1000;
+        return state.durationMs() / 1000;
     }
 
     @Override
     public long getPosition() {
-        long current = position;
-
-        if (playing) {
-            long elapsedMs =
-                    (System.nanoTime() - positionCapturedNanos) / 1_000_000L;
-            current += Math.max(0L, elapsedMs);
+        State s = state;
+        long current = s.positionMs();
+        if (s.playing()) {
+            current += Math.max(0L, (System.nanoTime() - s.capturedNanos()) / 1_000_000L);
         }
-
-        long currentDuration = duration;
-        if (currentDuration > 0) {
-            current = Math.min(current, currentDuration);
+        if (s.durationMs() > 0) {
+            current = Math.min(current, s.durationMs());
         }
-
         return Math.max(0L, current);
     }
 
     @Override
     public boolean isPlaying() {
-        return playing;
+        return state.playing();
     }
 
     @Override

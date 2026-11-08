@@ -24,9 +24,15 @@ import java.util.Set;
  */
 public final class LyricsFetcher {
 
-    public record Result(List<LyricsLine> lines, boolean estimated) {
-        public static final Result NONE = new Result(List.of(), false);
+    /** failed = nothing could be checked (network down, rate limited): worth retrying later. */
+    public record Result(List<LyricsLine> lines, boolean estimated, boolean failed) {
+        public static final Result NONE = new Result(List.of(), false, false);
+        public static final Result FAILED = new Result(List.of(), false, true);
     }
+
+    // per-fetch bookkeeping (fetch() only runs on the single fetch thread)
+    private int answered;
+    private boolean transientError;
 
     private static final String USER_AGENT = "LyricsPlus/2.0 (Minecraft Fabric mod)";
 
@@ -36,6 +42,8 @@ public final class LyricsFetcher {
     private final LyricsManager parser = new LyricsManager();
 
     public Result fetch(String artist, String title, String album, long durationSec) {
+        answered = 0;
+        transientError = false;
         String plainFallback = null;
 
         // 1. exact match
@@ -91,15 +99,15 @@ public final class LyricsFetcher {
         if (plainFallback != null) {
             List<LyricsLine> est = estimate(plainFallback, durationSec);
             if (!est.isEmpty()) {
-                return new Result(est, true);
+                return new Result(est, true, false);
             }
         }
-        return Result.NONE;
+        return transientError && answered == 0 ? Result.FAILED : Result.NONE;
     }
 
     private Result synced(String lrc) {
         List<LyricsLine> lines = parser.parseLyrics(lrc);
-        return lines.isEmpty() ? Result.NONE : new Result(lines, false);
+        return lines.isEmpty() ? Result.NONE : new Result(lines, false, false);
     }
 
     // ------------------------------------------------------------------ query building
@@ -236,8 +244,20 @@ public final class LyricsFetcher {
                 .timeout(Duration.ofSeconds(10))
                 .GET()
                 .build();
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        return response.statusCode() == 200 ? response.body() : null;
+        HttpResponse<String> response;
+        try {
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (Exception e) {
+            transientError = true;
+            throw e;
+        }
+        int code = response.statusCode();
+        if (code == 200 || code == 404) {
+            answered++;
+        } else if (code == 429 || code >= 500) {
+            transientError = true;
+        }
+        return code == 200 ? response.body() : null;
     }
 
     private static String field(JsonObject json, String name) {
