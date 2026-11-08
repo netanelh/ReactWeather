@@ -2,7 +2,7 @@
 
 Synced Spotify lyrics in Minecraft 26.2 (Fabric) with a full customization panel.
 
-- **L** – open the panel · **K** – show/hide · **[ / ]** – nudge sync by 0.1s
+- **;** or **/lyrics** – open the panel · **K** – show/hide · **- / =** – nudge sync by 0.1s
 - Display modes: side lines, subtitles, big center, floating in the world (3D)
 - Styles: full line, word by word, karaoke highlight
 - 13 colors incl. rainbow, separate highlight color, size, background, shadow

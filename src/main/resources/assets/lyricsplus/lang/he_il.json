@@ -1,9 +1,6 @@
 {
   "key.category.lyricsplus.main": "Lyrics Plus",
-  "key.lyricsplus.open_panel": "פתיחת פאנל המילים",
   "key.lyricsplus.toggle": "הצגה / הסתרה של המילים",
-  "key.lyricsplus.offset_down": "מילים מוקדם יותר (‎-0.1s)",
-  "key.lyricsplus.offset_up": "מילים מאוחר יותר (‎+0.1s)",
   "lyricsplus.screen.title": "Lyrics Plus",
   "lyricsplus.option.mode": "תצוגה: %s",
   "lyricsplus.option.reveal": "סגנון: %s",
@@ -53,5 +50,8 @@
   "lyricsplus.color.green": "ירוק",
   "lyricsplus.color.spotify": "ירוק ספוטיפיי",
   "lyricsplus.color.gray": "אפור",
-  "lyricsplus.color.rainbow": "קשת"
+  "lyricsplus.color.rainbow": "קשת",
+  "key.lyricsplus.panel": "פתיחת פאנל המילים",
+  "key.lyricsplus.earlier": "מילים מוקדם יותר (‎-0.1s)",
+  "key.lyricsplus.later": "מילים מאוחר יותר (‎+0.1s)"
 }

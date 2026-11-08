@@ -48,7 +48,7 @@ public final class LyricsEngine {
     private static final List<LyricsLine> DEMO_LINES = List.of(
             new LyricsLine(0, ""),
             new LyricsLine(4000, "Welcome to Lyrics Plus"),
-            new LyricsLine(7000, "Press L to open the panel"),
+            new LyricsLine(7000, "Press ; or type /lyrics"),
             new LyricsLine(10000, "Pick a color and a style"),
             new LyricsLine(13000, "Let the words float in the world"),
             new LyricsLine(16500, "Or sing along karaoke style"),

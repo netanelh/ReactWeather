@@ -6,6 +6,8 @@ import dev.netanel.lyricsplus.gui.LyricsConfigScreen;
 import dev.netanel.lyricsplus.render.HudRenderer;
 import dev.netanel.lyricsplus.render.WorldLyrics;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
@@ -24,6 +26,7 @@ public final class LyricsPlusClient implements ClientModInitializer {
 
     private static final LyricsEngine ENGINE = new LyricsEngine();
 
+    private static boolean openPanelNextTick;
     private static KeyMapping openPanel;
     private static KeyMapping toggleLyrics;
     private static KeyMapping offsetDown;
@@ -39,18 +42,24 @@ public final class LyricsPlusClient implements ClientModInitializer {
 
         KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"));
         openPanel = KeyMappingHelper.registerKeyMapping(new KeyMapping(
-                "key.lyricsplus.open_panel", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_L, category));
+                "key.lyricsplus.panel", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_SEMICOLON, category));
         toggleLyrics = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.lyricsplus.toggle", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_K, category));
         offsetDown = KeyMappingHelper.registerKeyMapping(new KeyMapping(
-                "key.lyricsplus.offset_down", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_BRACKET, category));
+                "key.lyricsplus.earlier", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_MINUS, category));
         offsetUp = KeyMappingHelper.registerKeyMapping(new KeyMapping(
-                "key.lyricsplus.offset_up", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_BRACKET, category));
+                "key.lyricsplus.later", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_EQUAL, category));
 
         HudElementRegistry.attachElementAfter(
                 VanillaHudElements.CHAT,
                 Identifier.fromNamespaceAndPath(MOD_ID, "lyrics"),
                 HudRenderer::render);
+
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
+                dispatcher.register(ClientCommands.literal("lyrics").executes(context -> {
+                    openPanelNextTick = true; // the chat screen closes right after the command runs
+                    return 1;
+                })));
 
         ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
     }
@@ -59,6 +68,10 @@ public final class LyricsPlusClient implements ClientModInitializer {
         ENGINE.tick();
         LyricsConfig cfg = LyricsConfig.get();
 
+        if (openPanelNextTick) {
+            openPanelNextTick = false;
+            mc.gui.setScreen(new LyricsConfigScreen(null));
+        }
         while (openPanel.consumeClick()) {
             mc.gui.setScreen(new LyricsConfigScreen(mc.gui.screen()));
         }

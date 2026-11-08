@@ -1,9 +1,6 @@
 {
   "key.category.lyricsplus.main": "Lyrics Plus",
-  "key.lyricsplus.open_panel": "Open lyrics panel",
   "key.lyricsplus.toggle": "Show / hide lyrics",
-  "key.lyricsplus.offset_down": "Lyrics earlier (-0.1s)",
-  "key.lyricsplus.offset_up": "Lyrics later (+0.1s)",
   "lyricsplus.screen.title": "Lyrics Plus",
   "lyricsplus.option.mode": "Display: %s",
   "lyricsplus.option.reveal": "Style: %s",
@@ -53,5 +50,8 @@
   "lyricsplus.color.green": "Green",
   "lyricsplus.color.spotify": "Spotify green",
   "lyricsplus.color.gray": "Gray",
-  "lyricsplus.color.rainbow": "Rainbow"
+  "lyricsplus.color.rainbow": "Rainbow",
+  "key.lyricsplus.panel": "Open lyrics panel",
+  "key.lyricsplus.earlier": "Lyrics earlier (-0.1s)",
+  "key.lyricsplus.later": "Lyrics later (+0.1s)"
 }
