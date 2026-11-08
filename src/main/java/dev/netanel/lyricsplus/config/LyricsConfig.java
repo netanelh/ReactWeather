@@ -55,7 +55,10 @@ public final class LyricsConfig {
     public int highlightColor = 0x1ED760;
     public boolean highlightRainbow = false;
     public float scale = 1.0f;
-    public int offsetMs = 0;
+    /** Delay for all songs in ms: positive = lyrics later, negative = earlier. */
+    public int delayMs = 0;
+    /** Extra delay remembered per song ("artist - title" -> ms). */
+    public java.util.Map<String, Integer> songDelays = new java.util.HashMap<>();
     public boolean enabled = true;
     public boolean titleCard = true;
     public boolean showContextLines = true;
@@ -114,6 +117,11 @@ public final class LyricsConfig {
                     return new LyricsConfig();
                 }
                 LyricsConfig c = GSON.fromJson(json, LyricsConfig.class);
+                // Up to v2.2 "offsetMs" meant the opposite (positive = earlier).
+                com.google.gson.JsonObject raw = com.google.gson.JsonParser.parseString(json).getAsJsonObject();
+                if (c != null && raw.has("offsetMs") && !raw.has("delayMs")) {
+                    c.delayMs = -raw.get("offsetMs").getAsInt();
+                }
                 if (c != null) {
                     c.sanitize();
                     return c;
@@ -156,7 +164,8 @@ public final class LyricsConfig {
         wordSpacing = Math.max(0.3f, Math.min(3f, wordSpacing));
         worldHeight = Math.max(-1.5f, Math.min(1.5f, worldHeight));
         scale = Math.max(0.5f, Math.min(3.0f, scale));
-        offsetMs = Math.max(-5000, Math.min(5000, offsetMs));
+        delayMs = Math.max(-5000, Math.min(5000, delayMs));
+        if (songDelays == null) songDelays = new java.util.HashMap<>();
         backgroundOpacity = Math.max(0f, Math.min(1f, backgroundOpacity));
         worldDistance = Math.max(2f, Math.min(8f, worldDistance));
     }
@@ -217,6 +226,21 @@ public final class LyricsConfig {
                 scale = 0.8f;
             }
         }
+    }
+
+    public int songDelay(String trackKey) {
+        return trackKey == null || trackKey.isEmpty() ? 0 : songDelays.getOrDefault(trackKey, 0);
+    }
+
+    /** Nudge the current song (or everything, if no song is known) by deltaMs. */
+    public void nudge(String trackKey, int deltaMs) {
+        if (trackKey == null || trackKey.isEmpty()) {
+            delayMs = Math.max(-5000, Math.min(5000, delayMs + deltaMs));
+            return;
+        }
+        int v = Math.max(-10000, Math.min(10000, songDelay(trackKey) + deltaMs));
+        if (v == 0) songDelays.remove(trackKey);
+        else songDelays.put(trackKey, v);
     }
 
     public static <E extends Enum<E>> E next(E value) {

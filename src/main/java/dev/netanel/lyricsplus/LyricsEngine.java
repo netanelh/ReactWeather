@@ -56,6 +56,7 @@ public final class LyricsEngine {
             new LyricsLine(23000, "The music never stops")
     );
     private static final long DEMO_LENGTH = 27000;
+    private static final long DISPLAY_LEAD_MS = 150;
 
     private final ExecutorService fetchThread = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "LyricsPlus-Fetch");
@@ -95,6 +96,11 @@ public final class LyricsEngine {
         if (!on) {
             trackKey = ""; // force a reload of the real song
         }
+    }
+
+    /** "artist - title" of the current song, or "" (used for per-song timing). */
+    public String trackKey() {
+        return demo ? "" : trackKey;
     }
 
     public boolean isDemo() {
@@ -267,7 +273,8 @@ public final class LyricsEngine {
         if (adPlaying) {
             return build("", "", 0, 0, false, Status.AD, null, now - trackChangedAt, false, false);
         }
-        long pos = music.getPosition() + cfg.offsetMs;
+        // Show lyrics slightly ahead so entry animations finish on the beat, then apply delays.
+        long pos = music.getPosition() + DISPLAY_LEAD_MS - cfg.delayMs - cfg.songDelay(trackKey);
         long durMs = music.getDuration() * 1000L;
         return build(title, artist, pos, durMs, music.isPlaying(), status, lines,
                 now - trackChangedAt, false, estimated);

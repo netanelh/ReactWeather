@@ -18,7 +18,7 @@
   "lyricsplus.card.now_playing": "מתנגן עכשיו",
   "lyricsplus.msg.shown": "המילים מוצגות",
   "lyricsplus.msg.hidden": "המילים מוסתרות",
-  "lyricsplus.msg.offset": "תזמון מילים: %s",
+  "lyricsplus.msg.offset": "תזמון לשיר הזה: %s (+ מאוחר / - מוקדם)",
   "lyricsplus.color.rainbow": "קשת",
   "key.lyricsplus.panel": "פתיחת פאנל המילים",
   "key.lyricsplus.earlier": "מילים מוקדם יותר (‎-0.1s)",
@@ -32,7 +32,7 @@
   "lyricsplus.label.mode": "מצב תצוגה",
   "lyricsplus.label.position": "מיקום בצד",
   "lyricsplus.label.scale": "גודל טקסט",
-  "lyricsplus.label.offset": "תזמון",
+  "lyricsplus.label.offset": "תזמון (כל השירים)",
   "lyricsplus.label.enabled": "הצג מילים",
   "lyricsplus.label.reveal": "סגנון טקסט",
   "lyricsplus.label.context_lines": "שורה קודמת / הבאה",
@@ -128,7 +128,7 @@
   "lyricsplus.desc.world_follow": "פועל: המילים מסתובבות איתך. כבוי: נשארות איפה שהופיעו",
   "lyricsplus.desc.context_lines": "הצג גם את השורה הקודמת והבאה",
   "lyricsplus.desc.title_card": "שם השיר בגדול כשמתחיל שיר",
-  "lyricsplus.desc.offset": "המילים מוקדמות או מאוחרות? תזיז אותן כאן",
+  "lyricsplus.desc.offset": "+ = מילים מאוחר יותר, - = מוקדם יותר",
   "lyricsplus.desc.album_colors": "צבע ההדגשה לפי עטיפת האלבום",
   "lyricsplus.desc.scale": "גודל המילים על המסך",
   "lyricsplus.desc.current_word_scale": "מבליט את המילה שמושרת עכשיו",
@@ -172,5 +172,7 @@
   "lyricsplus.desc.hide_paused": "המילים בעולם נעלמות 3 שניות אחרי שהמוזיקה נעצרת",
   "lyricsplus.msg.intro": "♫ Lyrics Plus פועל – לחץ ; כדי לעצב את המילים",
   "lyricsplus.label.see_through": "להציג דרך בלוקים",
-  "lyricsplus.desc.see_through": "המילים נראות גם מאחורי קירות וגבעות"
+  "lyricsplus.desc.see_through": "המילים נראות גם מאחורי קירות וגבעות",
+  "lyricsplus.label.song_offset": "תזמון (השיר הזה)",
+  "lyricsplus.desc.song_offset": "נשמר לשיר הזה · + מאוחר, - מוקדם"
 }

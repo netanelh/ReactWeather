@@ -113,7 +113,7 @@ public final class LyricsConfigScreen extends Screen {
                 }
                 rows.add(new ToggleRow("title_card", () -> cfg.titleCard, v -> cfg.titleCard = v).desc());
                 rows.add(new SectionRow("timing"));
-                rows.add(new SliderRow("offset", -3000, 3000, 50, () -> cfg.offsetMs, v -> cfg.offsetMs = (int) Math.round(v),
+                rows.add(new SliderRow("offset", -3000, 3000, 50, () -> cfg.delayMs, v -> cfg.delayMs = (int) Math.round(v),
                         v -> String.format(Locale.ROOT, "%+.2fs", v / 1000.0)).desc());
             }
             case "look" -> {
@@ -276,7 +276,7 @@ public final class LyricsConfigScreen extends Screen {
         boolean doneHover = inside(mouseX, mouseY, px + 8, dy, SIDEBAR_W - 16, 18);
         g.fill(px + 8, dy, px + SIDEBAR_W - 8, dy + 18, doneHover ? accent : CARD_HOVER);
         g.centeredText(font, Component.translatable("lyricsplus.done"), px + SIDEBAR_W / 2, dy + 5, doneHover ? 0xFF101010 : TEXT);
-        small(g, Component.literal("v2.2"), px + 10, dy - 11, 0xFF55555F);
+        small(g, Component.literal("v2.3"), px + 10, dy - 11, 0xFF55555F);
 
         // content header
         g.pose().pushMatrix();
@@ -927,7 +927,8 @@ public final class LyricsConfigScreen extends Screen {
     /** Lyrics too early / late: buttons instead of hidden keys. */
     private final class OffsetRow extends Row {
         OffsetRow() {
-            super("offset");
+            super("song_offset");
+            desc();
         }
 
         private int btnX(int i) {
@@ -937,27 +938,34 @@ public final class LyricsConfigScreen extends Screen {
         @Override
         void render(GuiGraphicsExtractor g, boolean hover, int mx, int my) {
             card(g, hover);
-            g.text(font, label(), x + 8, y + 7, TEXT, false);
-            String v = String.format(Locale.ROOT, "%+.1fs", cfg.offsetMs / 1000.0);
-            g.text(font, v, btnX(0) - 8 - font.width(v), y + 7, accent(), false);
+            title(g);
+            int by = controlY() - 8;
+            String key = LyricsPlusClient.engine().trackKey();
+            int ms = key.isEmpty() ? cfg.delayMs : cfg.songDelay(key);
+            String v = String.format(Locale.ROOT, "%+.1fs", ms / 1000.0);
+            g.text(font, v, btnX(0) - 8 - font.width(v), by + 4, accent(), false);
             String[] labels = {"-0.1", "0", "+0.1"};
             for (int i = 0; i < 3; i++) {
                 int bx = btnX(i);
-                boolean bh = inside(mx, my, bx, y + 3, 36, 16);
-                g.fill(bx, y + 3, bx + 36, y + 19, bh ? accent() : 0xFF15151B);
-                g.centeredText(font, Component.literal(labels[i]), bx + 18, y + 7, bh ? 0xFF101010 : TEXT);
+                boolean bh = inside(mx, my, bx, by, 36, 16);
+                g.fill(bx, by, bx + 36, by + 16, bh ? accent() : 0xFF15151B);
+                g.centeredText(font, Component.literal(labels[i]), bx + 18, by + 4, bh ? 0xFF101010 : TEXT);
             }
         }
 
         @Override
         boolean click(double mx, double my) {
             for (int i = 0; i < 3; i++) {
-                if (inside(mx, my, btnX(i), y + 3, 36, 16)) {
-                    cfg.offsetMs = switch (i) {
-                        case 0 -> Math.max(-5000, cfg.offsetMs - 100);
-                        case 1 -> 0;
-                        default -> Math.min(5000, cfg.offsetMs + 100);
-                    };
+                if (inside(mx, my, btnX(i), controlY() - 8, 36, 16)) {
+                    String key = LyricsPlusClient.engine().trackKey();
+                    switch (i) {
+                        case 0 -> cfg.nudge(key, -100);
+                        case 1 -> {
+                            if (key.isEmpty()) cfg.delayMs = 0;
+                            else cfg.songDelays.remove(key);
+                        }
+                        default -> cfg.nudge(key, 100);
+                    }
                 }
             }
             return false;

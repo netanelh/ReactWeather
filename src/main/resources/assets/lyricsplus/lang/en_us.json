@@ -18,7 +18,7 @@
   "lyricsplus.card.now_playing": "NOW PLAYING",
   "lyricsplus.msg.shown": "Lyrics shown",
   "lyricsplus.msg.hidden": "Lyrics hidden",
-  "lyricsplus.msg.offset": "Lyrics offset: %s",
+  "lyricsplus.msg.offset": "Timing for this song: %s (+ later / - earlier)",
   "lyricsplus.color.rainbow": "Rainbow",
   "key.lyricsplus.panel": "Open lyrics panel",
   "key.lyricsplus.earlier": "Lyrics earlier (-0.1s)",
@@ -32,7 +32,7 @@
   "lyricsplus.label.mode": "Display mode",
   "lyricsplus.label.position": "Side position",
   "lyricsplus.label.scale": "Text size",
-  "lyricsplus.label.offset": "Sync offset",
+  "lyricsplus.label.offset": "Timing (all songs)",
   "lyricsplus.label.enabled": "Show lyrics",
   "lyricsplus.label.reveal": "Text style",
   "lyricsplus.label.context_lines": "Previous / next line",
@@ -128,7 +128,7 @@
   "lyricsplus.desc.world_follow": "On: lyrics turn with you. Off: they stay where they appeared",
   "lyricsplus.desc.context_lines": "Also show the previous and next lines",
   "lyricsplus.desc.title_card": "Big song name when a track starts",
-  "lyricsplus.desc.offset": "Lyrics too early or late? Nudge them here",
+  "lyricsplus.desc.offset": "+ = lyrics later, - = earlier",
   "lyricsplus.desc.album_colors": "Highlight color follows the album cover",
   "lyricsplus.desc.scale": "Size of the on-screen lyrics",
   "lyricsplus.desc.current_word_scale": "Makes the word being sung stand out",
@@ -172,5 +172,7 @@
   "lyricsplus.desc.hide_paused": "World lyrics vanish 3 s after the music pauses",
   "lyricsplus.msg.intro": "♫ Lyrics Plus is on – press ; to style your lyrics",
   "lyricsplus.label.see_through": "Show through blocks",
-  "lyricsplus.desc.see_through": "Words stay visible even behind walls and hills"
+  "lyricsplus.desc.see_through": "Words stay visible even behind walls and hills",
+  "lyricsplus.label.song_offset": "Timing (this song)",
+  "lyricsplus.desc.song_offset": "Remembered for this song · + later, - earlier"
 }

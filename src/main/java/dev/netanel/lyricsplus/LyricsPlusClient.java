@@ -97,10 +97,12 @@ public final class LyricsPlusClient implements ClientModInitializer {
     }
 
     private static void changeOffset(Minecraft mc, LyricsConfig cfg, int delta) {
-        cfg.offsetMs = Math.max(-5000, Math.min(5000, cfg.offsetMs + delta));
+        String key = ENGINE.trackKey();
+        cfg.nudge(key, delta);
         cfg.save();
+        int v = key.isEmpty() ? cfg.delayMs : cfg.songDelay(key);
         notify(mc, Component.translatable("lyricsplus.msg.offset",
-                String.format(Locale.ROOT, "%+.1fs", cfg.offsetMs / 1000.0)));
+                String.format(Locale.ROOT, "%+.1fs", v / 1000.0)));
     }
 
     private static void notify(Minecraft mc, Component message) {
