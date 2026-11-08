@@ -17,23 +17,25 @@ public final class LyricsConfig {
 
     public enum SidePosition { TOP_LEFT, TOP_RIGHT, MIDDLE_LEFT, MIDDLE_RIGHT }
 
-    public enum ColorPreset {
-        WHITE(0xFFFFFF), YELLOW(0xFFE066), GOLD(0xFFAA00), ORANGE(0xFF8C42), RED(0xFF5555),
-        PINK(0xFF77C8), PURPLE(0xB57BFF), BLUE(0x55AAFF), CYAN(0x55FFFF), GREEN(0x55FF77),
-        SPOTIFY(0x1ED760), GRAY(0xAAAAAA), RAINBOW(-1);
+    public enum WorldStyle { WORDS, LINE }
 
-        public final int rgb;
+    public enum WordAnimation { POP, RISE, DROP, SPIN, NONE }
 
-        ColorPreset(int rgb) {
-            this.rgb = rgb;
-        }
-    }
+    public enum WordColors { HIGHLIGHT, SINGLE, RAINBOW, RANDOM }
+
+    /** Quick-pick swatches shown in the panel. */
+    public static final int[] SWATCHES = {
+            0xFFFFFF, 0xFFE066, 0xFFAA00, 0xFF8C42, 0xFF5555, 0xFF77C8,
+            0xB57BFF, 0x7C83FF, 0x55AAFF, 0x55FFFF, 0x55FF77, 0x1ED760, 0xAAAAAA, 0x222222
+    };
 
     public DisplayMode displayMode = DisplayMode.SIDE;
     public RevealMode revealMode = RevealMode.KARAOKE;
     public SidePosition sidePosition = SidePosition.TOP_LEFT;
-    public ColorPreset textColor = ColorPreset.WHITE;
-    public ColorPreset highlightColor = ColorPreset.SPOTIFY;
+    public int textColor = 0xFFFFFF;
+    public boolean textRainbow = false;
+    public int highlightColor = 0x1ED760;
+    public boolean highlightRainbow = false;
     public float scale = 1.0f;
     public int offsetMs = 0;
     public boolean enabled = true;
@@ -47,6 +49,14 @@ public final class LyricsConfig {
     public boolean animations = true;
     public boolean instrumentalDots = true;
     public float worldDistance = 3.5f;
+    public WorldStyle worldStyle = WorldStyle.WORDS;
+    public boolean worldFollow = true;
+    public float wordScale = 1.4f;
+    public float currentWordScale = 1.3f;
+    public float wordSpacing = 1.0f;
+    public float worldHeight = 0.0f;
+    public WordAnimation wordAnimation = WordAnimation.POP;
+    public WordColors wordColors = WordColors.HIGHLIGHT;
 
     // ---- persistence ----
 
@@ -68,7 +78,11 @@ public final class LyricsConfig {
         try {
             Path p = path();
             if (Files.exists(p)) {
-                LyricsConfig c = GSON.fromJson(Files.readString(p, StandardCharsets.UTF_8), LyricsConfig.class);
+                String json = Files.readString(p, StandardCharsets.UTF_8);
+                if (json.contains("\"textColor\": \"")) { // v1.0 stored colors as names; start fresh
+                    return new LyricsConfig();
+                }
+                LyricsConfig c = GSON.fromJson(json, LyricsConfig.class);
                 if (c != null) {
                     c.sanitize();
                     return c;
@@ -93,8 +107,15 @@ public final class LyricsConfig {
         if (displayMode == null) displayMode = DisplayMode.SIDE;
         if (revealMode == null) revealMode = RevealMode.KARAOKE;
         if (sidePosition == null) sidePosition = SidePosition.TOP_LEFT;
-        if (textColor == null) textColor = ColorPreset.WHITE;
-        if (highlightColor == null) highlightColor = ColorPreset.SPOTIFY;
+        if (worldStyle == null) worldStyle = WorldStyle.WORDS;
+        if (wordAnimation == null) wordAnimation = WordAnimation.POP;
+        if (wordColors == null) wordColors = WordColors.HIGHLIGHT;
+        textColor &= 0xFFFFFF;
+        highlightColor &= 0xFFFFFF;
+        wordScale = Math.max(0.5f, Math.min(4f, wordScale));
+        currentWordScale = Math.max(1f, Math.min(2f, currentWordScale));
+        wordSpacing = Math.max(0.3f, Math.min(3f, wordSpacing));
+        worldHeight = Math.max(-1.5f, Math.min(1.5f, worldHeight));
         scale = Math.max(0.5f, Math.min(3.0f, scale));
         offsetMs = Math.max(-5000, Math.min(5000, offsetMs));
         backgroundOpacity = Math.max(0f, Math.min(1f, backgroundOpacity));

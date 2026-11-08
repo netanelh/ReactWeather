@@ -5,6 +5,7 @@ import dev.netanel.lyricsplus.LyricsEngine.Status;
 import dev.netanel.lyricsplus.LyricsPlusClient;
 import dev.netanel.lyricsplus.config.LyricsConfig;
 import dev.netanel.lyricsplus.config.LyricsConfig.SidePosition;
+import dev.netanel.lyricsplus.render.LineFormatter.Paint;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -55,9 +56,9 @@ public final class HudRenderer {
     /** What to show as the "current" line, including status and instrumental states. */
     static Component currentComponent(Snapshot s, LyricsConfig cfg) {
         return switch (s.status()) {
-            case LOADING -> Component.translatable("lyricsplus.status.loading").withStyle(LineFormatter.styleFor(LyricsConfig.ColorPreset.GRAY, 0));
+            case LOADING -> Component.translatable("lyricsplus.status.loading").withStyle(LineFormatter.style(0xAAAAAA));
             case NOT_FOUND -> s.msSinceTrackChange() < 6000
-                    ? Component.translatable("lyricsplus.status.not_found").withStyle(LineFormatter.styleFor(LyricsConfig.ColorPreset.GRAY, 0))
+                    ? Component.translatable("lyricsplus.status.not_found").withStyle(LineFormatter.style(0xAAAAAA))
                     : Component.empty();
             case READY -> {
                 if (s.instrumental()) {
@@ -71,7 +72,7 @@ public final class HudRenderer {
 
     static Component dots(Snapshot s, LyricsConfig cfg) {
         int n = 1 + (int) ((s.positionMs() / 500) % 3);
-        return LineFormatter.colorize("♪ ".repeat(n).trim(), cfg.highlightColor, 0);
+        return LineFormatter.colorize("♪ ".repeat(n).trim(), Paint.highlight(cfg), 0);
     }
 
     // ------------------------------------------------------------------ modes
@@ -230,9 +231,9 @@ public final class HudRenderer {
         y += Math.round(rise);
 
         Component label = Component.translatable("lyricsplus.card.now_playing")
-                .withStyle(LineFormatter.styleFor(cfg.highlightColor, 0));
-        Component title = LineFormatter.colorize(s.title(), cfg.textColor, 0);
-        Component artist = Component.literal(s.artist()).withStyle(LineFormatter.styleFor(LyricsConfig.ColorPreset.GRAY, 0));
+                .withStyle(LineFormatter.style(Paint.highlight(cfg).at(0)));
+        Component title = LineFormatter.colorize(s.title(), Paint.text(cfg), 0);
+        Component artist = Component.literal(s.artist()).withStyle(LineFormatter.style(0xAAAAAA));
 
         float ts = 2.4f;
         int titleW = Math.round(font.width(title) * ts);
@@ -242,7 +243,7 @@ public final class HudRenderer {
         if (cfg.background) {
             int bgA = Math.round(cfg.backgroundOpacity * a * 255);
             g.fill(cx - maxW / 2 - 12, y - 6, cx + maxW / 2 + 12, y + boxH + 6, bgA << 24);
-            int accent = (alpha << 24) | LineFormatter.rgb(cfg.highlightColor, 0);
+            int accent = (alpha << 24) | Paint.highlight(cfg).at(0);
             g.fill(cx - maxW / 2 - 12, y + boxH + 5, cx + maxW / 2 + 12, y + boxH + 6, accent);
         }
 
@@ -272,7 +273,7 @@ public final class HudRenderer {
         int bx = alignRight ? x + tw : x;
         float p = Math.clamp(s.positionMs() / (float) s.durationMs(), 0f, 1f);
         g.fill(bx, y + 1, bx + barW, y + 3, 0x55FFFFFF);
-        g.fill(bx, y + 1, bx + Math.round(barW * p), y + 3, 0xFF000000 | LineFormatter.rgb(cfg.highlightColor, 0));
+        g.fill(bx, y + 1, bx + Math.round(barW * p), y + 3, 0xFF000000 | Paint.highlight(cfg).at(0));
         int textX = alignRight ? x : bx + barW + 4;
         drawScaled(g, font, Component.literal(times), textX, y, 0.5f, 0xCCFFFFFF, false);
     }
