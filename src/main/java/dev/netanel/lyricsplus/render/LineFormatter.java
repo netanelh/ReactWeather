@@ -91,7 +91,7 @@ public final class LineFormatter {
             if (i > 0) {
                 out.append(Component.literal(" "));
             }
-            out.append(Component.literal(t.words()[i]).withStyle(style(paint.at(i))));
+            out.append(Component.literal(t.words()[i]).withStyle(style(paint.at(i), text)));
         }
         return out;
     }
@@ -103,7 +103,7 @@ public final class LineFormatter {
 
     public static Component colorize(String text, Paint paint, int seed) {
         if (!paint.rainbow()) {
-            return Component.literal(text).withStyle(style(paint.rgb()));
+            return Component.literal(text).withStyle(style(paint.rgb(), text));
         }
         MutableComponent out = Component.empty();
         String[] words = text.split(" ", -1);
@@ -111,7 +111,7 @@ public final class LineFormatter {
             if (i > 0) {
                 out.append(Component.literal(" "));
             }
-            out.append(Component.literal(words[i]).withStyle(style(paint.at(seed + i))));
+            out.append(Component.literal(words[i]).withStyle(style(paint.at(seed + i), text)));
         }
         return out;
     }
@@ -119,6 +119,28 @@ public final class LineFormatter {
     /** Color + the chosen lyrics font. */
     public static Style style(int rgb) {
         return withFont(Style.EMPTY.withColor(TextColor.fromRgb(rgb & 0xFFFFFF)), LyricsConfig.get().font);
+    }
+
+    /**
+     * Color + font for a specific piece of text: if the chosen font has no Hebrew glyphs and
+     * the text is Hebrew/Arabic, use the Round font so the line doesn't mix two fonts.
+     */
+    public static Style style(int rgb, String text) {
+        LyricsConfig.FontStyle f = LyricsConfig.get().font;
+        if (!f.hebrew && containsRtl(text)) {
+            f = LyricsConfig.FontStyle.ROUND;
+        }
+        return withFont(Style.EMPTY.withColor(TextColor.fromRgb(rgb & 0xFFFFFF)), f);
+    }
+
+    public static boolean containsRtl(String text) {
+        for (int i = 0; i < text.length(); i++) {
+            byte d = Character.getDirectionality(text.charAt(i));
+            if (d == Character.DIRECTIONALITY_RIGHT_TO_LEFT || d == Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static Style withFont(Style style, LyricsConfig.FontStyle font) {

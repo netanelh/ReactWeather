@@ -154,5 +154,11 @@
   "lyricsplus.hint.rebind": "שינוי מקשים: Options ← Controls ← Key Binds ← Lyrics Plus",
   "lyricsplus.hint.credits": "מילים: LRCLIB · עטיפות: iTunes · גופנים: Google Fonts (OFL)",
   "lyricsplus.action.reset": "איפוס כל ההגדרות",
-  "lyricsplus.now.estimated": "תזמון משוער"
+  "lyricsplus.now.estimated": "תזמון משוער",
+  "lyricsplus.section.panel": "פאנל",
+  "lyricsplus.label.panel_position": "מיקום הפאנל",
+  "lyricsplus.desc.panel_position": "הזז הצידה כדי לראות את המילים מולך",
+  "lyricsplus.panel_position.center": "מרכז",
+  "lyricsplus.panel_position.left": "שמאל",
+  "lyricsplus.panel_position.right": "ימין"
 }

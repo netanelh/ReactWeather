@@ -154,5 +154,11 @@
   "lyricsplus.hint.rebind": "Change keys in Options → Controls → Key Binds → Lyrics Plus",
   "lyricsplus.hint.credits": "Lyrics: LRCLIB · Covers: iTunes · Fonts: Google Fonts (OFL)",
   "lyricsplus.action.reset": "Reset all settings",
-  "lyricsplus.now.estimated": "Estimated timing"
+  "lyricsplus.now.estimated": "Estimated timing",
+  "lyricsplus.section.panel": "Panel",
+  "lyricsplus.label.panel_position": "Panel position",
+  "lyricsplus.desc.panel_position": "Move it aside to watch words in front of you",
+  "lyricsplus.panel_position.center": "Center",
+  "lyricsplus.panel_position.left": "Left",
+  "lyricsplus.panel_position.right": "Right"
 }

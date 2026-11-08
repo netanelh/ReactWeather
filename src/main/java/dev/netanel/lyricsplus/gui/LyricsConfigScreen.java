@@ -188,6 +188,9 @@ public final class LyricsConfigScreen extends Screen {
                 rows.add(new ToggleRow("instrumental", () -> cfg.instrumentalDots, v -> cfg.instrumentalDots = v).desc());
             }
             default -> {
+                rows.add(new SectionRow("panel"));
+                rows.add(new ChoiceRow("panel_position", () -> "lyricsplus.panel_position." + low(cfg.panelPosition),
+                        d -> cfg.panelPosition = cycle(cfg.panelPosition, d), false).desc());
                 rows.add(new SectionRow("keys"));
                 rows.add(new HintRow("lyricsplus.hint.keys"));
                 rows.add(new HintRow("lyricsplus.hint.rebind"));
@@ -218,7 +221,11 @@ public final class LyricsConfigScreen extends Screen {
     private void layout() {
         pw = Math.min(480, this.width - 16);
         ph = Math.min(300, this.height - 16);
-        px = (this.width - pw) / 2;
+        px = switch (cfg.panelPosition) {
+            case LEFT -> 8;
+            case RIGHT -> this.width - pw - 8;
+            case CENTER -> (this.width - pw) / 2;
+        };
         py = (this.height - ph) / 2;
         cx = px + SIDEBAR_W + PAD;
         cw = pw - SIDEBAR_W - PAD * 2;
@@ -756,8 +763,7 @@ public final class LyricsConfigScreen extends Screen {
         }
 
         private boolean hebrew(FontStyle f) {
-            return f == FontStyle.MINECRAFT || f == FontStyle.ROUND || f == FontStyle.BOLD
-                    || f == FontStyle.HANDWRITTEN || f == FontStyle.ELEGANT;
+            return f.hebrew;
         }
     }
 

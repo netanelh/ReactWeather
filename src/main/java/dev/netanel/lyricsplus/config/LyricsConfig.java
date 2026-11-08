@@ -23,15 +23,19 @@ public final class LyricsConfig {
 
     /** Lyric font styles. id = font json under assets/lyricsplus/font, null = vanilla. */
     public enum FontStyle {
-        MINECRAFT(null), ROUND("round"), BOLD("bold"), HANDWRITTEN("handwritten"), ELEGANT("elegant"),
-        SCRIPT("script"), COMIC("comic"), TALL("tall");
+        MINECRAFT(null, true), ROUND("round", true), BOLD("bold", true), HANDWRITTEN("handwritten", true),
+        ELEGANT("elegant", true), SCRIPT("script", false), COMIC("comic", false), TALL("tall", false);
 
         public final String id;
+        public final boolean hebrew;
 
-        FontStyle(String id) {
+        FontStyle(String id, boolean hebrew) {
             this.id = id;
+            this.hebrew = hebrew;
         }
     }
+
+    public enum PanelPosition { CENTER, LEFT, RIGHT }
 
     public enum WordAnimation { POP, RISE, DROP, SPIN, NONE }
 
@@ -80,6 +84,7 @@ public final class LyricsConfig {
     public float skyHeight = 9f;
     public boolean albumArt = true;
     public boolean albumColors = false;
+    public PanelPosition panelPosition = PanelPosition.CENTER;
 
     // ---- persistence ----
 
@@ -135,6 +140,7 @@ public final class LyricsConfig {
         if (wordColors == null) wordColors = WordColors.HIGHLIGHT;
         if (scatterFrom == null) scatterFrom = ScatterFrom.CENTER;
         if (font == null) font = FontStyle.ROUND;
+        if (panelPosition == null) panelPosition = PanelPosition.CENTER;
         skyDistance = Math.max(10f, Math.min(60f, skyDistance));
         skyHeight = Math.max(0f, Math.min(30f, skyHeight));
         scatterSpread = Math.max(0.3f, Math.min(3f, scatterSpread));

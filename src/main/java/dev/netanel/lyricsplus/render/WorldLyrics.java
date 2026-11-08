@@ -91,7 +91,8 @@ public final class WorldLyrics {
         ClientLevel level = mc.level;
         Player player = mc.player;
 
-        boolean active = cfg.enabled && (cfg.displayMode == DisplayMode.WORLD || cfg.displayMode == DisplayMode.SKY)
+        boolean active = cfg.enabled && !mc.options.hideGui
+                && (cfg.displayMode == DisplayMode.WORLD || cfg.displayMode == DisplayMode.SKY)
                 && level != null && player != null && s.status() != Status.NO_PLAYER && s.status() != Status.AD;
         if (!active) {
             clearAll();
@@ -257,7 +258,7 @@ public final class WorldLyrics {
                 case RAINBOW -> new Paint(0, true);
                 case RANDOM -> new Paint(RANDOM_PALETTE[Math.floorMod(words[i].hashCode() + i, RANDOM_PALETTE.length)], false);
             };
-            Component c = Component.literal(t.words()[i]).withStyle(LineFormatter.style(paint.at(i)));
+            Component c = Component.literal(t.words()[i]).withStyle(LineFormatter.style(paint.at(i), s.line(0)));
             float size = wscale(cfg) * p.sizeMul * (current ? cfg.currentWordScale : 1f);
             apply(p, c, cfg, base, right, size, 0f, 255);
         }
@@ -304,7 +305,7 @@ public final class WorldLyrics {
             card.add(cardPiece(level, base, LineFormatter.colorize(s.title(), Paint.text(cfg), 0), top, 1.6f));
             card.add(cardPiece(level, base, Component.literal("━━━━━━━━━━").withStyle(LineFormatter.style(hl.at(0))),
                     top + 0.36f * f, 0.9f));
-            card.add(cardPiece(level, base, Component.literal(s.artist()).withStyle(LineFormatter.style(0xBBBBBB)),
+            card.add(cardPiece(level, base, Component.literal(s.artist()).withStyle(LineFormatter.style(0xBBBBBB, s.artist())),
                     top + 0.62f * f, 0.85f));
         }
         for (Piece p : card) {

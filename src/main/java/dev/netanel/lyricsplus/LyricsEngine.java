@@ -130,7 +130,7 @@ public final class LyricsEngine {
         }
         // Ads: hide everything until music comes back. The song before the ad keeps its key,
         // so if it simply resumes we don't replay the title card.
-        adPlaying = isAd(a, t);
+        adPlaying = isAd(a, t, music.getDuration());
         if (adPlaying) {
             return;
         }
@@ -141,7 +141,7 @@ public final class LyricsEngine {
         }
     }
 
-    static boolean isAd(String artist, String title) {
+    static boolean isAd(String artist, String title, long durationSec) {
         String t = title.trim().toLowerCase(java.util.Locale.ROOT);
         String a = artist.trim().toLowerCase(java.util.Locale.ROOT);
         if (t.equals("advertisement") || t.equals("spotify") || t.equals("spotify free")
@@ -151,8 +151,9 @@ public final class LyricsEngine {
         if (a.equals("spotify") || a.equals("advertisement")) {
             return true;
         }
-        // Spotify ads come with no artist; real songs always have one.
-        return a.isEmpty();
+        // Spotify ads come with no artist and are short. A long song with no artist tag
+        // (e.g. a local file) is not an ad.
+        return a.isEmpty() && durationSec > 0 && durationSec <= 65;
     }
 
     private void ensurePlayer() {

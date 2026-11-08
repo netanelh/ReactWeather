@@ -230,7 +230,7 @@ public final class HudRenderer {
         Component label = Component.translatable("lyricsplus.card.now_playing")
                 .withStyle(LineFormatter.style(Paint.highlight(cfg).at(0)));
         Component title = LineFormatter.colorize(s.title(), Paint.text(cfg), 0);
-        Component artist = Component.literal(s.artist()).withStyle(LineFormatter.style(0xAAAAAA));
+        Component artist = Component.literal(s.artist()).withStyle(LineFormatter.style(0xAAAAAA, s.artist()));
 
         float ts = 2.4f;
         int titleW = Math.round(font.width(title) * ts);
