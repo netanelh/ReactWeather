@@ -22,7 +22,7 @@ public final class LyricsEngine {
     public record Snapshot(
             String title, String artist, long positionMs, long durationMs, boolean playing,
             Status status, List<LyricsLine> lines, int index,
-            long lineStartMs, long lineEndMs, long msSinceTrackChange, boolean demo) {
+            long lineStartMs, long lineEndMs, long msSinceTrackChange, boolean demo, boolean estimated) {
 
         public boolean hasLine() {
             return lines != null && index >= 0 && index < lines.size();
@@ -63,7 +63,7 @@ public final class LyricsEngine {
         return t;
     });
     private final LyricsFetcher fetcher = new LyricsFetcher();
-    private final Map<String, List<LyricsLine>> cache = new HashMap<>();
+    private final Map<String, LyricsFetcher.Result> cache = new HashMap<>();
     private final boolean windows = System.getProperty("os.name", "").toLowerCase().contains("win");
 
     private MusicManager music;
@@ -73,6 +73,7 @@ public final class LyricsEngine {
     private volatile String title = "";
     private volatile String artist = "";
     private volatile List<LyricsLine> lines;
+    private volatile boolean estimated;
     private volatile Status status = Status.NO_PLAYER;
     private volatile long trackChangedAt = System.currentTimeMillis();
     private volatile int generation;
@@ -174,29 +175,32 @@ public final class LyricsEngine {
         int gen = ++generation;
         dev.netanel.lyricsplus.backend.AlbumArt.request(a, t);
 
-        List<LyricsLine> cached;
+        LyricsFetcher.Result cached;
         synchronized (cache) {
             cached = cache.get(key);
         }
         if (cached != null) {
-            lines = cached;
-            status = cached.isEmpty() ? Status.NOT_FOUND : Status.READY;
+            lines = cached.lines();
+            estimated = cached.estimated();
+            status = cached.lines().isEmpty() ? Status.NOT_FOUND : Status.READY;
             return;
         }
 
         lines = null;
+        estimated = false;
         status = Status.LOADING;
         String album = safe(music::getAlbum);
         long durationSec = music.getDuration();
 
         fetchThread.submit(() -> {
-            List<LyricsLine> result = fetcher.fetch(a, t, album, durationSec);
+            LyricsFetcher.Result result = fetcher.fetch(a, t, album, durationSec);
             synchronized (cache) {
                 cache.put(key, result);
             }
             if (gen == generation) { // ignore results for a song we already skipped
-                lines = result;
-                status = result.isEmpty() ? Status.NOT_FOUND : Status.READY;
+                lines = result.lines();
+                estimated = result.estimated();
+                status = result.lines().isEmpty() ? Status.NOT_FOUND : Status.READY;
             }
         });
     }
@@ -208,22 +212,22 @@ public final class LyricsEngine {
         if (demo) {
             long pos = now - demoStart;
             return build("Lyrics Plus Demo", "Netanel", pos, DEMO_LENGTH, true,
-                    Status.READY, DEMO_LINES, now - trackChangedAt, true);
+                    Status.READY, DEMO_LINES, now - trackChangedAt, true, false);
         }
         if (music == null) {
-            return build("", "", 0, 0, false, Status.NO_PLAYER, null, now - trackChangedAt, false);
+            return build("", "", 0, 0, false, Status.NO_PLAYER, null, now - trackChangedAt, false, false);
         }
         if (adPlaying) {
-            return build("", "", 0, 0, false, Status.AD, null, now - trackChangedAt, false);
+            return build("", "", 0, 0, false, Status.AD, null, now - trackChangedAt, false, false);
         }
         long pos = music.getPosition() + cfg.offsetMs;
         long durMs = music.getDuration() * 1000L;
         return build(title, artist, pos, durMs, music.isPlaying(), status, lines,
-                now - trackChangedAt, false);
+                now - trackChangedAt, false, estimated);
     }
 
     private static Snapshot build(String title, String artist, long pos, long dur, boolean playing,
-                                  Status status, List<LyricsLine> lines, long sinceChange, boolean demo) {
+                                  Status status, List<LyricsLine> lines, long sinceChange, boolean demo, boolean estimated) {
         int index = -1;
         long start = 0;
         long end = 0;
@@ -244,7 +248,7 @@ public final class LyricsEngine {
             }
         }
         return new Snapshot(title, artist, Math.max(0, pos), dur, playing, status, lines, index,
-                start, end, sinceChange, demo);
+                start, end, sinceChange, demo, estimated);
     }
 
     private static String safe(java.util.function.Supplier<String> s) {

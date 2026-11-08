@@ -153,5 +153,6 @@
   "lyricsplus.hint.use_sky": "עבור למצב \"בשמיים\"",
   "lyricsplus.hint.rebind": "שינוי מקשים: Options ← Controls ← Key Binds ← Lyrics Plus",
   "lyricsplus.hint.credits": "מילים: LRCLIB · עטיפות: iTunes · גופנים: Google Fonts (OFL)",
-  "lyricsplus.action.reset": "איפוס כל ההגדרות"
+  "lyricsplus.action.reset": "איפוס כל ההגדרות",
+  "lyricsplus.now.estimated": "תזמון משוער"
 }

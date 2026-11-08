@@ -153,5 +153,6 @@
   "lyricsplus.hint.use_sky": "Switch to \"In the sky\"",
   "lyricsplus.hint.rebind": "Change keys in Options → Controls → Key Binds → Lyrics Plus",
   "lyricsplus.hint.credits": "Lyrics: LRCLIB · Covers: iTunes · Fonts: Google Fonts (OFL)",
-  "lyricsplus.action.reset": "Reset all settings"
+  "lyricsplus.action.reset": "Reset all settings",
+  "lyricsplus.now.estimated": "Estimated timing"
 }

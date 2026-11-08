@@ -264,7 +264,7 @@ public final class LyricsConfigScreen extends Screen {
         boolean doneHover = inside(mouseX, mouseY, px + 8, dy, SIDEBAR_W - 16, 18);
         g.fill(px + 8, dy, px + SIDEBAR_W - 8, dy + 18, doneHover ? accent : CARD_HOVER);
         g.centeredText(font, Component.translatable("lyricsplus.done"), px + SIDEBAR_W / 2, dy + 5, doneHover ? 0xFF101010 : TEXT);
-        small(g, Component.literal("v2.0"), px + 10, dy - 11, 0xFF55555F);
+        small(g, Component.literal("v2.1"), px + 10, dy - 11, 0xFF55555F);
 
         // content header
         g.pose().pushMatrix();
@@ -800,7 +800,10 @@ public final class LyricsConfigScreen extends Screen {
             String badgeKey;
             int badgeColor;
             switch (s.status()) {
-                case READY -> { badgeKey = "synced"; badgeColor = 0xFF1DB954; }
+                case READY -> {
+                    badgeKey = s.estimated() ? "estimated" : "synced";
+                    badgeColor = s.estimated() ? 0xFF4A90E2 : 0xFF1DB954;
+                }
                 case LOADING -> { badgeKey = "loading"; badgeColor = 0xFFE0A030; }
                 case NOT_FOUND -> { badgeKey = "no_lyrics"; badgeColor = 0xFF6A6A76; }
                 case AD -> { badgeKey = "ad"; badgeColor = 0xFFB05050; }
