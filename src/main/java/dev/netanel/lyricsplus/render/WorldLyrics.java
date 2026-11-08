@@ -45,14 +45,24 @@ public final class WorldLyrics {
         final Display.TextDisplay entity;
         final float lateral; // blocks along the line, from its center
         final float row;     // blocks below the first row
+        final float depth;   // blocks toward (-) or away from (+) the player
+        final float tilt;    // radians, scatter mode only
+        final float sizeMul;
         final int index;
         int age;
         int retiredAge = -1;
 
         Piece(Display.TextDisplay entity, float lateral, float row, int index) {
+            this(entity, lateral, row, 0f, 0f, 1f, index);
+        }
+
+        Piece(Display.TextDisplay entity, float lateral, float row, float depth, float tilt, float sizeMul, int index) {
             this.entity = entity;
             this.lateral = lateral;
             this.row = row;
+            this.depth = depth;
+            this.tilt = tilt;
+            this.sizeMul = sizeMul;
             this.index = index;
         }
     }
@@ -62,6 +72,10 @@ public final class WorldLyrics {
     private static String[] words = new String[0];
     private static float[] laterals = new float[0];
     private static float[] rows = new float[0];
+    private static float[] depths = new float[0];
+    private static float[] tilts = new float[0];
+    private static float[] sizes = new float[0];
+    private static boolean scatter;
     private static Piece[] spawned = new Piece[0];
     private static Vec3 fixedBase;
     private static Vec3 fixedRight;
@@ -91,8 +105,8 @@ public final class WorldLyrics {
         }
 
         boolean realLine = s.status() == Status.READY && s.hasLine() && !s.instrumental();
-        boolean wordMode = realLine && cfg.worldStyle == WorldStyle.WORDS;
-        String key = s.title() + "|" + s.index() + "|" + s.status() + "|" + wordMode + "|" + (realLine ? "" : s.instrumental());
+        boolean wordMode = realLine && cfg.worldStyle != WorldStyle.LINE;
+        String key = s.title() + "|" + s.index() + "|" + s.status() + "|" + wordMode + cfg.worldStyle + "|" + (realLine ? "" : s.instrumental());
 
         if (!key.equals(lineKey)) {
             lineKey = key;
@@ -137,7 +151,16 @@ public final class WorldLyrics {
         int n = words.length;
         laterals = new float[n];
         rows = new float[n];
+        depths = new float[n];
+        tilts = new float[n];
+        sizes = new float[n];
+        java.util.Arrays.fill(sizes, 1f);
         spawned = new Piece[n];
+        scatter = cfg.worldStyle == WorldStyle.SCATTER;
+        if (scatter) {
+            scatterLayout(s, cfg, n);
+            return;
+        }
 
         float scale = cfg.wordScale;
         float space = font.width(" ") * PX * scale * 1.6f * cfg.wordSpacing;
@@ -178,6 +201,36 @@ public final class WorldLyrics {
         }
     }
 
+    /** Random, non-overlapping spots in front of the player, stable for the whole line. */
+    private static void scatterLayout(Snapshot s, LyricsConfig cfg, int n) {
+        java.util.Random rnd = new java.util.Random((s.title() + "#" + s.index()).hashCode());
+        float spreadX = cfg.scatterSpread * Math.max(1.2f, cfg.worldDistance * 0.55f);
+        float spreadY = cfg.scatterSpread * Math.max(0.6f, cfg.worldDistance * 0.28f);
+        float minGap = 0.45f * cfg.wordScale;
+        for (int i = 0; i < n; i++) {
+            float bx = 0, by = 0;
+            for (int attempt = 0; attempt < 14; attempt++) {
+                bx = (rnd.nextFloat() * 2f - 1f) * spreadX;
+                by = (rnd.nextFloat() * 2f - 1f) * spreadY;
+                boolean ok = true;
+                for (int j = 0; j < i; j++) {
+                    float dx = (bx - laterals[j]) * 0.6f; // words are wide: horizontal gaps matter less
+                    float dy = by + rows[j];
+                    if (dx * dx + dy * dy < minGap * minGap) {
+                        ok = false;
+                        break;
+                    }
+                }
+                if (ok) break;
+            }
+            laterals[i] = bx;
+            rows[i] = -by;
+            depths[i] = (rnd.nextFloat() * 2f - 1f) * 0.6f * cfg.scatterSpread;
+            tilts[i] = (float) Math.toRadians((rnd.nextFloat() * 2f - 1f) * cfg.scatterTilt);
+            sizes[i] = 1f + (rnd.nextFloat() * 2f - 1f) * cfg.scatterSizeVariation;
+        }
+    }
+
     // ------------------------------------------------------------------ ticking
 
     private static void tickWords(Snapshot s, LyricsConfig cfg, ClientLevel level, Vec3 base, Vec3 right) {
@@ -187,7 +240,7 @@ public final class WorldLyrics {
 
         for (int i = 0; i < spawned.length && i < t.words().length; i++) {
             if (spawned[i] == null && i <= reached) {
-                spawned[i] = new Piece(spawn(level, base), laterals[i], rows[i], i);
+                spawned[i] = new Piece(spawn(level, base), laterals[i], rows[i], depths[i], tilts[i], sizes[i], i);
             }
             Piece p = spawned[i];
             if (p == null) continue;
@@ -201,7 +254,7 @@ public final class WorldLyrics {
                 case RANDOM -> new Paint(RANDOM_PALETTE[Math.floorMod(words[i].hashCode() + i, RANDOM_PALETTE.length)], false);
             };
             Component c = Component.literal(t.words()[i]).withStyle(LineFormatter.style(paint.at(i)));
-            float size = cfg.wordScale * (current ? cfg.currentWordScale : 1f);
+            float size = cfg.wordScale * p.sizeMul * (current ? cfg.currentWordScale : 1f);
             apply(p, c, cfg, base, right, size, 0f, 255);
         }
     }
@@ -235,7 +288,7 @@ public final class WorldLyrics {
             }
             float k = t / (float) RETIRE_TICKS;
             place(p, base, right, cfg);
-            transform(p.entity, cfg.wordScale * (1f - 0.4f * k), new Vector3f(0, k * 0.8f, 0), 0f);
+            transform(p.entity, cfg.wordScale * p.sizeMul * (1f - 0.4f * k), new Vector3f(0, k * 0.8f, 0), p.tilt);
             ((TextDisplayAccessor) p.entity).lyricsplus$setTextOpacity((byte) Math.max(26, Math.round(255 * (1f - k))));
         }
     }
@@ -269,11 +322,26 @@ public final class WorldLyrics {
             scale = size;
             spin = 0f;
         }
-        transform(p.entity, scale, offset, spin);
+        transform(p.entity, scale, offset, spin + p.tilt);
     }
 
     private static void place(Piece p, Vec3 base, Vec3 right, LyricsConfig cfg) {
-        Vec3 pos = base.add(right.scale(p.lateral)).add(0, -p.row, 0);
+        Vec3 forward = new Vec3(right.z, 0, -right.x);
+        Vec3 pos = base.add(right.scale(p.lateral)).add(0, -p.row, 0).add(forward.scale(p.depth));
+
+        // Scatter mode: fly from the chosen origin to the word's spot.
+        if (scatter && cfg.animations && p.retiredAge < 0 && p.age < 7) {
+            float k = p.age / 7f;
+            float ease = 1f - (1f - k) * (1f - k) * (1f - k);
+            Vec3 from = switch (cfg.scatterFrom) {
+                case CENTER -> base;
+                case SIDES -> base.add(right.scale(Math.signum(p.lateral == 0 ? 1 : p.lateral) * (cfg.worldDistance + 2)));
+                case BELOW -> pos.add(0, -2.5, 0);
+                case ABOVE -> pos.add(0, 2.5, 0);
+                case PLAYER -> base.subtract(forward.scale(cfg.worldDistance - 0.8)).add(0, -0.4, 0);
+            };
+            pos = from.add(pos.subtract(from).scale(ease));
+        }
         p.entity.setPos(pos.x, pos.y, pos.z);
     }
 

@@ -69,5 +69,15 @@
   "lyricsplus.word_colors.random": "אקראי",
   "lyricsplus.hint.keys": "; פאנל · K הסתרה · - / = תזמון · /lyrics",
   "lyricsplus.hint.use_world": "עבור למצב \"מרחף בעולם\"",
-  "lyricsplus.hint.color": "לחץ על צבע או גרור את הפסים"
+  "lyricsplus.hint.color": "לחץ על צבע או גרור את הפסים",
+  "lyricsplus.world_style.scatter": "מפוזר",
+  "lyricsplus.label.scatter_from": "עפות מ-",
+  "lyricsplus.label.scatter_spread": "פיזור",
+  "lyricsplus.label.scatter_tilt": "הטיה",
+  "lyricsplus.label.scatter_size": "גדלים שונים",
+  "lyricsplus.scatter_from.center": "מרכז",
+  "lyricsplus.scatter_from.sides": "צדדים",
+  "lyricsplus.scatter_from.below": "למטה",
+  "lyricsplus.scatter_from.above": "למעלה",
+  "lyricsplus.scatter_from.player": "ממני"
 }

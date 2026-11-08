@@ -17,7 +17,9 @@ public final class LyricsConfig {
 
     public enum SidePosition { TOP_LEFT, TOP_RIGHT, MIDDLE_LEFT, MIDDLE_RIGHT }
 
-    public enum WorldStyle { WORDS, LINE }
+    public enum WorldStyle { WORDS, SCATTER, LINE }
+
+    public enum ScatterFrom { CENTER, SIDES, BELOW, ABOVE, PLAYER }
 
     public enum WordAnimation { POP, RISE, DROP, SPIN, NONE }
 
@@ -57,6 +59,10 @@ public final class LyricsConfig {
     public float worldHeight = 0.0f;
     public WordAnimation wordAnimation = WordAnimation.POP;
     public WordColors wordColors = WordColors.HIGHLIGHT;
+    public float scatterSpread = 1.5f;
+    public ScatterFrom scatterFrom = ScatterFrom.CENTER;
+    public float scatterTilt = 15f;
+    public float scatterSizeVariation = 0.3f;
 
     // ---- persistence ----
 
@@ -110,6 +116,10 @@ public final class LyricsConfig {
         if (worldStyle == null) worldStyle = WorldStyle.WORDS;
         if (wordAnimation == null) wordAnimation = WordAnimation.POP;
         if (wordColors == null) wordColors = WordColors.HIGHLIGHT;
+        if (scatterFrom == null) scatterFrom = ScatterFrom.CENTER;
+        scatterSpread = Math.max(0.3f, Math.min(3f, scatterSpread));
+        scatterTilt = Math.max(0f, Math.min(45f, scatterTilt));
+        scatterSizeVariation = Math.max(0f, Math.min(0.8f, scatterSizeVariation));
         textColor &= 0xFFFFFF;
         highlightColor &= 0xFFFFFF;
         wordScale = Math.max(0.5f, Math.min(4f, wordScale));

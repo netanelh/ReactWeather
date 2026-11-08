@@ -112,6 +112,16 @@ public final class LyricsConfigScreen extends Screen {
                 rows.add(new ChoiceRow("world_style", () -> "lyricsplus.world_style." + low(cfg.worldStyle),
                         d -> cfg.worldStyle = cycle(cfg.worldStyle, d)));
                 rows.add(new ToggleRow("world_follow", () -> cfg.worldFollow, v -> cfg.worldFollow = v));
+                if (cfg.worldStyle == LyricsConfig.WorldStyle.SCATTER) {
+                    rows.add(new ChoiceRow("scatter_from", () -> "lyricsplus.scatter_from." + low(cfg.scatterFrom),
+                            d -> cfg.scatterFrom = cycle(cfg.scatterFrom, d)));
+                    rows.add(new SliderRow("scatter_spread", 0.3, 3.0, 0.1, () -> cfg.scatterSpread,
+                            v -> cfg.scatterSpread = (float) v, v -> String.format(Locale.ROOT, "%.1fx", v)));
+                    rows.add(new SliderRow("scatter_tilt", 0, 45, 1, () -> cfg.scatterTilt,
+                            v -> cfg.scatterTilt = (float) v, v -> Math.round(v) + "°"));
+                    rows.add(new SliderRow("scatter_size", 0, 0.8, 0.05, () -> cfg.scatterSizeVariation,
+                            v -> cfg.scatterSizeVariation = (float) v, v -> "±" + Math.round(v * 100) + "%"));
+                }
                 rows.add(new ChoiceRow("word_animation", () -> "lyricsplus.word_animation." + low(cfg.wordAnimation),
                         d -> cfg.wordAnimation = cycle(cfg.wordAnimation, d)));
                 rows.add(new ChoiceRow("word_colors", () -> "lyricsplus.word_colors." + low(cfg.wordColors),
@@ -396,7 +406,7 @@ public final class LyricsConfigScreen extends Screen {
         boolean click(double mx, double my) {
             int bx = x + w - 104 - 4;
             step.accept(mx < bx + 52 && mx >= bx ? -1 : 1);
-            if (key.equals("mode")) {
+            if (key.equals("mode") || key.equals("world_style")) {
                 buildRowsLater();
             }
             return false;

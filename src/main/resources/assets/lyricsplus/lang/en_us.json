@@ -69,5 +69,15 @@
   "lyricsplus.word_colors.random": "Random",
   "lyricsplus.hint.keys": "; panel · K hide · - / = sync · /lyrics",
   "lyricsplus.hint.use_world": "Switch to \"Floating in world\"",
-  "lyricsplus.hint.color": "Click a swatch or drag the bars"
+  "lyricsplus.hint.color": "Click a swatch or drag the bars",
+  "lyricsplus.world_style.scatter": "Scattered",
+  "lyricsplus.label.scatter_from": "Fly in from",
+  "lyricsplus.label.scatter_spread": "Spread",
+  "lyricsplus.label.scatter_tilt": "Tilt",
+  "lyricsplus.label.scatter_size": "Size variety",
+  "lyricsplus.scatter_from.center": "Center",
+  "lyricsplus.scatter_from.sides": "Sides",
+  "lyricsplus.scatter_from.below": "Below",
+  "lyricsplus.scatter_from.above": "Above",
+  "lyricsplus.scatter_from.player": "From me"
 }
