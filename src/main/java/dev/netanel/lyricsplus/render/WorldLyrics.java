@@ -91,7 +91,7 @@ public final class WorldLyrics {
         ClientLevel level = mc.level;
         Player player = mc.player;
 
-        boolean active = cfg.enabled && !mc.options.hideGui
+        boolean active = cfg.enabled && !mc.gui.hud.isHidden()
                 && (cfg.displayMode == DisplayMode.WORLD || cfg.displayMode == DisplayMode.SKY)
                 && level != null && player != null && s.status() != Status.NO_PLAYER && s.status() != Status.AD;
         if (!active) {
