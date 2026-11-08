@@ -174,5 +174,12 @@
   "lyricsplus.label.see_through": "Show through blocks",
   "lyricsplus.desc.see_through": "Words stay visible even behind walls and hills",
   "lyricsplus.label.song_offset": "Timing (this song)",
-  "lyricsplus.desc.song_offset": "Remembered for this song · + later, - earlier"
+  "lyricsplus.desc.song_offset": "Remembered for this song · + later, - earlier",
+  "lyricsplus.page.search": "Search",
+  "lyricsplus.page.search.sub": "Find a song and open it in Spotify or YouTube",
+  "lyricsplus.search.hint": "Song name, artist, or a word from the title…",
+  "lyricsplus.search.searching": "Searching…",
+  "lyricsplus.search.nothing": "No songs found – try other words",
+  "lyricsplus.search.tip": "Type at least 2 letters. Hebrew works too.",
+  "lyricsplus.search.tip2": "♪ = lyrics available in Lyrics Plus"
 }

@@ -5,6 +5,8 @@ import dev.netanel.lyricsplus.LyricsEngine.Status;
 import dev.netanel.lyricsplus.LyricsPlusClient;
 import dev.netanel.lyricsplus.backend.AlbumArt;
 import dev.netanel.lyricsplus.backend.MediaKeys;
+import dev.netanel.lyricsplus.backend.SongSearch;
+import net.minecraft.client.gui.components.EditBox;
 import dev.netanel.lyricsplus.config.LyricsConfig;
 import dev.netanel.lyricsplus.config.LyricsConfig.DisplayMode;
 import dev.netanel.lyricsplus.config.LyricsConfig.FontStyle;
@@ -47,8 +49,8 @@ public final class LyricsConfigScreen extends Screen {
     private static final int SIDEBAR_W = 114;
     private static final int PAD = 10;
 
-    private static final String[] PAGES = {"now", "lyrics", "look", "world", "hud", "settings"};
-    private static final String[] ICONS = {"♫", "✎", "✦", "☁", "▣", "⚙"};
+    private static final String[] PAGES = {"now", "search", "lyrics", "look", "world", "hud", "settings"};
+    private static final String[] ICONS = {"♫", "⌕", "✎", "✦", "☁", "▣", "⚙"};
 
     private final Screen parent;
     private final LyricsConfig cfg = LyricsConfig.get();
@@ -60,6 +62,14 @@ public final class LyricsConfigScreen extends Screen {
 
     private int px, py, pw, ph, cx, cw, contentTop, contentBottom;
 
+    // ---- song search
+    private EditBox searchBox;
+    private static String searchText = "";
+    private static volatile List<SongSearch.Hit> results = List.of();
+    private static volatile String searchState = "idle"; // idle, searching, done, failed
+    private static String lastQuery = "";
+    private long typedAt;
+
     public LyricsConfigScreen(Screen parent) {
         super(Component.translatable("lyricsplus.screen.title"));
         this.parent = parent;
@@ -67,7 +77,36 @@ public final class LyricsConfigScreen extends Screen {
 
     @Override
     protected void init() {
+        searchBox = new EditBox(this.font, 0, 0, 200, 18, Component.translatable("lyricsplus.search.hint"));
+        searchBox.setMaxLength(80);
+        searchBox.setHint(Component.translatable("lyricsplus.search.hint"));
+        searchBox.setValue(searchText);
+        searchBox.setResponder(text -> {
+            searchText = text;
+            typedAt = System.currentTimeMillis();
+        });
+        addRenderableWidget(searchBox);
         buildRows();
+    }
+
+    private boolean onSearchPage() {
+        return "search".equals(PAGES[page]);
+    }
+
+    private void runSearch(String query) {
+        lastQuery = query;
+        searchState = "searching";
+        rebuildPending = true;
+        Thread t = new Thread(() -> {
+            List<SongSearch.Hit> found = SongSearch.search(query);
+            if (query.equals(lastQuery)) {
+                results = found;
+                searchState = found.isEmpty() ? "failed" : "done";
+                rebuildPending = true;
+            }
+        }, "LyricsPlus-SongSearch");
+        t.setDaemon(true);
+        t.start();
     }
 
     private int accent() {
@@ -93,6 +132,21 @@ public final class LyricsConfigScreen extends Screen {
                 rows.add(new ToggleRow("enabled", () -> cfg.enabled, v -> cfg.enabled = v).desc());
                 rows.add(new ToggleRow("demo", () -> LyricsPlusClient.engine().isDemo(),
                         v -> LyricsPlusClient.engine().setDemo(v)).desc());
+            }
+            case "search" -> {
+                if ("searching".equals(searchState)) {
+                    rows.add(new HintRow("lyricsplus.search.searching"));
+                } else if ("failed".equals(searchState)) {
+                    rows.add(new HintRow("lyricsplus.search.nothing"));
+                } else if (results.isEmpty()) {
+                    rows.add(new HintRow("lyricsplus.search.tip"));
+                    rows.add(new HintRow("lyricsplus.search.tip2"));
+                }
+                if (!"searching".equals(searchState)) {
+                    for (SongSearch.Hit h : results) {
+                        rows.add(new ResultRow(h));
+                    }
+                }
             }
             case "lyrics" -> {
                 rows.add(new SectionRow("lyrics"));
@@ -234,7 +288,7 @@ public final class LyricsConfigScreen extends Screen {
         py = (this.height - ph) / 2;
         cx = px + SIDEBAR_W + PAD;
         cw = pw - SIDEBAR_W - PAD * 2;
-        contentTop = py + 40;
+        contentTop = py + (onSearchPage() ? 64 : 40);
         contentBottom = py + ph - 8;
     }
 
@@ -276,7 +330,7 @@ public final class LyricsConfigScreen extends Screen {
         boolean doneHover = inside(mouseX, mouseY, px + 8, dy, SIDEBAR_W - 16, 18);
         g.fill(px + 8, dy, px + SIDEBAR_W - 8, dy + 18, doneHover ? accent : CARD_HOVER);
         g.centeredText(font, Component.translatable("lyricsplus.done"), px + SIDEBAR_W / 2, dy + 5, doneHover ? 0xFF101010 : TEXT);
-        small(g, Component.literal("v2.3"), px + 10, dy - 11, 0xFF55555F);
+        small(g, Component.literal("v2.4"), px + 10, dy - 11, 0xFF55555F);
 
         // content header
         g.pose().pushMatrix();
@@ -287,6 +341,14 @@ public final class LyricsConfigScreen extends Screen {
         small(g, Component.translatable("lyricsplus.page." + PAGES[page] + ".sub"), cx, py + 24, MUTED);
         boolean closeHover = inside(mouseX, mouseY, px + pw - 20, py + 6, 14, 14);
         g.text(font, "✕", px + pw - 16, py + 9, closeHover ? TEXT : MUTED, false);
+
+        // search box (vanilla text field placed inside our panel)
+        searchBox.visible = onSearchPage();
+        if (searchBox.visible) {
+            searchBox.setX(cx);
+            searchBox.setY(py + 38);
+            searchBox.setWidth(cw);
+        }
 
         // rows
         int contentH = 0;
@@ -326,6 +388,14 @@ public final class LyricsConfigScreen extends Screen {
     @Override
     public void tick() {
         super.tick();
+        // search ~0.45 s after typing stops
+        if (onSearchPage() && typedAt > 0 && System.currentTimeMillis() - typedAt > 450) {
+            typedAt = 0;
+            String q = searchText.trim();
+            if (q.length() >= 2 && !q.equals(lastQuery)) {
+                runSearch(q);
+            }
+        }
         if (rebuildPending) {
             rebuildPending = false;
             double keep = scroll;
@@ -351,6 +421,10 @@ public final class LyricsConfigScreen extends Screen {
         if (event.button() != 0) {
             return super.mouseClicked(event, doubleClick);
         }
+        if (onSearchPage() && searchBox.isMouseOver(mx, my)) {
+            return super.mouseClicked(event, doubleClick); // focus the text field
+        }
+        searchBox.setFocused(false);
         if (inside(mx, my, px + pw - 20, py + 6, 14, 14) || inside(mx, my, px + 8, py + ph - 26, SIDEBAR_W - 16, 18)) {
             onClose();
             return true;
@@ -967,6 +1041,56 @@ public final class LyricsConfigScreen extends Screen {
                         default -> cfg.nudge(key, 100);
                     }
                 }
+            }
+            return false;
+        }
+    }
+
+    /** One search result: title, artist, lyrics badge, open in Spotify / YouTube. */
+    private final class ResultRow extends Row {
+        private final SongSearch.Hit hit;
+
+        ResultRow(SongSearch.Hit hit) {
+            super("result");
+            this.hit = hit;
+        }
+
+        @Override
+        int height() {
+            return 28;
+        }
+
+        private int btnX(int i) {
+            return x + w - 6 - (2 - i) * 54;
+        }
+
+        @Override
+        void render(GuiGraphicsExtractor g, boolean hover, int mx, int my) {
+            card(g, hover);
+            int textW = btnX(0) - x - 14;
+            g.enableScissor(x + 8, y, x + 8 + textW, y + height());
+            g.text(font, Component.literal(hit.title()), x + 8, y + 5, TEXT, false);
+            small(g, Component.literal(hit.artist()), x + 8, y + 17, MUTED);
+            g.disableScissor();
+            if (hit.hasLyrics()) {
+                small(g, Component.literal("♪"), btnX(0) - 9, y + 11, 0xFF1DB954);
+            }
+            String[] labels = {"Spotify", "YouTube"};
+            int[] colors = {0xFF1DB954, 0xFFE53935};
+            for (int i = 0; i < 2; i++) {
+                int bx = btnX(i);
+                boolean bh = inside(mx, my, bx, y + 6, 50, 16);
+                g.fill(bx, y + 6, bx + 50, y + 22, bh ? colors[i] : 0xFF15151B);
+                g.centeredText(font, Component.literal(labels[i]), bx + 25, y + 10, bh ? 0xFFFFFFFF : colors[i]);
+            }
+        }
+
+        @Override
+        boolean click(double mx, double my) {
+            if (inside(mx, my, btnX(0), y + 6, 50, 16)) {
+                SongSearch.openSpotify(hit);
+            } else if (inside(mx, my, btnX(1), y + 6, 50, 16)) {
+                SongSearch.openYouTube(hit);
             }
             return false;
         }

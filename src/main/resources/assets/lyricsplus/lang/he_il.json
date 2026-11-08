@@ -174,5 +174,12 @@
   "lyricsplus.label.see_through": "להציג דרך בלוקים",
   "lyricsplus.desc.see_through": "המילים נראות גם מאחורי קירות וגבעות",
   "lyricsplus.label.song_offset": "תזמון (השיר הזה)",
-  "lyricsplus.desc.song_offset": "נשמר לשיר הזה · + מאוחר, - מוקדם"
+  "lyricsplus.desc.song_offset": "נשמר לשיר הזה · + מאוחר, - מוקדם",
+  "lyricsplus.page.search": "חיפוש",
+  "lyricsplus.page.search.sub": "מצא שיר ופתח אותו בספוטיפיי או ביוטיוב",
+  "lyricsplus.search.hint": "שם שיר, זמר, או מילה מהשם…",
+  "lyricsplus.search.searching": "מחפש…",
+  "lyricsplus.search.nothing": "לא נמצאו שירים – נסה מילים אחרות",
+  "lyricsplus.search.tip": "הקלד לפחות 2 אותיות. גם עברית עובדת.",
+  "lyricsplus.search.tip2": "♪ = יש מילים ב-Lyrics Plus"
 }
