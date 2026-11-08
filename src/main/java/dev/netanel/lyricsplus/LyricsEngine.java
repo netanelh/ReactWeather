@@ -16,7 +16,7 @@ import java.util.concurrent.Executors;
 /** Tracks the current song, loads lyrics off-thread, and answers "what is on screen right now". */
 public final class LyricsEngine {
 
-    public enum Status { NO_PLAYER, LOADING, READY, NOT_FOUND }
+    public enum Status { NO_PLAYER, AD, LOADING, READY, NOT_FOUND }
 
     /** Immutable view of the current playback moment, built once per frame. */
     public record Snapshot(
@@ -77,6 +77,7 @@ public final class LyricsEngine {
     private volatile long trackChangedAt = System.currentTimeMillis();
     private volatile int generation;
 
+    private volatile boolean adPlaying;
     private boolean demo;
     private long demoStart;
 
@@ -126,11 +127,31 @@ public final class LyricsEngine {
         if (a == null || t == null || t.isBlank()) {
             return;
         }
+        // Ads: hide everything until music comes back. The song before the ad keeps its key,
+        // so if it simply resumes we don't replay the title card.
+        adPlaying = isAd(a, t);
+        if (adPlaying) {
+            return;
+        }
 
         String key = a + " - " + t;
         if (!key.equals(trackKey)) {
             onTrackChanged(key, a, t);
         }
+    }
+
+    static boolean isAd(String artist, String title) {
+        String t = title.trim().toLowerCase(java.util.Locale.ROOT);
+        String a = artist.trim().toLowerCase(java.util.Locale.ROOT);
+        if (t.equals("advertisement") || t.equals("spotify") || t.equals("spotify free")
+                || t.startsWith("advertisement") || t.equals("ad") || t.startsWith("ad ·") || t.startsWith("ad:")) {
+            return true;
+        }
+        if (a.equals("spotify") || a.equals("advertisement")) {
+            return true;
+        }
+        // Spotify ads come with no artist; real songs always have one.
+        return a.isEmpty();
     }
 
     private void ensurePlayer() {
@@ -190,6 +211,9 @@ public final class LyricsEngine {
         }
         if (music == null) {
             return build("", "", 0, 0, false, Status.NO_PLAYER, null, now - trackChangedAt, false);
+        }
+        if (adPlaying) {
+            return build("", "", 0, 0, false, Status.AD, null, now - trackChangedAt, false);
         }
         long pos = music.getPosition() + cfg.offsetMs;
         long durMs = music.getDuration() * 1000L;

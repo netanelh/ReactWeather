@@ -92,7 +92,7 @@ public final class WorldLyrics {
         Player player = mc.player;
 
         boolean active = cfg.enabled && cfg.displayMode == DisplayMode.WORLD
-                && level != null && player != null && s.status() != Status.NO_PLAYER;
+                && level != null && player != null && s.status() != Status.NO_PLAYER && s.status() != Status.AD;
         if (!active) {
             clearAll();
             return;

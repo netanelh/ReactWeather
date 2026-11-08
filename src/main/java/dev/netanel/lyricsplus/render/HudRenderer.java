@@ -30,7 +30,7 @@ public final class HudRenderer {
             return;
         }
         Snapshot s = LyricsPlusClient.engine().snapshot();
-        if (s.status() == Status.NO_PLAYER || s.title().isBlank()) {
+        if (s.status() == Status.NO_PLAYER || s.status() == Status.AD || s.title().isBlank()) {
             return;
         }
         Font font = Minecraft.getInstance().font;
