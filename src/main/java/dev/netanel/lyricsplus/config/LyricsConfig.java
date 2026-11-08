@@ -78,7 +78,7 @@ public final class LyricsConfig {
     public float worldHeight = 0.0f;
     public WordAnimation wordAnimation = WordAnimation.POP;
     public WordColors wordColors = WordColors.HIGHLIGHT;
-    public float scatterSpread = 1.5f;
+    public float scatterSpread = 1.0f;
     public ScatterFrom scatterFrom = ScatterFrom.CENTER;
     public float scatterTilt = 15f;
     public float scatterSizeVariation = 0.3f;

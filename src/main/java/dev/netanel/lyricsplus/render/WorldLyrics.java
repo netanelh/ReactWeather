@@ -238,9 +238,10 @@ public final class WorldLyrics {
     /** Random, non-overlapping spots in front of the player, stable for the whole line. */
     private static void scatterLayout(Snapshot s, LyricsConfig cfg, int n) {
         java.util.Random rnd = new java.util.Random((s.title() + "#" + s.index()).hashCode());
-        float spreadX = cfg.scatterSpread * Math.max(1.2f, dist(cfg) * 0.55f);
-        float spreadY = cfg.scatterSpread * Math.max(0.6f, dist(cfg) * 0.28f);
-        float minGap = 0.45f * wscale(cfg);
+        // Tighter cloud: about a quarter of the distance sideways, an eighth up/down.
+        float spreadX = cfg.scatterSpread * dist(cfg) * 0.25f;
+        float spreadY = cfg.scatterSpread * dist(cfg) * 0.12f;
+        float minGap = 0.35f * wscale(cfg);
         spreadX *= 1f; // distances already scale with dist(cfg)
         for (int i = 0; i < n; i++) {
             float bx = 0, by = 0;
@@ -260,7 +261,7 @@ public final class WorldLyrics {
             }
             laterals[i] = bx;
             rows[i] = -by;
-            depths[i] = (rnd.nextFloat() * 2f - 1f) * 0.6f * cfg.scatterSpread;
+            depths[i] = (rnd.nextFloat() * 2f - 1f) * 0.25f * cfg.scatterSpread * factor(cfg);
             tilts[i] = (float) Math.toRadians((rnd.nextFloat() * 2f - 1f) * cfg.scatterTilt);
             sizes[i] = 1f + (rnd.nextFloat() * 2f - 1f) * cfg.scatterSizeVariation;
         }
