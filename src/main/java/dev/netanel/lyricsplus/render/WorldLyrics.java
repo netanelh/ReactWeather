@@ -81,6 +81,11 @@ public final class WorldLyrics {
     private static Vec3 fixedRight;
     private static final List<Piece> retiring = new ArrayList<>();
     private static ClientLevel lastLevel;
+    private static final double FOLLOW_SMOOTHING = 0.18;
+    private static Vec3 smoothBase;
+    private static Vec3 smoothRight;
+    /** Last transformation sent per entity id, so unchanged words are left alone (no jitter). */
+    private static final java.util.Map<Integer, float[]> lastTransform = new java.util.HashMap<>();
     private static long lastPlayingAt = System.currentTimeMillis();
 
     private WorldLyrics() {
@@ -110,6 +115,8 @@ public final class WorldLyrics {
             card.clear();
             cardKey = "";
             lineKey = "";
+            smoothBase = null;
+            lastTransform.clear();
         }
 
         boolean realLine = s.status() == Status.READY && s.hasLine() && !s.instrumental();
@@ -122,8 +129,26 @@ public final class WorldLyrics {
             layout(s, cfg, wordMode, player);
         }
 
-        Vec3 base = cfg.worldFollow ? anchor(player, cfg) : fixedBase;
-        Vec3 right = cfg.worldFollow ? rightOf(player) : fixedRight;
+        Vec3 base;
+        Vec3 right;
+        if (cfg.worldFollow) {
+            // Glide after the player instead of snapping every tick (snapping looks like shaking).
+            Vec3 target = anchor(player, cfg);
+            Vec3 targetRight = rightOf(player);
+            if (smoothBase == null || smoothBase.distanceTo(target) > dist(cfg) * 2 + 4) {
+                smoothBase = target;
+                smoothRight = targetRight;
+            } else {
+                smoothBase = smoothBase.add(target.subtract(smoothBase).scale(FOLLOW_SMOOTHING));
+                Vec3 r = smoothRight.add(targetRight.subtract(smoothRight).scale(FOLLOW_SMOOTHING));
+                smoothRight = r.lengthSqr() < 1.0E-4 ? targetRight : r.normalize();
+            }
+            base = smoothBase;
+            right = smoothRight;
+        } else {
+            base = fixedBase;
+            right = fixedRight;
+        }
         if (!cfg.worldFollow && base.distanceTo(anchor(player, cfg)) > dist(cfg) * 1.5 + 6) {
             fixedBase = anchor(player, cfg); // walked away: bring the line back
             fixedRight = rightOf(player);
@@ -329,7 +354,7 @@ public final class WorldLyrics {
         TextDisplayAccessor td = (TextDisplayAccessor) p.entity;
         td.lyricsplus$setText(text);
         td.lyricsplus$setBackgroundColor(0);
-        td.lyricsplus$setFlags((byte) 1);
+        td.lyricsplus$setFlags(flags(LyricsConfig.get(), true));
         return p;
     }
 
@@ -358,7 +383,7 @@ public final class WorldLyrics {
         TextDisplayAccessor td = (TextDisplayAccessor) p.entity;
         td.lyricsplus$setText(text);
         td.lyricsplus$setBackgroundColor(cfg.background ? Math.round(cfg.backgroundOpacity * 255) << 24 : 0);
-        td.lyricsplus$setFlags((byte) (cfg.shadow ? 1 : 0));
+        td.lyricsplus$setFlags(flags(cfg, cfg.shadow));
         td.lyricsplus$setTextOpacity((byte) opacity);
         place(p, base, right, cfg);
 
@@ -454,7 +479,18 @@ public final class WorldLyrics {
         return flat.lengthSqr() < 1.0E-4 ? new Vec3(0, 0, 1) : flat.normalize();
     }
 
+    /** Text display flags: 1 = shadow, 2 = visible through blocks. */
+    private static byte flags(LyricsConfig cfg, boolean shadow) {
+        return (byte) ((shadow ? 1 : 0) | (cfg.seeThrough ? 2 : 0));
+    }
+
     private static void transform(Display.TextDisplay e, float scale, Vector3f offset, float spin) {
+        float[] last = lastTransform.get(e.getId());
+        if (last != null && Math.abs(last[0] - scale) < 0.002f && Math.abs(last[1] - offset.y) < 0.002f
+                && Math.abs(last[2] - spin) < 0.002f) {
+            return; // nothing changed: restarting interpolation would only make it twitch
+        }
+        lastTransform.put(e.getId(), new float[]{scale, offset.y, spin});
         DisplayAccessor d = (DisplayAccessor) e;
         d.lyricsplus$setTransformation(new Transformation(
                 offset, new Quaternionf().rotateZ(spin), new Vector3f(scale, scale, scale), new Quaternionf()));
@@ -472,6 +508,7 @@ public final class WorldLyrics {
     }
 
     private static void remove(ClientLevel level, Piece p) {
+        lastTransform.remove(p.entity.getId());
         if (level != null && p.entity.level() == level) {
             level.removeEntity(p.entity.getId(), Entity.RemovalReason.DISCARDED);
         }
@@ -494,6 +531,9 @@ public final class WorldLyrics {
         retiring.clear();
         scatter = false;
         lastLevel = null;
+        smoothBase = null;
+        smoothRight = null;
+        lastTransform.clear();
         lineKey = "";
     }
 }

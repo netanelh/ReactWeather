@@ -170,5 +170,7 @@
   "lyricsplus.preset.minimal.sub": "קטן ולא מפריע",
   "lyricsplus.label.hide_paused": "הסתר כשמושהה",
   "lyricsplus.desc.hide_paused": "המילים בעולם נעלמות 3 שניות אחרי שהמוזיקה נעצרת",
-  "lyricsplus.msg.intro": "♫ Lyrics Plus פועל – לחץ ; כדי לעצב את המילים"
+  "lyricsplus.msg.intro": "♫ Lyrics Plus פועל – לחץ ; כדי לעצב את המילים",
+  "lyricsplus.label.see_through": "להציג דרך בלוקים",
+  "lyricsplus.desc.see_through": "המילים נראות גם מאחורי קירות וגבעות"
 }

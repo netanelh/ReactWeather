@@ -86,6 +86,7 @@ public final class LyricsConfig {
     public boolean albumColors = false;
     public PanelPosition panelPosition = PanelPosition.CENTER;
     public boolean hideWhenPaused = true;
+    public boolean seeThrough = true;
     public boolean seenIntro = false;
 
     // ---- persistence ----

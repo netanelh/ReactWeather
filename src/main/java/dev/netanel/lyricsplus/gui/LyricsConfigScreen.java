@@ -170,6 +170,7 @@ public final class LyricsConfigScreen extends Screen {
                             v -> cfg.scatterSizeVariation = (float) v, v -> "±" + Math.round(v * 100) + "%"));
                 }
                 rows.add(new SectionRow("position"));
+                rows.add(new ToggleRow("see_through", () -> cfg.seeThrough, v -> cfg.seeThrough = v).desc());
                 if (cfg.displayMode == DisplayMode.SKY) {
                     rows.add(new SliderRow("sky_distance", 10, 60, 1, () -> cfg.skyDistance, v -> cfg.skyDistance = (float) v,
                             v -> Math.round(v) + "m"));

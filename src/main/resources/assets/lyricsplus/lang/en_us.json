@@ -170,5 +170,7 @@
   "lyricsplus.preset.minimal.sub": "Small, out of the way",
   "lyricsplus.label.hide_paused": "Hide when paused",
   "lyricsplus.desc.hide_paused": "World lyrics vanish 3 s after the music pauses",
-  "lyricsplus.msg.intro": "♫ Lyrics Plus is on – press ; to style your lyrics"
+  "lyricsplus.msg.intro": "♫ Lyrics Plus is on – press ; to style your lyrics",
+  "lyricsplus.label.see_through": "Show through blocks",
+  "lyricsplus.desc.see_through": "Words stay visible even behind walls and hills"
 }
