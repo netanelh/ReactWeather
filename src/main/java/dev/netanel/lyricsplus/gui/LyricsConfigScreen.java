@@ -133,7 +133,7 @@ public final class LyricsConfigScreen extends Screen {
     public void onClose() {
         cfg.save();
         LyricsPlusClient.engine().setDemo(false);
-        this.minecraft.setScreen(parent);
+        this.minecraft.gui.setScreen(parent);
     }
 
     // ---------------------------------------------------------------- helpers

@@ -60,7 +60,7 @@ public final class LyricsPlusClient implements ClientModInitializer {
         LyricsConfig cfg = LyricsConfig.get();
 
         while (openPanel.consumeClick()) {
-            mc.setScreen(new LyricsConfigScreen(mc.screen));
+            mc.gui.setScreen(new LyricsConfigScreen(mc.gui.screen()));
         }
         while (toggleLyrics.consumeClick()) {
             cfg.enabled = !cfg.enabled;
@@ -86,7 +86,7 @@ public final class LyricsPlusClient implements ClientModInitializer {
 
     private static void notify(Minecraft mc, Component message) {
         if (mc.player != null) {
-            mc.player.displayClientMessage(message, true);
+            mc.player.sendOverlayMessage(message);
         }
     }
 }

@@ -13,7 +13,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Brightness;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
@@ -117,7 +117,7 @@ public final class WorldLyrics {
     }
 
     private static Floating spawn(ClientLevel level, Player player, LyricsConfig cfg) {
-        Display.TextDisplay e = new Display.TextDisplay(EntityType.TEXT_DISPLAY, level);
+        Display.TextDisplay e = new Display.TextDisplay(EntityTypes.TEXT_DISPLAY, level);
         Vec3 a = anchor(player, cfg);
         e.setPos(a.x, a.y, a.z);
         e.setId(nextId--);
