@@ -30,7 +30,7 @@ jobs:
           for j in $JAR; do unzip -Z1 "$j" 2>/dev/null | grep '\.class$' | sed 's/\.class$//; s#/#.#g' >> classes.txt; done
           sort -u classes.txt -o classes.txt
           # javap dumps for classes listed in .github/inspect.txt (one per line)
-          for j in $JAR; do while read -r c; do [ -n "$c" ] && javap -p -cp "$j" "$c" >> mc-api.txt 2>/dev/null; done < .github/inspect.txt; done
+          for j in $JAR; do while read -r c; do [ -z "$c" ] && continue; case "$c" in c:*) javap -p -c -cp "$j" "${c#c:}" >> mc-api.txt 2>/dev/null;; *) javap -p -cp "$j" "$c" >> mc-api.txt 2>/dev/null;; esac; done < .github/inspect.txt; done
       - name: publish result to vortex-client-ci branch
         run: |
           SHA=$(git rev-parse --short HEAD)
