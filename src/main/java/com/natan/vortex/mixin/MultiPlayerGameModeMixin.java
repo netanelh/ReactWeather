@@ -25,6 +25,8 @@ public abstract class MultiPlayerGameModeMixin {
         if (VortexClient.modules == null) return;
         if (VortexClient.modules.isActive(AutoWeapon.class)) AutoWeapon.switchToBest(target);
         VortexClient.modules.get(Criticals.class).beforeAttack(target);
+        VortexClient.modules.get(com.natan.vortex.module.combat.SuperKnockback.class).beforeAttack(target);
+        VortexClient.modules.get(com.natan.vortex.module.combat.MaceSmash.class).beforeAttack(target);
     }
 
     /** Remember which block we right-clicked (ChestMemory uses it to know which chest a screen belongs to). */

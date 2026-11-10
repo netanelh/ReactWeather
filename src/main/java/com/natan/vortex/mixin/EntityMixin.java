@@ -12,6 +12,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Entity.class)
 public abstract class EntityMixin {
@@ -31,5 +32,27 @@ public abstract class EntityMixin {
         if (original == Blocks.SOUL_SAND && n.on(n.soulSand)) return Blocks.STONE;
         if (original == Blocks.HONEY_BLOCK && n.on(n.honey)) return Blocks.STONE;
         return original;
+    }
+
+    /** Freecam / FreeLook: mouse turns the camera instead of the player. */
+    @Inject(method = "turn", at = @At("HEAD"), cancellable = true)
+    private void vortex$turn(double dx, double dy, CallbackInfo ci) {
+        if (VortexClient.modules == null || (Object) this != Minecraft.getInstance().player) return;
+        if (VortexClient.modules.get(com.natan.vortex.module.render.Freecam.class).turn(dx, dy)
+            || VortexClient.modules.get(com.natan.vortex.module.render.FreeLook.class).turn(dx, dy)) ci.cancel();
+    }
+
+    @Inject(method = "push(DDD)V", at = @At("HEAD"), cancellable = true)
+    private void vortex$noPush(double x, double y, double z, CallbackInfo ci) {
+        if (VortexClient.modules == null || (Object) this != Minecraft.getInstance().player) return;
+        var n = VortexClient.modules.get(com.natan.vortex.module.movement.NoPush.class);
+        if (n.on(n.entities)) ci.cancel();
+    }
+
+    @Inject(method = "isPushedByFluid", at = @At("HEAD"), cancellable = true)
+    private void vortex$noWaterPush(CallbackInfoReturnable<Boolean> cir) {
+        if (VortexClient.modules == null || (Object) this != Minecraft.getInstance().player) return;
+        var n = VortexClient.modules.get(com.natan.vortex.module.movement.NoPush.class);
+        if (n.on(n.water)) cir.setReturnValue(false);
     }
 }

@@ -12,7 +12,7 @@ import org.lwjgl.glfw.GLFW;
 
 /** Hold Left Alt and right-click to teleport onto the block you look at. */
 public class ClickTP extends Module {
-    private final NumberSetting range = add(new NumberSetting("Range", "Max teleport distance (vanilla servers allow ~8-10)", 8, 2, 64, 1));
+    private final NumberSetting range = add(new NumberSetting("Range", "Max teleport distance (split into safe hops)", 64, 2, 256, 2));
     private boolean wasDown;
 
     public ClickTP() { super("ClickTP", "Left Alt + right click teleports you to where you look", Category.MOVEMENT); }

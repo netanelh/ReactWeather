@@ -51,6 +51,7 @@ public final class HudRenderer {
         }
 
         HudExtras.render(g, mc, gui);
+        HudMore.render(g, mc, gui);
 
         if (hud.armor.on() && !mc.player.isCreative()) {
             EquipmentSlot[] slots = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};

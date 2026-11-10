@@ -129,6 +129,23 @@ public final class Commands {
                     Chat.error("On multiplayer I can find: " + String.join(", ", new java.util.TreeSet<>(com.natan.vortex.nav.process.ScoutProcess.SIGNATURES.keySet())) + ", stronghold (eyes of ender). Crack the seed (.seed) to find anything, biomes included.");
                 }
             }
+            case "vclip" -> {
+                if (a.length < 2) { Chat.error("Usage: .vclip <blocks>  (negative = down)"); return; }
+                com.natan.vortex.util.Teleport.to(mc.player.position().add(0, Double.parseDouble(a[1]), 0));
+            }
+            case "hclip" -> {
+                if (a.length < 2) { Chat.error("Usage: .hclip <blocks>  (forward through walls)"); return; }
+                double yaw = Math.toRadians(mc.player.getYRot()), d = Double.parseDouble(a[1]);
+                com.natan.vortex.util.Teleport.to(mc.player.position().add(-Math.sin(yaw) * d, 0, Math.cos(yaw) * d));
+            }
+            case "tp" -> {
+                if (a.length < 4) { Chat.error("Usage: .tp <x> <y> <z>   (~ for current, max ~100 blocks per go)"); return; }
+                var pos = mc.player.position();
+                double x = a[1].startsWith("~") ? pos.x + (a[1].length() > 1 ? Double.parseDouble(a[1].substring(1)) : 0) : Double.parseDouble(a[1]);
+                double y = a[2].startsWith("~") ? pos.y + (a[2].length() > 1 ? Double.parseDouble(a[2].substring(1)) : 0) : Double.parseDouble(a[2]);
+                double z = a[3].startsWith("~") ? pos.z + (a[3].length() > 1 ? Double.parseDouble(a[3].substring(1)) : 0) : Double.parseDouble(a[3]);
+                com.natan.vortex.util.Teleport.to(new net.minecraft.world.phys.Vec3(x, y, z));
+            }
             case "seed" -> {
                 String sub = a.length > 1 ? a[1].toLowerCase() : "";
                 if (mc.getSingleplayerServer() != null) { Chat.info("In singleplayer .locate already reads your world directly."); return; }
@@ -209,6 +226,7 @@ public final class Commands {
         Chat.info("§lTasks§r: .mine <block...> [limit N] [nohome] | .follow [player] | .explore [step] | .farm [radius] | .tunnel [length] [1x2|2x2|3x3]");
         Chat.info("§lMore§r: .hunt <mob|hostiles|animals> [N] | .collect [item] | .find <block> | .surface | .flee [blocks] | .patrol <wp> <wp>...");
         Chat.info("§lFar & storage§r: .find <block> (remembers every chunk you saw) | .locate <structure> / .locate biome <b> | .where <item> | .fetch <item> | .indexchests [r] | .memory | .seed (crack the server seed)");
+        Chat.info("§lTeleport§r: .vclip <n> | .hclip <n> | .tp <x> <y> <z>  (and ClickTP: Left Alt + right click)");
         Chat.info("§lWaypoints§r: .wp add <name> | .wp del <name> | .wp list   (death point is saved automatically)");
         Chat.info("§lClient§r: .toggle <module> | .bind <module> <key|none> | .preset save|load|list <name> | .panic | .modules");
     }

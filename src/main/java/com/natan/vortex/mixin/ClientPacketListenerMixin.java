@@ -53,4 +53,22 @@ public abstract class ClientPacketListenerMixin {
         double h = v.horizontal.d() / 100.0, y = v.vertical.d() / 100.0;
         p.setDeltaMovement(before.x + (now.x - before.x) * h, before.y + (now.y - before.y) * y, before.z + (now.z - before.z) * h);
     }
+
+    @Inject(method = "handleSetTime", at = @At("HEAD"))
+    private void vortex$time(net.minecraft.network.protocol.game.ClientboundSetTimePacket packet, CallbackInfo ci) {
+        if (net.minecraft.client.Minecraft.getInstance().isSameThread()) com.natan.vortex.module.render.ServerLag.onTime(packet.gameTime());
+    }
+
+    @Inject(method = "handleEntityEvent", at = @At("HEAD"))
+    private void vortex$entityEvent(net.minecraft.network.protocol.game.ClientboundEntityEventPacket packet, CallbackInfo ci) {
+        var mc = net.minecraft.client.Minecraft.getInstance();
+        if (!mc.isSameThread() || VortexClient.modules == null || mc.level == null) return;
+        var e = packet.getEntity(mc.level);
+        if (e != null) VortexClient.modules.get(com.natan.vortex.module.combat.TotemPops.class).onEntityEvent(e, packet.getEventId());
+    }
+
+    @Inject(method = "handleParticleEvent", at = @At("HEAD"), cancellable = true)
+    private void vortex$antiCrash(net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket packet, CallbackInfo ci) {
+        if (VortexClient.modules != null && VortexClient.modules.get(com.natan.vortex.module.client.AntiCrash.class).blockParticles(packet.getCount())) ci.cancel();
+    }
 }

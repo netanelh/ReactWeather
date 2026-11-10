@@ -4,6 +4,10 @@
   "compatibilityLevel": "JAVA_25",
   "client": [
     "MinecraftAccessor",
+    "KeyboardInputMixin",
+    "EntityRenderDispatcherMixin",
+    "ParticleEngineMixin",
+    "GameRendererMixin",
     "ClientLevelMixin",
     "StructurePlacementAccessor",
     "MinecraftMixin",
