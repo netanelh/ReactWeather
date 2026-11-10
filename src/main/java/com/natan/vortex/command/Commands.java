@@ -78,6 +78,35 @@ public final class Commands {
                 int w = size.startsWith("3") ? 3 : size.startsWith("2") ? 2 : 1, h = size.endsWith("3") ? 3 : 2;
                 nav.start(new TunnelProcess(len, w, h));
             }
+            case "hunt", "kill" -> {
+                String what = a.length > 1 ? a[1] : "hostiles";
+                int limit = a.length > 2 ? Integer.parseInt(a[2]) : 0;
+                nav.start(new com.natan.vortex.nav.process.HuntProcess(com.natan.vortex.nav.process.HuntProcess.byName(what), what, limit));
+            }
+            case "collect", "pickup" -> nav.start(new com.natan.vortex.nav.process.CollectProcess(a.length > 1 ? a[1] : null, 32));
+            case "find" -> {
+                if (a.length < 2) { Chat.error("Usage: .find <block>  e.g. .find crafting_table"); return; }
+                var set = BlockSets.parse(a[1]);
+                if (set.isEmpty()) { Chat.error("Unknown block '" + a[1] + "'"); return; }
+                nav.start(new com.natan.vortex.nav.process.FindProcess(set, a[1]));
+            }
+            case "surface", "up" -> nav.start(new com.natan.vortex.nav.process.SimpleGoalProcess("Surface", new Goal.Surface()));
+            case "flee", "run" -> {
+                int dist = a.length > 1 ? Integer.parseInt(a[1]) : 50;
+                var p = mc.player.blockPosition();
+                nav.start(new com.natan.vortex.nav.process.SimpleGoalProcess("Flee", new Goal.Away(p.getX(), p.getZ(), dist)));
+            }
+            case "patrol" -> {
+                if (a.length < 3) { Chat.error("Usage: .patrol <waypoint> <waypoint> [...]"); return; }
+                java.util.List<String> names = new java.util.ArrayList<>();
+                java.util.List<BlockPos> pts = new java.util.ArrayList<>();
+                for (int i = 1; i < a.length; i++) {
+                    var w = Waypoints.INSTANCE.get(a[i]);
+                    if (w == null) { Chat.error("No waypoint '" + a[i] + "'"); return; }
+                    names.add(a[i]); pts.add(w.pos());
+                }
+                nav.start(new com.natan.vortex.nav.process.PatrolProcess(names, pts));
+            }
             case "toggle", "t" -> {
                 Module m = find(a, 1);
                 if (m != null) { m.toggle(); Chat.info(m.name + (m.isEnabled() ? " §aON" : " §cOFF")); }
@@ -107,12 +136,13 @@ public final class Commands {
     }
 
     private static boolean isNavCommand(String c) {
-        return Set.of("goto", "g", "home", "mine", "follow", "explore", "farm", "tunnel").contains(c.toLowerCase());
+        return Set.of("goto", "g", "home", "mine", "follow", "explore", "farm", "tunnel", "hunt", "kill", "collect", "pickup", "find", "surface", "up", "flee", "run", "patrol").contains(c.toLowerCase());
     }
 
     private static void help() {
         Chat.info("§lNavigation§r: .goto x y z | .goto x z | .goto <waypoint> | .home | .sethome | .stop | .pause | .resume");
         Chat.info("§lTasks§r: .mine <block...> [limit N] [nohome] | .follow [player] | .explore [step] | .farm [radius] | .tunnel [length] [1x2|2x2|3x3]");
+        Chat.info("§lMore§r: .hunt <mob|hostiles|animals> [N] | .collect [item] | .find <block> | .surface | .flee [blocks] | .patrol <wp> <wp>...");
         Chat.info("§lWaypoints§r: .wp add <name> | .wp del <name> | .wp list   (death point is saved automatically)");
         Chat.info("§lClient§r: .toggle <module> | .bind <module> <key|none> | .preset save|load|list <name> | .panic | .modules");
     }

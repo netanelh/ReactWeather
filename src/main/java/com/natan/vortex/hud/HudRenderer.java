@@ -30,35 +30,6 @@ public final class HudRenderer {
         int w = g.guiWidth(), h = g.guiHeight();
         int bg = hud.background.on() ? 0x90101014 : 0;
 
-        if (hud.watermark.on()) {
-            String name = VortexClient.NAME, ver = " " + VortexClient.VERSION;
-            int tw = font.width(name + ver);
-            if (bg != 0) g.fill(2, 2, 8 + tw, 15, bg);
-            g.fill(2, 2, 3, 15, gui.accent(0));
-            g.text(font, name, 5, 5, gui.accent(0), true);
-            g.text(font, ver, 5 + font.width(name), 5, 0xFFAAAAAA, true);
-        }
-
-        if (hud.moduleList.on()) {
-            List<Module> active = new ArrayList<>();
-            for (Module m : VortexClient.modules.all()) if (m.isEnabled() && m.showInHud) active.add(m);
-            if (hud.sort.is("ABC")) active.sort(Comparator.comparing(m -> m.name));
-            else active.sort(Comparator.comparingInt((Module m) -> font.width(label(m, hud))).reversed());
-            int y = 2;
-            for (int i = 0; i < active.size(); i++) {
-                Module m = active.get(i);
-                String name = m.name;
-                String info = hud.showInfo.on() ? m.info() : null;
-                int tw = font.width(label(m, hud));
-                int x = w - tw - 5;
-                if (bg != 0) g.fill(x - 3, y, w - 2, y + 11, bg);
-                g.fill(w - 2, y, w - 1, y + 11, gui.accent(i));
-                g.text(font, name, x, y + 2, gui.accent(i), true);
-                if (info != null) g.text(font, " " + info, x + font.width(name), y + 2, 0xFFAAAAAA, true);
-                y += 11;
-            }
-        }
-
         int by = h - 11;
         boolean chatOpen = mc.gui.screen() instanceof net.minecraft.client.gui.screens.ChatScreen;
         if (chatOpen) by -= 14;
@@ -94,11 +65,6 @@ public final class HudRenderer {
                 ax += 18;
             }
         }
-    }
-
-    private static String label(Module m, Hud hud) {
-        String info = hud.showInfo.on() ? m.info() : null;
-        return info == null ? m.name : m.name + " " + info;
     }
 
     private static void drawLine(GuiGraphicsExtractor g, Font font, String a, String b, int x, int y, int bg, int accent) {

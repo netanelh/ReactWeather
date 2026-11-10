@@ -39,7 +39,20 @@ final class HudExtras {
         if (mods.get(NavSettings.class).hudStatus.on()) {
             String st = Navigator.INSTANCE.hudStatus();
             if (st != null) {
-                String text = "▶ " + st;
+                String arrow = "\u25B6", extra = "";
+                var goal = Navigator.INSTANCE.currentGoal();
+                if (goal != null && goal.center() != null) {
+                    var c = goal.center();
+                    double dx = c.getX() + 0.5 - mc.player.getX(), dz = c.getZ() + 0.5 - mc.player.getZ();
+                    double dist = Math.sqrt(dx * dx + dz * dz);
+                    double ang = Math.toDegrees(Math.atan2(dz, dx)) - 90 - mc.player.getYRot();
+                    ang = ((ang % 360) + 360) % 360;
+                    String[] arrows = {"\u2191", "\u2197", "\u2192", "\u2198", "\u2193", "\u2199", "\u2190", "\u2196"};
+                    arrow = arrows[(int) Math.round(ang / 45.0) % 8];
+                    int etaSec = (int) (dist / 4.3);
+                    extra = String.format(" \u00b7 %dm \u00b7 ~%d:%02d", Math.round(dist), etaSec / 60, etaSec % 60);
+                }
+                String text = arrow + " " + st + extra;
                 int tw = font.width(text), x = (w - tw) / 2, y = 4;
                 g.fill(x - 5, y - 2, x + tw + 5, y + 11, 0xB0101014);
                 g.fill(x - 5, y + 10, x + tw + 5, y + 11, gui.accent(0));
@@ -80,7 +93,7 @@ final class HudExtras {
         switch (r.position.get()) {
             case "Bottom Right" -> { x0 = w - size - 4; y0 = h - size - 4; }
             case "Bottom Left" -> { x0 = 4; y0 = h - size - 40; }
-            default -> { x0 = 4; y0 = 20; }
+            default -> { x0 = 4; y0 = 4; }
         }
         int cx = x0 + size / 2, cy = y0 + size / 2;
         g.fill(x0, y0, x0 + size, y0 + size, 0xB0101014);
@@ -108,6 +121,20 @@ final class HudExtras {
             if (e instanceof Player p && r.names.on()) {
                 String n = p.getName().getString();
                 g.text(mc.font, n, px - mc.font.width(n) / 2, py - 10, 0xFFFFFFFF, true);
+            }
+        }
+        // navigator path
+        var ex = Navigator.INSTANCE.executor();
+        if (ex != null) {
+            var steps = ex.steps();
+            for (int i = ex.index(); i < steps.size(); i++) {
+                var b = steps.get(i).pos();
+                double dx = b.getX() + 0.5 - mc.player.getX(), dz = b.getZ() + 0.5 - mc.player.getZ();
+                double rx = dx, ry = dz;
+                if (r.rotate.on()) { rx = -(dx * cos + dz * sin); ry = -(-dx * sin + dz * cos); }
+                int px = cx + (int) Math.round(rx * scale), py = cy + (int) Math.round(ry * scale);
+                if (px < x0 + 1 || px > x0 + size - 2 || py < y0 + 1 || py > y0 + size - 2) continue;
+                g.fill(px, py, px + 1, py + 1, acc);
             }
         }
         g.fill(cx - 1, cy - 1, cx + 2, cy + 2, 0xFFFFFFFF); // you

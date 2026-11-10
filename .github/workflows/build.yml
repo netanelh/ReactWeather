@@ -39,6 +39,6 @@ jobs:
           echo "${{ steps.build.outcome }} $SHA" > /tmp/out/STATUS
           for f in build/libs/*.jar; do case "$f" in *-sources.jar) ;; *) [ -f "$f" ] && cp "$f" /tmp/out/vortex-client.jar;; esac; done
           git config user.name ci && git config user.email ci@users.noreply.github.com
-          git checkout --orphan vortex-client-ci && git rm -rf . -q
+          git checkout --orphan vortex-client-ci && git rm -rf . -q && git clean -fdxq
           cp /tmp/out/* . && git add -A && git commit -q -m "CI $SHA ${{ steps.build.outcome }}"
           git push -f origin vortex-client-ci

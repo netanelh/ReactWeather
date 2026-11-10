@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /** Weighted A* over the block grid. Runs on the navigator's background thread. */
 public final class PathFinder {
     public record Config(boolean allowBreak, boolean allowPlace, int maxFall, boolean sprint, boolean avoidWater,
-                         int maxNodes, long timeoutMs, int throwaways) {}
+                         int maxNodes, long timeoutMs, int throwaways, boolean parkour) {}
 
     public record Result(List<Step> steps, boolean complete, int expanded, long millis) {}
 
@@ -140,6 +140,22 @@ public final class PathFinder {
                     && !World.isLavaAt(nx, y - 2, nz)) {
                     // bridge: place a block under the next cell
                     out.add(new Candidate(nx, y, nz, walk + c1 + c2 + 22, Step.Move.WALK, br, new BlockPos(nx, y - 1, nz)));
+                }
+            }
+
+            // --- parkour: sprint-jump over a 1-2 block gap ---
+            if (cfg.parkour() && !inWater && World.standable(x, y - 1, z) && World.passable(x, y + 2, z)
+                && World.passable(nx, y, nz) && World.passable(nx, y + 1, nz) && World.passable(nx, y + 2, nz)
+                && !World.standable(nx, y - 1, nz) && !World.inWater(nx, y - 1, nz)) {
+                for (int gap = 2; gap <= 3; gap++) {
+                    int lx = x + d[0] * gap, lz = z + d[1] * gap;
+                    if (!World.loaded(lx, lz)) break;
+                    if (!World.passable(lx, y, lz) || !World.passable(lx, y + 1, lz)) break;
+                    if (World.standable(lx, y - 1, lz)) {
+                        out.add(new Candidate(lx, y, lz, walk * gap + 6, Step.Move.PARKOUR, null, null));
+                        break;
+                    }
+                    if (!World.passable(lx, y + 2, lz)) break;
                 }
             }
 

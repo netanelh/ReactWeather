@@ -48,7 +48,7 @@ public class ModuleManager {
         add(new AutoBreed()); add(new AutoShear()); add(new VeinMiner()); add(new TreeAura()); add(new LiquidFiller()); add(new AutoTorch());
         add(new StashFinder()); add(new AirPlace()); add(new HoleFiller());
         // Pathing (our own navigator)
-        add(new NavSettings()); add(new AutoMine()); add(new FarmBot()); add(new Follow()); add(new Explore()); add(new Tunnel());
+        add(new NavSettings()); add(new AutoMine()); add(new FarmBot()); add(new Follow()); add(new Explore()); add(new Tunnel()); add(new Hunt()); add(new Collect());
         // Client
         add(clickGui = new ClickGui()); add(new Hud()); add(new com.natan.vortex.module.client.Panic()); add(new com.natan.vortex.module.client.FriendsModule());
     }

@@ -14,6 +14,9 @@ public interface Goal {
 
     String describe();
 
+    /** A representative target position for HUD distance/arrow (may be null). */
+    default BlockPos center() { return null; }
+
     static double horizontal(int dx, int dz) {
         dx = Math.abs(dx); dz = Math.abs(dz);
         int diag = Math.min(dx, dz), straight = Math.max(dx, dz) - diag;
@@ -28,6 +31,7 @@ public interface Goal {
         public boolean isGoal(int px, int py, int pz) { return px == x && py == y && pz == z; }
         public double heuristic(int px, int py, int pz) { return horizontal(x - px, z - pz) + vertical(y - py); }
         public String describe() { return x + " " + y + " " + z; }
+        public BlockPos center() { return new BlockPos(x, y, z); }
     }
 
     /** Reach a column at any height. */
@@ -35,6 +39,7 @@ public interface Goal {
         public boolean isGoal(int px, int py, int pz) { return px == x && pz == z; }
         public double heuristic(int px, int py, int pz) { return horizontal(x - px, z - pz); }
         public String describe() { return x + " ~ " + z; }
+        public BlockPos center() { return new BlockPos(x, 64, z); }
     }
 
     /** Get within radius of a point (feet block distance). */
@@ -49,6 +54,7 @@ public interface Goal {
             return Math.max(0, h - radius * WALK);
         }
         public String describe() { return "near " + x + " " + y + " " + z; }
+        public BlockPos center() { return new BlockPos(x, y, z); }
     }
 
     /** Stand somewhere from which the block can be mined: next to it, above or below it, not inside it. */
@@ -63,6 +69,7 @@ public interface Goal {
             return Math.max(0, horizontal(x - px, z - pz) + vertical(y - py) - WALK);
         }
         public String describe() { return "block " + x + " " + y + " " + z; }
+        public BlockPos center() { return new BlockPos(x, y, z); }
     }
 
     /** Any of several goals (closest wins). */
@@ -77,5 +84,26 @@ public interface Goal {
             return best;
         }
         public String describe() { return goals.size() + " targets"; }
+    }
+
+    /** Anywhere with open sky above (".surface"). */
+    record Surface() implements Goal {
+        public boolean isGoal(int px, int py, int pz) {
+            var mc = net.minecraft.client.Minecraft.getInstance();
+            return mc.level.canSeeSky(new BlockPos(px, py, pz));
+        }
+        public double heuristic(int px, int py, int pz) {
+            var mc = net.minecraft.client.Minecraft.getInstance();
+            int top = mc.level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, px, pz);
+            return Math.max(0, top - py) * 6.0;
+        }
+        public String describe() { return "the surface"; }
+    }
+
+    /** Get far away from a point (flee). */
+    record Away(int x, int z, double distance) implements Goal {
+        public boolean isGoal(int px, int py, int pz) { return Math.hypot(px - x, pz - z) >= distance; }
+        public double heuristic(int px, int py, int pz) { return Math.max(0, distance - Math.hypot(px - x, pz - z)) * WALK; }
+        public String describe() { return Math.round(distance) + " blocks away"; }
     }
 }

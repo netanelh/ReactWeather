@@ -1,6 +1,5 @@
 package com.natan.vortex.gui;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.natan.vortex.VortexClient;
 import com.natan.vortex.module.Category;
@@ -21,364 +20,331 @@ import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
- * Category-panel ClickGUI.
- * LMB module = toggle, RMB module = expand settings, MMB module = bind key.
- * Drag panel headers to move them, RMB header to collapse, scroll to move a panel, type to search.
+ * One window: categories on the left, a grid of module cards in the middle,
+ * and the selected module's settings on the right. Fits 100+ modules on any screen.
+ *
+ * LMB card = toggle, RMB card = open settings, MMB card = bind. Type to search all modules.
  */
 public class ClickGuiScreen extends Screen {
-    // ---- persistent state (kept between openings and saved to config) ----
-    private static final Map<Category, Panel> PANELS = new EnumMap<>(Category.class);
-    private static final Set<Module> EXPANDED = new HashSet<>();
+    // persistent between openings / saved in config
+    private static Category selectedCategory = Category.COMBAT;
+    private static Module selectedModule;
+    private static int winX = Integer.MIN_VALUE, winY;
+    private static int listScroll, settingsScroll;
 
-    private static final int HEADER_H = 18, MODULE_H = 15, SETTING_H = 13, SLIDER_H = 17;
-    private static final int C_PANEL = 0xE6121216, C_HEADER = 0xFF1A1A21, C_SETTINGS = 0xEE0C0C0F;
-    private static final int C_TEXT = 0xFFE8E8EE, C_TEXT_DIM = 0xFF9A9AA6, C_HOVER = 0x16FFFFFF;
-
-    private static boolean laidOut;
-
-    static {
-        for (Category c : Category.values()) PANELS.put(c, new Panel(0, 0, true));
-    }
-
-    /** Spreads the panels across the screen, wrapping to a second row when they don't fit. */
-    private void layout() {
-        int pw = cfg().panelWidth.i(), gap = 6;
-        int perRow = Math.max(1, (width - 12 + gap) / (pw + gap));
-        int total = Category.values().length;
-        int cols = Math.min(perRow, total);
-        int startX = (width - (cols * pw + (cols - 1) * gap)) / 2;
-        int i = 0;
-        for (Category c : Category.values()) {
-            Panel p = PANELS.get(c);
-            p.x = startX + (i % cols) * (pw + gap);
-            p.y = 30 + (i / cols) * (height / 2);
-            p.scroll = 0;
-            i++;
-        }
-        laidOut = true;
-    }
-
-    @Override
-    protected void init() {
-        super.init();
-        if (!laidOut) layout();
-    }
+    private static final int TITLE_H = 22, SIDEBAR_W = 92, FOOTER_H = 14, CARD_H = 22, ROW_H = 14, SLIDER_H = 18;
+    private static final int C_BG = 0xF00E0E12, C_SIDEBAR = 0xF0141419, C_TITLE = 0xFF17171D, C_CARD = 0xFF1A1A21, C_CARD_HOVER = 0xFF22222B;
+    private static final int C_TEXT = 0xFFE8E8EE, C_DIM = 0xFF8C8C98, C_FAINT = 0xFF55555F;
 
     private final long openedAt = System.currentTimeMillis();
-    private final List<Row> rows = new ArrayList<>();
+    private final List<Hit> hits = new ArrayList<>();
     private String search = "";
-
-    private Panel dragging;
+    private boolean draggingWindow;
     private double dragDX, dragDY;
-    private NumberSetting slidingSetting;
-    private Row slidingRow;
+    private NumberSetting sliding;
+    private int slideX1, slideX2;
     private Module binding;
-    private double mouseX, mouseY;
+    private int listContentH, settingsContentH;
 
-    public ClickGuiScreen() {
-        super(Component.literal("Vortex"));
-    }
+    public ClickGuiScreen() { super(Component.literal("Vortex")); }
 
     private ClickGui cfg() { return VortexClient.modules.clickGui(); }
+    private int acc(int i) { return cfg().accent(i); }
 
-    // =====================================================================
-    // Rendering
-    // =====================================================================
+    // ---------------------------------------------------------------- geometry
+    private int winW() { return Math.min(width - 20, 560); }
+    private int winH() { return Math.min(height - 20, 320); }
 
+    private void clampWindow() {
+        if (winX == Integer.MIN_VALUE) { winX = (width - winW()) / 2; winY = (height - winH()) / 2; }
+        winX = Math.max(0, Math.min(winX, width - winW()));
+        winY = Math.max(0, Math.min(winY, height - winH()));
+    }
+
+    // ---------------------------------------------------------------- render
     @Override
     public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
-        int alpha = (int) (cfg().dim.d() / 100.0 * 255 * openProgress());
+        int alpha = (int) (cfg().dim.d() / 100.0 * 255 * fade());
         g.fill(0, 0, width, height, alpha << 24);
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {
         super.extractRenderState(g, mx, my, delta);
-        this.mouseX = mx;
-        this.mouseY = my;
-        if (slidingSetting != null) applySlider(slidingRow, mx);
-        if (cfg().resetLayout.on()) { cfg().resetLayout.set(false); layout(); }
+        clampWindow();
+        if (sliding != null) applySlider(mx);
+        if (cfg().resetLayout.on()) { cfg().resetLayout.set(false); winX = Integer.MIN_VALUE; clampWindow(); }
+        hits.clear();
 
-        float t = openProgress();
-        int slide = (int) ((1 - t) * 16);
-        int pw = cfg().panelWidth.i();
-        rows.clear();
-        Row hovered = null;
+        int x = winX, y = winY + (int) ((1 - fade()) * 10), w = winW(), h = winH();
+        String hover = null;
 
+        // frame + title bar
+        g.fill(x - 1, y - 1, x + w + 1, y + h + 1, Colors.withAlpha(acc(0), 0x60));
+        g.fill(x, y, x + w, y + h, C_BG);
+        g.fill(x, y, x + w, y + TITLE_H, C_TITLE);
+        g.fill(x, y + TITLE_H - 1, x + w, y + TITLE_H, acc(0));
+        g.text(font, "Vortex", x + 8, y + 7, acc(0), true);
+        int enabled = 0, total = VortexClient.modules.all().size();
+        for (Module m : VortexClient.modules.all()) if (m.isEnabled() && m.category != Category.CLIENT) enabled++;
+        g.text(font, enabled + " on · " + total + " modules", x + 8 + font.width("Vortex") + 8, y + 7, C_FAINT, false);
+        hits.add(new Hit(HitType.TITLE, x, y, w - 170, TITLE_H, null, null, null));
+
+        // search box (top right)
+        int sw = 150, sx = x + w - sw - 6, sy = y + 4;
+        g.fill(sx, sy, sx + sw, sy + 14, 0xFF0C0C10);
+        g.fill(sx, sy + 13, sx + sw, sy + 14, search.isEmpty() ? 0xFF2C2C35 : acc(0));
+        boolean caret = System.currentTimeMillis() / 500 % 2 == 0;
+        if (search.isEmpty()) g.text(font, "type to search...", sx + 4, sy + 3, C_FAINT, false);
+        else g.text(font, search + (caret ? "_" : ""), sx + 4, sy + 3, C_TEXT, false);
+
+        int bodyY = y + TITLE_H, bodyH = h - TITLE_H - FOOTER_H;
+
+        // sidebar
+        g.fill(x, bodyY, x + SIDEBAR_W, bodyY + bodyH, C_SIDEBAR);
+        int cy = bodyY + 6;
         for (Category c : Category.values()) {
-            Panel p = PANELS.get(c);
-            int x = p.x, y = p.y - slide;
-            List<Module> mods = filtered(c);
-
-            // header
-            clipTop = Integer.MIN_VALUE; clipBottom = Integer.MAX_VALUE;
-            Row header = row(RowType.HEADER, x, y, pw, HEADER_H, null, null, c);
-            rows.add(header);
-            g.fill(x, y, x + pw, y + HEADER_H, C_HEADER);
-            g.fill(x, y + HEADER_H - 1, x + pw, y + HEADER_H, cfg().accent(c.ordinal() * 3));
-            g.text(font, c.display, x + 6, y + 5, C_TEXT, true);
-            int active = 0;
-            for (Module m : mods) if (m.isEnabled()) active++;
-            String count = active + "/" + mods.size() + (p.open ? "" : " +");
-            g.text(font, count, x + pw - 6 - font.width(count), y + 5, active > 0 ? cfg().accent(c.ordinal() * 3) : C_TEXT_DIM, false);
-            if (header.contains(mx, my)) hovered = header;
-            y += HEADER_H;
-            if (!p.open) continue;
-
-            int bodyTop = y;
-            int maxView = Math.max(80, height - bodyTop - 26);
-            p.scroll = Math.max(0, Math.min(p.scroll, Math.max(0, p.contentH - maxView)));
-            clipTop = bodyTop; clipBottom = bodyTop + maxView;
-            g.enableScissor(x, bodyTop, x + pw, bodyTop + maxView);
-            y = bodyTop - p.scroll;
-            for (int mi = 0; mi < mods.size(); mi++) {
-                Module m = mods.get(mi);
-                Row row = row(RowType.MODULE, x, y, pw, MODULE_H, m, null, c);
-                rows.add(row);
-                boolean on = m.isEnabled();
-                int accent = cfg().accent(mi + c.ordinal() * 3);
-                g.fill(x, y, x + pw, y + MODULE_H, C_PANEL);
-                if (on) {
-                    g.fill(x, y, x + pw, y + MODULE_H, Colors.withAlpha(accent, 0x40));
-                    g.fill(x, y, x + 2, y + MODULE_H, accent);
-                }
-                if (row.contains(mx, my)) { g.fill(x, y, x + pw, y + MODULE_H, C_HOVER); hovered = row; }
-                g.text(font, m.name, x + 6, y + 4, on ? C_TEXT : C_TEXT_DIM, on);
-                if (binding == m) {
-                    String dots = (System.currentTimeMillis() / 300 % 2 == 0) ? "[...]" : "[.. ]";
-                    g.text(font, dots, x + pw - 6 - font.width(dots), y + 4, accent, false);
-                } else {
-                    String arrow = EXPANDED.contains(m) ? "-" : "+";
-                    g.text(font, arrow, x + pw - 9, y + 4, C_TEXT_DIM, false);
-                    if (m.key != Keys.NONE && !EXPANDED.contains(m)) {
-                        String tag = Keys.name(m.key);
-                        g.text(font, tag, x + pw - 14 - font.width(tag), y + 4, 0xFF5E5E6A, false);
-                    }
-                }
-                y += MODULE_H;
-
-                if (EXPANDED.contains(m)) {
-                    int setTop = y;
-                    // bind row first
-                    Row bind = row(RowType.BIND, x, y, pw, SETTING_H, m, null, c);
-                    rows.add(bind);
-                    g.fill(x, y, x + pw, y + SETTING_H, C_SETTINGS);
-                    if (bind.contains(mx, my)) { g.fill(x, y, x + pw, y + SETTING_H, C_HOVER); hovered = bind; }
-                    g.text(font, "Bind", x + 10, y + 3, C_TEXT_DIM, false);
-                    String keyName = binding == m ? "press a key" : Keys.name(m.key);
-                    g.text(font, keyName, x + pw - 6 - font.width(keyName), y + 3, binding == m ? accent : C_TEXT, false);
-                    y += SETTING_H;
-
-                    if (m.category != Category.CLIENT) {
-                        Row vis = row(RowType.HUD_VISIBLE, x, y, pw, SETTING_H, m, null, c);
-                        rows.add(vis);
-                        g.fill(x, y, x + pw, y + SETTING_H, C_SETTINGS);
-                        if (vis.contains(mx, my)) { g.fill(x, y, x + pw, y + SETTING_H, C_HOVER); hovered = vis; }
-                        g.text(font, "Show in HUD", x + 10, y + 3, C_TEXT_DIM, false);
-                        drawSwitch(g, x + pw - 22, y + 3, m.showInHud, accent);
-                        y += SETTING_H;
-                    }
-
-                    for (Setting<?> s : m.settings) {
-                        if (!s.isVisible()) continue;
-                        int h = s instanceof NumberSetting ? SLIDER_H : SETTING_H;
-                        Row sr = row(RowType.SETTING, x, y, pw, h, m, s, c);
-                        rows.add(sr);
-                        g.fill(x, y, x + pw, y + h, C_SETTINGS);
-                        if (sr.contains(mx, my)) { g.fill(x, y, x + pw, y + h, C_HOVER); hovered = sr; }
-                        drawSetting(g, s, x, y, pw, accent);
-                        y += h;
-                    }
-                    // accent guide line along the expanded settings
-                    g.fill(x + 4, setTop + 2, x + 5, y - 2, Colors.withAlpha(accent, 0x90));
-                }
-            }
-            if (mods.isEmpty() && !search.isEmpty()) {
-                g.fill(x, y, x + pw, y + MODULE_H, C_PANEL);
-                g.text(font, "no results", x + 6, y + 4, 0xFF5A5A66, false);
-                y += MODULE_H;
-            }
-            p.contentH = y - (bodyTop - p.scroll);
-            g.disableScissor();
-            clipTop = Integer.MIN_VALUE; clipBottom = Integer.MAX_VALUE;
-            int visibleEnd = Math.min(y, bodyTop + maxView);
-            p.viewH = visibleEnd - bodyTop;
-            if (p.contentH > maxView) { // scrollbar
-                int barH = Math.max(12, maxView * maxView / p.contentH);
-                int barY = bodyTop + (int) ((long) (maxView - barH) * p.scroll / Math.max(1, p.contentH - maxView));
-                g.fill(x + pw - 2, barY, x + pw, barY + barH, Colors.withAlpha(cfg().accent(c.ordinal() * 3), 0xB0));
-            }
-            // bottom cap
-            g.fill(x, visibleEnd, x + pw, visibleEnd + 2, C_HEADER);
-            if (visibleEnd > bodyTop) g.fill(x, bodyTop, x + 1, visibleEnd, 0x30FFFFFF);
+            List<Module> mods = VortexClient.modules.byCategory(c);
+            int on = 0;
+            for (Module m : mods) if (m.isEnabled()) on++;
+            boolean sel = search.isEmpty() && c == selectedCategory;
+            boolean hov = mx >= x && mx < x + SIDEBAR_W && my >= cy && my < cy + 18;
+            if (sel) { g.fill(x, cy, x + SIDEBAR_W, cy + 18, Colors.withAlpha(acc(c.ordinal()), 0x35)); g.fill(x, cy, x + 2, cy + 18, acc(c.ordinal())); }
+            else if (hov) g.fill(x, cy, x + SIDEBAR_W, cy + 18, 0x14FFFFFF);
+            g.text(font, c.display, x + 9, cy + 5, sel ? C_TEXT : C_DIM, sel);
+            String cnt = on > 0 ? on + "/" + mods.size() : String.valueOf(mods.size());
+            g.text(font, cnt, x + SIDEBAR_W - 6 - font.width(cnt), cy + 5, on > 0 ? acc(c.ordinal()) : C_FAINT, false);
+            hits.add(new Hit(HitType.CATEGORY, x, cy, SIDEBAR_W, 18, c, null, null));
+            if (hov) hover = "Show " + c.display + " modules";
+            cy += 19;
         }
 
-        drawSearch(g);
-        drawFooter(g, hovered);
+        // content split
+        boolean showSettings = selectedModule != null;
+        int contentX = x + SIDEBAR_W, contentW = w - SIDEBAR_W;
+        int settingsW = showSettings ? Math.max(170, contentW * 42 / 100) : 0;
+        int listW = contentW - settingsW;
+
+        String h1 = drawModuleList(g, mx, my, contentX, bodyY, listW, bodyH);
+        if (h1 != null) hover = h1;
+        if (showSettings) {
+            String h2 = drawSettings(g, mx, my, contentX + listW, bodyY, settingsW, bodyH);
+            if (h2 != null) hover = h2;
+        }
+
+        // footer
+        int fy = y + h - FOOTER_H;
+        g.fill(x, fy, x + w, y + h, C_TITLE);
+        String foot = hover != null ? hover : "LMB toggle  ·  RMB settings  ·  MMB bind  ·  drag the title bar to move";
+        g.text(font, trim(foot, w - 12), x + 6, fy + 3, hover != null ? C_TEXT : C_FAINT, false);
     }
 
-    private void drawSetting(GuiGraphicsExtractor g, Setting<?> s, int x, int y, int pw, int accent) {
-        if (s instanceof BoolSetting b) {
-            g.text(font, s.name, x + 10, y + 3, C_TEXT_DIM, false);
-            drawSwitch(g, x + pw - 22, y + 3, b.on(), accent);
-        } else if (s instanceof NumberSetting n) {
-            g.text(font, s.name, x + 10, y + 2, C_TEXT_DIM, false);
-            String v = n.display();
-            g.text(font, v, x + pw - 6 - font.width(v), y + 2, C_TEXT, false);
-            int bx1 = x + 10, bx2 = x + pw - 6, by = y + SLIDER_H - 4;
-            double frac = (n.d() - n.min) / (n.max - n.min);
-            int fill = bx1 + (int) Math.round((bx2 - bx1) * frac);
-            g.fill(bx1, by, bx2, by + 2, 0xFF2A2A33);
-            g.fill(bx1, by, fill, by + 2, accent);
-            g.fill(fill - 1, by - 1, fill + 2, by + 3, 0xFFFFFFFF);
-        } else if (s instanceof ModeSetting mo) {
-            g.text(font, s.name, x + 10, y + 3, C_TEXT_DIM, false);
-            String v = mo.get();
-            int vx = x + pw - 6 - font.width(v);
-            int col = mo.name.endsWith("Color") || mo.name.equals("Accent") ? Colors.named(v, 0) : accent;
-            g.text(font, v, vx, y + 3, col, false);
+    private String drawModuleList(GuiGraphicsExtractor g, int mx, int my, int x, int y, int w, int h) {
+        String hover = null;
+        List<Module> mods = visibleModules();
+        int pad = 6, cols = w >= 330 ? 3 : w >= 210 ? 2 : 1;
+        int cardW = (w - pad * (cols + 1)) / cols;
+        int rows = (mods.size() + cols - 1) / cols;
+        listContentH = pad + rows * (CARD_H + 4);
+        listScroll = Math.max(0, Math.min(listScroll, Math.max(0, listContentH - h)));
+
+        g.enableScissor(x, y, x + w, y + h);
+        for (int i = 0; i < mods.size(); i++) {
+            Module m = mods.get(i);
+            int cx = x + pad + (i % cols) * (cardW + pad), cyy = y + pad + (i / cols) * (CARD_H + 4) - listScroll;
+            if (cyy + CARD_H < y || cyy > y + h) continue;
+            boolean on = m.isEnabled(), sel = m == selectedModule;
+            boolean hov = mx >= cx && mx < cx + cardW && my >= cyy && my < cyy + CARD_H && my >= y && my < y + h;
+            int a = acc(i);
+            g.fill(cx, cyy, cx + cardW, cyy + CARD_H, hov ? C_CARD_HOVER : C_CARD);
+            if (on) { g.fill(cx, cyy, cx + cardW, cyy + CARD_H, Colors.withAlpha(a, 0x38)); g.fill(cx, cyy, cx + 2, cyy + CARD_H, a); }
+            if (sel) { g.fill(cx, cyy + CARD_H - 1, cx + cardW, cyy + CARD_H, a); }
+            String label = binding == m ? "press a key..." : m.name;
+            g.text(font, trim(label, cardW - 26), cx + 7, cyy + 7, on ? C_TEXT : C_DIM, on);
+            if (m.key != Keys.NONE && binding != m) {
+                String k = Keys.name(m.key);
+                g.text(font, k, cx + cardW - 5 - font.width(k), cyy + 7, C_FAINT, false);
+            } else if (!m.settings.isEmpty()) {
+                g.text(font, "...", cx + cardW - 13, cyy + 7, C_FAINT, false);
+            }
+            hits.add(new Hit(HitType.MODULE, cx, cyy, cardW, CARD_H, null, m, null).clip(y, y + h));
+            if (hov) hover = m.name + ": " + m.description;
         }
+        if (mods.isEmpty()) g.text(font, "No modules match \"" + search + "\"", x + 10, y + 10, C_FAINT, false);
+        g.disableScissor();
+        scrollbar(g, x + w - 3, y, h, listContentH, listScroll, acc(0));
+        return hover;
+    }
+
+    private String drawSettings(GuiGraphicsExtractor g, int mx, int my, int x, int y, int w, int h) {
+        Module m = selectedModule;
+        String hover = null;
+        int a = acc(m.category.ordinal());
+        g.fill(x, y, x + 1, y + h, 0x30FFFFFF);
+        g.fill(x + 1, y, x + w, y + h, 0x60000000);
+
+        // header (not scrolled)
+        g.text(font, trim(m.name, w - 56), x + 8, y + 6, C_TEXT, true);
+        drawSwitch(g, x + w - 26, y + 6, m.isEnabled(), a);
+        hits.add(new Hit(HitType.TOGGLE, x + w - 30, y + 3, 26, 14, null, m, null));
+        hits.add(new Hit(HitType.CLOSE_SETTINGS, x + w - 46, y + 3, 14, 14, null, null, null));
+        g.text(font, "x", x + w - 42, y + 6, C_DIM, false);
+        g.text(font, trim(m.description, w - 16), x + 8, y + 18, C_FAINT, false);
+
+        int top = y + 32, viewH = h - 32;
+        g.enableScissor(x + 1, top, x + w, top + viewH);
+        int ry = top - settingsScroll;
+
+        // bind + hud rows
+        g.text(font, "Bind", x + 10, ry + 3, C_DIM, false);
+        String bindText = binding == m ? "press a key" : Keys.name(m.key);
+        g.text(font, bindText, x + w - 8 - font.width(bindText), ry + 3, binding == m ? a : C_TEXT, false);
+        hits.add(new Hit(HitType.BIND, x + 1, ry, w - 1, ROW_H, null, m, null).clip(top, top + viewH));
+        ry += ROW_H;
+        if (m.category != Category.CLIENT) {
+            g.text(font, "Show in HUD", x + 10, ry + 3, C_DIM, false);
+            drawSwitch(g, x + w - 26, ry + 3, m.showInHud, a);
+            hits.add(new Hit(HitType.HUD_VISIBLE, x + 1, ry, w - 1, ROW_H, null, m, null).clip(top, top + viewH));
+            ry += ROW_H;
+        }
+        g.fill(x + 8, ry + 2, x + w - 8, ry + 3, 0x20FFFFFF);
+        ry += 6;
+
+        for (Setting<?> s : m.settings) {
+            if (!s.isVisible()) continue;
+            int rh = s instanceof NumberSetting ? SLIDER_H : ROW_H;
+            boolean hov = mx >= x && mx < x + w && my >= ry && my < ry + rh && my >= top && my < top + viewH;
+            if (hov) { g.fill(x + 1, ry, x + w, ry + rh, 0x12FFFFFF); hover = s.name + ": " + s.description; }
+            if (s instanceof BoolSetting b) {
+                g.text(font, trim(s.name, w - 44), x + 10, ry + 3, C_DIM, false);
+                drawSwitch(g, x + w - 26, ry + 3, b.on(), a);
+            } else if (s instanceof ModeSetting mo) {
+                g.text(font, trim(s.name, w / 2), x + 10, ry + 3, C_DIM, false);
+                String v = "< " + mo.get() + " >";
+                int col = mo.name.endsWith("Color") || mo.name.equals("Accent") ? Colors.named(mo.get(), 0) : a;
+                g.text(font, v, x + w - 8 - font.width(v), ry + 3, col, false);
+            } else if (s instanceof NumberSetting n) {
+                g.text(font, trim(s.name, w - 50), x + 10, ry + 2, C_DIM, false);
+                String v = n.display();
+                g.text(font, v, x + w - 8 - font.width(v), ry + 2, C_TEXT, false);
+                int bx1 = x + 10, bx2 = x + w - 8, by = ry + SLIDER_H - 5;
+                double frac = (n.d() - n.min) / (n.max - n.min);
+                int fill = bx1 + (int) Math.round((bx2 - bx1) * frac);
+                g.fill(bx1, by, bx2, by + 2, 0xFF2A2A33);
+                g.fill(bx1, by, fill, by + 2, a);
+                g.fill(fill - 1, by - 1, fill + 2, by + 3, 0xFFFFFFFF);
+            }
+            hits.add(new Hit(HitType.SETTING, x + 1, ry, w - 1, rh, null, m, s).clip(top, top + viewH));
+            ry += rh;
+        }
+        settingsContentH = ry + settingsScroll - top;
+        settingsScroll = Math.max(0, Math.min(settingsScroll, Math.max(0, settingsContentH - viewH)));
+        g.disableScissor();
+        scrollbar(g, x + w - 3, top, viewH, settingsContentH, settingsScroll, a);
+        return hover;
+    }
+
+    private void scrollbar(GuiGraphicsExtractor g, int x, int y, int viewH, int contentH, int scroll, int color) {
+        if (contentH <= viewH) return;
+        int barH = Math.max(14, viewH * viewH / contentH);
+        int barY = y + (int) ((long) (viewH - barH) * scroll / Math.max(1, contentH - viewH));
+        g.fill(x, barY, x + 2, barY + barH, Colors.withAlpha(color, 0xB0));
     }
 
     private void drawSwitch(GuiGraphicsExtractor g, int x, int y, boolean on, int accent) {
-        g.fill(x, y, x + 16, y + 7, on ? accent : 0xFF33333D);
-        int kx = on ? x + 9 : x + 1;
-        g.fill(kx, y + 1, kx + 6, y + 6, 0xFFF4F4F8);
+        g.fill(x, y, x + 18, y + 8, on ? accent : 0xFF33333D);
+        int kx = on ? x + 11 : x + 1;
+        g.fill(kx, y + 1, kx + 6, y + 7, 0xFFF4F4F8);
     }
 
-    private void drawSearch(GuiGraphicsExtractor g) {
-        int w = 170, x = (width - w) / 2, y = 8;
-        g.fill(x, y, x + w, y + 16, 0xEE121216);
-        g.fill(x, y + 15, x + w, y + 16, search.isEmpty() ? 0xFF33333D : cfg().accent(0));
-        boolean caret = System.currentTimeMillis() / 500 % 2 == 0;
-        if (search.isEmpty()) g.text(font, "Type to search modules...", x + 6, y + 4, 0xFF5A5A66, false);
-        else g.text(font, search + (caret ? "_" : ""), x + 6, y + 4, C_TEXT, false);
-        String brand = VortexClient.NAME + " " + VortexClient.VERSION;
-        g.text(font, brand, width - font.width(brand) - 6, 6, cfg().accent(0), true);
+    private String trim(String s, int maxW) {
+        if (font.width(s) <= maxW) return s;
+        while (s.length() > 1 && font.width(s + "..") > maxW) s = s.substring(0, s.length() - 1);
+        return s + "..";
     }
 
-    private void drawFooter(GuiGraphicsExtractor g, Row hovered) {
-        String text = null;
-        if (cfg().descriptions.on() && hovered != null) {
-            if (hovered.type == RowType.SETTING) text = hovered.setting.description;
-            else if (hovered.type == RowType.MODULE) text = hovered.module.description;
-            else if (hovered.type == RowType.BIND) text = "Click, then press a key. Esc/Backspace clears.";
-            else if (hovered.type == RowType.HUD_VISIBLE) text = "Show this module in the HUD list while active";
-            else if (hovered.type == RowType.HEADER) text = "Drag to move, right-click to collapse";
+    private List<Module> visibleModules() {
+        if (!search.isEmpty()) {
+            List<Module> out = new ArrayList<>();
+            String q = search.toLowerCase();
+            for (Module m : VortexClient.modules.all())
+                if (m.name.toLowerCase().contains(q) || m.description.toLowerCase().contains(q)) out.add(m);
+            return out;
         }
-        if (text == null) text = "LMB toggle  |  RMB settings  |  MMB bind  |  scroll to move panels";
-        int tw = font.width(text);
-        int x = (width - tw) / 2, y = height - 16;
-        g.fill(x - 6, y - 3, x + tw + 6, y + 11, 0xDD0C0C0F);
-        g.text(font, text, x, y, hovered != null ? C_TEXT : 0xFF7A7A86, false);
+        return VortexClient.modules.byCategory(selectedCategory);
     }
 
-    private float openProgress() {
-        float t = Math.min(1f, (System.currentTimeMillis() - openedAt) / 180f);
-        return 1 - (1 - t) * (1 - t); // ease-out
+    private float fade() {
+        float t = Math.min(1f, (System.currentTimeMillis() - openedAt) / 160f);
+        return 1 - (1 - t) * (1 - t);
     }
 
-    private List<Module> filtered(Category c) {
-        List<Module> out = new ArrayList<>();
-        String q = search.toLowerCase();
-        for (Module m : VortexClient.modules.byCategory(c))
-            if (q.isEmpty() || m.name.toLowerCase().contains(q) || m.description.toLowerCase().contains(q)) out.add(m);
-        return out;
-    }
-
-    // =====================================================================
-    // Input
-    // =====================================================================
-
+    // ---------------------------------------------------------------- input
     @Override
     public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
         double mx = click.x(), my = click.y();
         int button = click.button();
-        // iterate top-down: last drawn rows are on top
-        for (int i = rows.size() - 1; i >= 0; i--) {
-            Row r = rows.get(i);
-            if (!r.contains(mx, my)) continue;
-            onRowClick(r, button, mx, my);
+        for (int i = hits.size() - 1; i >= 0; i--) {
+            Hit h = hits.get(i);
+            if (!h.contains(mx, my)) continue;
+            switch (h.type) {
+                case TITLE -> { if (button == 0) { draggingWindow = true; dragDX = mx - winX; dragDY = my - winY; } }
+                case CATEGORY -> { selectedCategory = h.category; search = ""; listScroll = 0; }
+                case MODULE -> {
+                    if (button == 0) { if (h.module == cfg()) select(h.module); else h.module.toggle(); }
+                    else if (button == 1) select(selectedModule == h.module ? null : h.module);
+                    else if (button == 2) binding = h.module;
+                }
+                case TOGGLE -> h.module.toggle();
+                case CLOSE_SETTINGS -> selectedModule = null;
+                case BIND -> binding = binding == h.module ? null : h.module;
+                case HUD_VISIBLE -> h.module.showInHud = !h.module.showInHud;
+                case SETTING -> {
+                    Setting<?> s = h.setting;
+                    if (s instanceof BoolSetting b) b.toggle();
+                    else if (s instanceof ModeSetting m) m.cycle(button == 1 ? -1 : 1);
+                    else if (s instanceof NumberSetting n) {
+                        if (button == 1) n.reset();
+                        else { sliding = n; slideX1 = h.x + 9; slideX2 = h.x + h.w - 8; applySlider(mx); }
+                    }
+                }
+            }
             return true;
         }
         binding = null;
         return super.mouseClicked(click, doubled);
     }
 
-    private void onRowClick(Row r, int button, double mx, double my) {
-        switch (r.type) {
-            case HEADER -> {
-                Panel p = PANELS.get(r.category);
-                if (button == 0) { dragging = p; dragDX = mx - p.x; dragDY = my - p.y; }
-                else if (button == 1) p.open = !p.open;
-            }
-            case MODULE -> {
-                if (button == 0) {
-                    if (r.module == cfg()) EXPANDED.add(r.module); else r.module.toggle();
-                } else if (button == 1) {
-                    if (!EXPANDED.remove(r.module)) EXPANDED.add(r.module);
-                } else if (button == 2) {
-                    binding = r.module;
-                }
-            }
-            case BIND -> binding = binding == r.module ? null : r.module;
-            case HUD_VISIBLE -> r.module.showInHud = !r.module.showInHud;
-            case SETTING -> {
-                Setting<?> s = r.setting;
-                if (s instanceof BoolSetting b) b.toggle();
-                else if (s instanceof ModeSetting m) m.cycle(button == 1 ? -1 : 1);
-                else if (s instanceof NumberSetting n) {
-                    if (button == 1) { n.reset(); return; }
-                    slidingSetting = n; slidingRow = r;
-                    applySlider(r, mx);
-                }
-            }
-        }
-    }
+    private void select(Module m) { selectedModule = m; settingsScroll = 0; }
 
-    private void applySlider(Row r, double mx) {
-        NumberSetting n = (NumberSetting) r.setting;
-        double x1 = r.x + 10, x2 = r.x + r.w - 6;
-        double frac = Math.max(0, Math.min(1, (mx - x1) / (x2 - x1)));
-        n.set(n.min + (n.max - n.min) * frac);
+    private void applySlider(double mx) {
+        double frac = Math.max(0, Math.min(1, (mx - slideX1) / (double) Math.max(1, slideX2 - slideX1)));
+        sliding.set(sliding.min + (sliding.max - sliding.min) * frac);
     }
 
     @Override
     public void mouseMoved(double mx, double my) {
-        if (dragging != null) {
-            dragging.x = (int) (mx - dragDX);
-            dragging.y = (int) (my - dragDY);
-        }
+        if (draggingWindow) { winX = (int) (mx - dragDX); winY = (int) (my - dragDY); }
         super.mouseMoved(mx, my);
     }
 
     @Override
     public boolean mouseReleased(MouseButtonEvent click) {
-        dragging = null;
-        slidingSetting = null;
-        slidingRow = null;
+        draggingWindow = false;
+        sliding = null;
         return super.mouseReleased(click);
     }
 
     @Override
     public boolean mouseScrolled(double mx, double my, double horizontal, double vertical) {
-        int pw = cfg().panelWidth.i();
-        for (Panel p : PANELS.values()) {
-            int top = p.y + HEADER_H;
-            if (p.open && mx >= p.x && mx <= p.x + pw && my >= top && my <= top + Math.max(p.viewH, 20)) {
-                p.scroll = Math.max(0, p.scroll - (int) (vertical * 18));
-                return true;
-            }
-        }
-        // not over a panel: scroll every panel together
-        for (Panel p : PANELS.values()) p.y += (int) (vertical * 14);
+        int step = (int) (vertical * 20);
+        int contentX = winX + SIDEBAR_W, contentW = winW() - SIDEBAR_W;
+        int settingsW = selectedModule != null ? Math.max(170, contentW * 42 / 100) : 0;
+        if (selectedModule != null && mx >= contentX + contentW - settingsW) settingsScroll = Math.max(0, settingsScroll - step);
+        else listScroll = Math.max(0, listScroll - step);
         return true;
     }
 
@@ -390,10 +356,8 @@ public class ClickGuiScreen extends Screen {
             binding = null;
             return true;
         }
-        if (key == GLFW.GLFW_KEY_BACKSPACE && !search.isEmpty()) {
-            search = search.substring(0, search.length() - 1);
-            return true;
-        }
+        if (key == GLFW.GLFW_KEY_BACKSPACE && !search.isEmpty()) { search = search.substring(0, search.length() - 1); listScroll = 0; return true; }
+        if (key == GLFW.GLFW_KEY_ESCAPE && !search.isEmpty()) { search = ""; return true; }
         if (key == cfg().key && search.isEmpty()) { onClose(); return true; }
         return super.keyPressed(input);
     }
@@ -403,13 +367,13 @@ public class ClickGuiScreen extends Screen {
         char c = (char) event.codepoint();
         if (binding == null && (Character.isLetterOrDigit(c) || c == ' ') && search.length() < 24) {
             search += c;
+            listScroll = 0;
             return true;
         }
         return super.charTyped(event);
     }
 
-    @Override
-    public boolean isPauseScreen() { return false; }
+    @Override public boolean isPauseScreen() { return false; }
 
     @Override
     public void removed() {
@@ -417,51 +381,36 @@ public class ClickGuiScreen extends Screen {
         super.removed();
     }
 
-    // =====================================================================
-    // Persistence
-    // =====================================================================
-
+    // ---------------------------------------------------------------- persistence
     public static JsonObject savePanels() {
         JsonObject o = new JsonObject();
-        PANELS.forEach((c, p) -> {
-            JsonObject j = new JsonObject();
-            j.addProperty("x", p.x); j.addProperty("y", p.y); j.addProperty("open", p.open);
-            o.add(c.name(), j);
-        });
+        o.addProperty("category", selectedCategory.name());
+        if (winX != Integer.MIN_VALUE) { o.addProperty("x", winX); o.addProperty("y", winY); }
         return o;
     }
 
     public static void loadPanels(JsonObject o) {
-        for (Category c : Category.values()) {
-            JsonElement e = o.get(c.name());
-            if (e == null || !e.isJsonObject()) continue;
-            JsonObject j = e.getAsJsonObject();
-            Panel p = PANELS.get(c);
-            if (j.has("x")) p.x = j.get("x").getAsInt();
-            if (j.has("y")) p.y = j.get("y").getAsInt();
-            if (j.has("open")) p.open = j.get("open").getAsBoolean();
-            laidOut = true;
+        try {
+            if (o.has("category")) selectedCategory = Category.valueOf(o.get("category").getAsString());
+            if (o.has("x")) { winX = o.get("x").getAsInt(); winY = o.get("y").getAsInt(); }
+        } catch (Exception ignored) {}
+    }
+
+    // ---------------------------------------------------------------- hit testing
+    private enum HitType { TITLE, CATEGORY, MODULE, TOGGLE, CLOSE_SETTINGS, BIND, HUD_VISIBLE, SETTING }
+
+    private static final class Hit {
+        final HitType type; final int x, y, w, h; final Category category; final Module module; final Setting<?> setting;
+        int clipTop = Integer.MIN_VALUE, clipBottom = Integer.MAX_VALUE;
+
+        Hit(HitType type, int x, int y, int w, int h, Category c, Module m, Setting<?> s) {
+            this.type = type; this.x = x; this.y = y; this.w = w; this.h = h; this.category = c; this.module = m; this.setting = s;
         }
-    }
 
-    // =====================================================================
+        Hit clip(int top, int bottom) { clipTop = top; clipBottom = bottom; return this; }
 
-    private static final class Panel {
-        int x, y, scroll, contentH, viewH; boolean open;
-        Panel(int x, int y, boolean open) { this.x = x; this.y = y; this.open = open; }
-    }
-
-    private enum RowType { HEADER, MODULE, BIND, HUD_VISIBLE, SETTING }
-
-    private record Row(RowType type, int x, int y, int w, int h, Module module, Setting<?> setting, Category category, int clipTop, int clipBottom) {
         boolean contains(double mx, double my) {
             return mx >= x && mx < x + w && my >= y && my < y + h && my >= clipTop && my < clipBottom;
         }
-    }
-
-    private int clipTop = Integer.MIN_VALUE, clipBottom = Integer.MAX_VALUE;
-
-    private Row row(RowType type, int x, int y, int w, int h, Module m, Setting<?> s, Category c) {
-        return new Row(type, x, y, w, h, m, s, c, clipTop, clipBottom);
     }
 }

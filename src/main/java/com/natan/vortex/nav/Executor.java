@@ -80,6 +80,7 @@ public final class Executor {
         double dy = target.getY() - p.getY();
 
         boolean arrived = horiz < (index == steps.size() - 1 ? 0.25 : 0.4) && Math.abs(dy) < 0.6 && (p.onGround() || p.isInWater());
+        if (step.move() == Step.Move.PARKOUR) arrived = horiz < 0.5 && Math.abs(dy) < 0.6 && p.onGround();
         if (step.move() == Step.Move.DESCEND || step.move() == Step.Move.DIG_DOWN)
             arrived = horiz < 0.45 && dy > -0.6 && dy < 0.6 && (p.onGround() || p.isInWater());
         if (arrived) {
@@ -88,7 +89,7 @@ public final class Executor {
         }
 
         // off the path or stuck -> let the navigator re-plan from here
-        if (horiz > 3.5 || dy < -4 || dy > 2.5) return Status.FAILED;
+        if (horiz > (step.move() == Step.Move.PARKOUR ? 4.5 : 3.5) || dy < -4 || dy > 2.5) return Status.FAILED;
         double d = horiz + Math.abs(dy);
         if (d < bestDist - 0.05) { bestDist = d; stuckTicks = 0; } else if (++stuckTicks > 60) return Status.FAILED;
 
@@ -96,13 +97,19 @@ public final class Executor {
         boolean vertical = step.move() == Step.Move.PILLAR || step.move() == Step.Move.SWIM_UP || step.move() == Step.Move.DIG_DOWN;
         o.keyUp.setDown(!vertical && horiz > 0.12);
         boolean flat = step.move() == Step.Move.WALK || step.move() == Step.Move.DIAGONAL;
-        boolean canSprint = sprint && flat && !p.isInWater() && remaining() > 2 && horiz > 0.8;
+        boolean canSprint = (sprint && flat && !p.isInWater() && remaining() > 2 && horiz > 0.8) || step.move() == Step.Move.PARKOUR;
         o.keySprint.setDown(canSprint);
         if (canSprint) p.setSprinting(true);
 
         boolean jump = false;
         if (step.move() == Step.Move.ASCEND && (p.horizontalCollision || horiz < 1.2) && p.onGround()) jump = true;
         if (step.move() == Step.Move.SWIM_UP) jump = true;
+        if (step.move() == Step.Move.PARKOUR && p.onGround()) {
+            // take off at the edge of our block, already facing the landing spot
+            Vec3 from = Vec3.atBottomCenterOf(steps.get(index - 1).pos());
+            double fromCenter = Math.hypot(p.getX() - from.x, p.getZ() - from.z);
+            if (fromCenter > 0.35 && horiz > 1.2) jump = true;
+        }
         if (p.isInWater() && dy > -0.5) jump = true;
         o.keyJump.setDown(jump);
         return Status.RUNNING;

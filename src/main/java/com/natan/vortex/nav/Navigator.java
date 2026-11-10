@@ -83,6 +83,9 @@ public final class Navigator {
 
     public String lastCalc() { return lastCalc; }
 
+    /** Goal the current path leads to (for the HUD arrow / distance). */
+    public Goal currentGoal() { return process == null ? null : process.goal(); }
+
     public void tick() {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.level == null) { if (process != null) stop(false); return; }
@@ -97,6 +100,9 @@ public final class Navigator {
 
         if (process == null || paused) return;
         NavSettings s = VortexClient.modules.get(NavSettings.class);
+
+        // ---- survival helpers that pre-empt any task ----
+        if (Safety.tick(s)) { executor = null; return; }
 
         try {
             process.tick();
@@ -159,7 +165,7 @@ public final class Navigator {
         AtomicBoolean myCancel = cancel;
         BlockPos start = feet();
         PathFinder.Config cfg = new PathFinder.Config(s.allowBreak.on(), s.allowPlace.on(), s.maxFall.i(), s.sprint.on(),
-            s.avoidWater.on(), s.maxNodes.i() * 1000, s.timeout.i() * 1000L, Actions.countThrowaways());
+            s.avoidWater.on(), s.maxNodes.i() * 1000, s.timeout.i() * 1000L, Actions.countThrowaways(), s.parkour.on());
         Process forProcess = process;
         worker.submit(() -> {
             PathFinder.Result r;

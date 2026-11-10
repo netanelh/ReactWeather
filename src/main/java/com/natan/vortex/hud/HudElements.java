@@ -37,9 +37,9 @@ final class HudElements {
         trackClicks(mc);
 
         // left column, below the watermark (and radar, if it's in the top-left)
-        int y = 20;
+        int y = 4;
         Radar radar = m.get(Radar.class);
-        if (radar.isEnabled() && radar.position.is("Top Left")) y += radar.size.i() + 6;
+        if (radar.isEnabled() && radar.position.is("Top Left")) y += radar.size.i() + 8;
         List<String[]> lines = new ArrayList<>();
 
         if (m.isActive(PingHud.class) && mc.getConnection() != null) {
