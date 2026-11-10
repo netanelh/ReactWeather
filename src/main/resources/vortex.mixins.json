@@ -1,0 +1,29 @@
+{
+  "required": true,
+  "package": "com.natan.vortex.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "MinecraftAccessor",
+    "MinecraftMixin",
+    "LightmapMixin",
+    "BlockMixin",
+    "ModelBlockRendererMixin",
+    "EntityRendererMixin",
+    "MultiPlayerGameModeMixin",
+    "ClientPacketListenerMixin",
+    "PlayerMixin",
+    "FishingHookAccessor",
+    "EntityMixin",
+    "ConnectionMixin",
+    "LocalPlayerMixin",
+    "WebBlockMixin",
+    "SweetBerryBushBlockMixin",
+    "HudMixin",
+    "CameraMixin",
+    "KeyMappingAccessor",
+    "LivingEntityAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}

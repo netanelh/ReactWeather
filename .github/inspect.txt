@@ -1,0 +1,15 @@
+net.minecraft.client.Minecraft
+net.minecraft.client.player.LocalPlayer
+net.minecraft.client.multiplayer.ClientLevel
+net.minecraft.client.multiplayer.MultiPlayerGameMode
+net.minecraft.client.gui.GuiGraphicsExtractor
+net.minecraft.client.gui.screens.Screen
+net.minecraft.client.gui.Hud
+net.minecraft.client.Camera
+net.minecraft.world.entity.Entity
+net.minecraft.world.entity.LivingEntity
+net.minecraft.world.entity.player.Player
+net.minecraft.world.level.Level
+net.minecraft.world.level.block.state.BlockBehaviour$BlockStateBase
+net.minecraft.core.BlockPos
+net.minecraft.world.level.ChunkPos

@@ -1,0 +1,44 @@
+name: vortex-client-build
+on:
+  push:
+    branches: [vortex-client]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'microsoft'
+      - name: build
+        id: build
+        continue-on-error: true
+        run: |
+          chmod +x ./gradlew
+          set -o pipefail
+          ./gradlew build --no-daemon 2>&1 | tee build.log
+      - name: inspect minecraft classes
+        continue-on-error: true
+        run: |
+          JAR=$(find ~/.gradle/caches .gradle -name "minecraft-*.jar" 2>/dev/null | grep -v sources | head -5 | tr '\n' ' ')
+          echo "JARS: $JAR" > mc-api.txt
+          : > classes.txt
+          for j in $JAR; do unzip -Z1 "$j" 2>/dev/null | grep '\.class$' | sed 's/\.class$//; s#/#.#g' >> classes.txt; done
+          sort -u classes.txt -o classes.txt
+          # javap dumps for classes listed in .github/inspect.txt (one per line)
+          for j in $JAR; do while read -r c; do [ -n "$c" ] && javap -p -cp "$j" "$c" >> mc-api.txt 2>/dev/null; done < .github/inspect.txt; done
+      - name: publish result to vortex-client-ci branch
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          mkdir -p /tmp/out
+          cp build.log mc-api.txt classes.txt /tmp/out/ 2>/dev/null || cp build.log /tmp/out/
+          echo "${{ steps.build.outcome }} $SHA" > /tmp/out/STATUS
+          for f in build/libs/*.jar; do case "$f" in *-sources.jar) ;; *) [ -f "$f" ] && cp "$f" /tmp/out/vortex-client.jar;; esac; done
+          git config user.name ci && git config user.email ci@users.noreply.github.com
+          git checkout --orphan vortex-client-ci && git rm -rf . -q
+          cp /tmp/out/* . && git add -A && git commit -q -m "CI $SHA ${{ steps.build.outcome }}"
+          git push -f origin vortex-client-ci
