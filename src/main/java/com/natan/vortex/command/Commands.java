@@ -111,11 +111,20 @@ public final class Commands {
                 }
                 nav.start(new com.natan.vortex.nav.process.PatrolProcess(names, pts));
             }
-            case "locate" -> {
-                if (a.length < 2) { Chat.error("Usage: .locate <structure>  or  .locate biome <biome>   e.g. .locate village, .locate stronghold, .locate biome cherry_grove"); return; }
+            case "locate", "scout" -> {
+                if (a.length < 2) { Chat.error("Usage: .locate <structure>  or  .locate biome <biome>   e.g. .locate village, .locate stronghold"); return; }
                 boolean biome = a[1].equalsIgnoreCase("biome");
                 if (biome && a.length < 3) { Chat.error("Usage: .locate biome <name>"); return; }
-                nav.start(new com.natan.vortex.nav.process.LocateProcess(biome ? a[2] : a[1], biome));
+                String what = (biome ? a[2] : a[1]).toLowerCase().replace("minecraft:", "");
+                if (mc.getSingleplayerServer() != null) {
+                    nav.start(new com.natan.vortex.nav.process.LocateProcess(what, biome)); // exact, reads your own world
+                } else if (what.equals("stronghold")) {
+                    nav.start(new com.natan.vortex.nav.process.StrongholdProcess()); // eye of ender triangulation
+                } else if (!biome && com.natan.vortex.nav.process.ScoutProcess.known(what)) {
+                    nav.start(new com.natan.vortex.nav.process.ScoutProcess(what)); // explore + detect
+                } else {
+                    Chat.error("On multiplayer I can find: " + String.join(", ", new java.util.TreeSet<>(com.natan.vortex.nav.process.ScoutProcess.SIGNATURES.keySet())) + ", stronghold (eyes of ender). Biomes only in singleplayer.");
+                }
             }
             case "where" -> {
                 if (a.length < 2) { Chat.error("Usage: .where <item>   e.g. .where diamond"); return; }

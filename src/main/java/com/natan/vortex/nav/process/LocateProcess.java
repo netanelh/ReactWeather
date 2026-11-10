@@ -1,61 +1,78 @@
 package com.natan.vortex.nav.process;
 
+import com.mojang.datafixers.util.Pair;
 import com.natan.vortex.nav.Goal;
 import com.natan.vortex.nav.Process;
 import com.natan.vortex.util.Chat;
 import net.minecraft.client.Minecraft;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderSet;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.TagKey;
 
 /**
- * ".locate village" / ".locate biome cherry_grove": runs the server's /locate (needs OP or cheats,
- * which you have on your own server / singleplayer), reads the answer from chat, then walks there —
- * any distance, through unloaded chunks, re-planning as terrain loads.
+ * Singleplayer-only exact locate: reads the world straight from your own integrated server
+ * (no commands, no OP, no cheats). On multiplayer, ".locate" uses ScoutProcess / StrongholdProcess instead.
  */
 public class LocateProcess implements Process {
-    private static final Pattern COORDS = Pattern.compile("\\[(-?\\d+), ?(~|-?\\d+), ?(-?\\d+)\\]");
-    public static LocateProcess waiting;
-
     private final String label;
-    private Goal goal;
-    private int waitTicks;
+    private volatile Goal goal;
+    private volatile boolean failed;
     private boolean done;
 
     public LocateProcess(String what, boolean biome) {
         this.label = what;
-        String id = what.contains(":") ? what : "minecraft:" + what;
-        String cmd = biome ? "locate biome " + id : "locate structure " + (what.equals("village") ? "#minecraft:village" : id);
-        waiting = this;
-        Minecraft.getInstance().getConnection().sendCommand(cmd);
-    }
-
-    /** Called from the chat listener for every system message. */
-    public static void onSystemMessage(String text) {
-        LocateProcess p = waiting;
-        if (p == null || p.goal != null) return;
-        Matcher m = COORDS.matcher(text);
-        if (!m.find()) return;
-        int x = Integer.parseInt(m.group(1)), z = Integer.parseInt(m.group(3));
-        p.goal = m.group(2).equals("~") ? new Goal.XZ(x, z) : new Goal.Near(new net.minecraft.core.BlockPos(x, Integer.parseInt(m.group(2)), z), 3);
-        waiting = null;
-        Chat.info("Found " + p.label + " at " + x + ", " + z + ". Walking there.");
+        Minecraft mc = Minecraft.getInstance();
+        var server = mc.getSingleplayerServer();
+        var dim = mc.level.dimension();
+        BlockPos origin = mc.player.blockPosition();
+        String name = what.contains(":") ? what.substring(what.indexOf(':') + 1) : what;
+        server.execute(() -> {
+            BlockPos found = null;
+            try {
+                ServerLevel lvl = server.getLevel(dim);
+                if (biome) {
+                    var key = ResourceKey.create(Registries.BIOME, Identifier.withDefaultNamespace(name));
+                    Pair<BlockPos, ?> r = lvl.findClosestBiome3d(h -> h.is(key), origin, 6400, 32, 64);
+                    if (r != null) found = r.getFirst();
+                } else {
+                    var reg = lvl.registryAccess().lookupOrThrow(Registries.STRUCTURE);
+                    HolderSet<net.minecraft.world.level.levelgen.structure.Structure> set = null;
+                    var tag = reg.get(TagKey.create(Registries.STRUCTURE, Identifier.withDefaultNamespace(name)));
+                    if (tag.isPresent()) set = tag.get();
+                    else {
+                        var holder = reg.get(ResourceKey.create(Registries.STRUCTURE, Identifier.withDefaultNamespace(name)));
+                        if (holder.isPresent()) set = HolderSet.direct(holder.get());
+                    }
+                    if (set != null) {
+                        var r = lvl.getChunkSource().getGenerator().findNearestMapStructure(lvl, set, origin, 100, false);
+                        if (r != null) found = r.getFirst();
+                    }
+                }
+            } catch (Throwable t) {
+                com.natan.vortex.VortexClient.LOG.warn("Locate failed", t);
+            }
+            BlockPos f = found;
+            mc.execute(() -> {
+                if (f == null) { failed = true; return; }
+                goal = biome ? new Goal.Near(f.getX(), f.getY(), f.getZ(), 4) : new Goal.XZ(f.getX(), f.getZ());
+                Chat.info("Found " + label + " at " + f.getX() + ", " + f.getZ() + " (" + Math.round(Math.sqrt(f.distSqr(origin))) + " blocks). Walking there.");
+            });
+        });
     }
 
     @Override public String name() { return "Locate"; }
-    @Override public String status() { return goal == null ? "asking the server about " + label + "..." : label; }
+    @Override public String status() { return goal == null ? "searching the world for " + label + "..." : label; }
 
     @Override
     public void tick() {
-        if (goal == null && ++waitTicks > 100) {
-            Chat.error("No answer from /locate. You need OP or cheats enabled, and the name must be valid (e.g. village, stronghold, ancient_city, mansion, biome cherry_grove).");
-            waiting = null;
-            done = true;
-        }
+        if (failed) { Chat.error("Couldn't find '" + label + "'. Names like: village, stronghold, ancient_city, mansion, monument, trial_chambers, fortress, bastion_remnant, or biome <name>."); done = true; }
     }
 
     @Override public Goal goal() { return goal; }
     @Override public void atGoal() { done = true; }
     @Override public boolean isDone() { return done; }
-    @Override public void onStop() { if (waiting == this) waiting = null; }
 }
