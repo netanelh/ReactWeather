@@ -27,6 +27,13 @@ public abstract class MultiPlayerGameModeMixin {
         VortexClient.modules.get(Criticals.class).beforeAttack(target);
     }
 
+    /** Remember which block we right-clicked (ChestMemory uses it to know which chest a screen belongs to). */
+    @Inject(method = "useItemOn", at = @At("HEAD"))
+    private void vortex$useItemOn(net.minecraft.client.player.LocalPlayer player, net.minecraft.world.InteractionHand hand,
+                                  net.minecraft.world.phys.BlockHitResult hit, CallbackInfoReturnable<net.minecraft.world.InteractionResult> cir) {
+        com.natan.vortex.memory.ChestMemory.lastInteracted = hit.getBlockPos().immutable();
+    }
+
     @Inject(method = "continueDestroyBlock", at = @At("HEAD"))
     private void vortex$fastBreak(BlockPos pos, Direction direction, CallbackInfoReturnable<Boolean> cir) {
         if (VortexClient.modules != null && VortexClient.modules.isActive(FastBreak.class)) destroyDelay = 0;

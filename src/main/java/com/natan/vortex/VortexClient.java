@@ -33,7 +33,8 @@ public class VortexClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> onTick());
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "hud"), HudRenderer::render);
-        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> config.save());
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> { config.save(); com.natan.vortex.memory.WorldMemory.INSTANCE.save(); });
+        net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents.GAME.register((message, overlay) -> com.natan.vortex.nav.process.LocateProcess.onSystemMessage(message.getString()));
         com.natan.vortex.command.Commands.register();
 
         LOG.info("{} {} loaded with {} modules", NAME, VERSION, modules.all().size());
@@ -53,6 +54,8 @@ public class VortexClient implements ClientModInitializer {
             }
         }
         modules.onTick();
+        com.natan.vortex.memory.WorldMemory.INSTANCE.tick();
+        com.natan.vortex.memory.ChestMemory.INSTANCE.tick();
         modules.get(com.natan.vortex.module.player.AutoReconnect.class).screenTick();
         if (modules.get(com.natan.vortex.module.pathing.NavSettings.class).isEnabled()) com.natan.vortex.nav.Navigator.INSTANCE.tick();
     }

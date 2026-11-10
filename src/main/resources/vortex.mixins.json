@@ -21,7 +21,9 @@
     "HudMixin",
     "CameraMixin",
     "KeyMappingAccessor",
-    "LivingEntityAccessor"
+    "LivingEntityAccessor",
+    "MultiPlayerGameModeAccessor",
+    "DeltaTrackerTimerMixin"
   ],
   "injectors": {
     "defaultRequire": 0

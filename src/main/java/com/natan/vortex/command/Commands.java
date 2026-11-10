@@ -32,6 +32,10 @@ public final class Commands {
     private Commands() {}
 
     public static void register() {
+        ClientSendMessageEvents.MODIFY_CHAT.register(msg -> {
+            if (msg.startsWith(PREFIX) || VortexClient.modules == null) return msg;
+            return VortexClient.modules.get(com.natan.vortex.module.client.ChatSuffix.class).apply(msg);
+        });
         ClientSendMessageEvents.ALLOW_CHAT.register(message -> {
             if (!message.startsWith(PREFIX) || message.startsWith("..")) return true;
             Minecraft.getInstance().execute(() -> {
@@ -107,6 +111,36 @@ public final class Commands {
                 }
                 nav.start(new com.natan.vortex.nav.process.PatrolProcess(names, pts));
             }
+            case "locate" -> {
+                if (a.length < 2) { Chat.error("Usage: .locate <structure>  or  .locate biome <biome>   e.g. .locate village, .locate stronghold, .locate biome cherry_grove"); return; }
+                boolean biome = a[1].equalsIgnoreCase("biome");
+                if (biome && a.length < 3) { Chat.error("Usage: .locate biome <name>"); return; }
+                nav.start(new com.natan.vortex.nav.process.LocateProcess(biome ? a[2] : a[1], biome));
+            }
+            case "where" -> {
+                if (a.length < 2) { Chat.error("Usage: .where <item>   e.g. .where diamond"); return; }
+                var hits = com.natan.vortex.memory.ChestMemory.INSTANCE.find(a[1], mc.player.blockPosition());
+                if (hits.isEmpty()) { Chat.info("No remembered chest has '" + a[1] + "'. Open your chests once, or run .indexchests"); return; }
+                for (int i = 0; i < Math.min(6, hits.size()); i++) {
+                    var h = hits.get(i);
+                    Chat.info("\u00a7e" + h.count() + "x\u00a7r in chest at " + h.pos().toShortString() + " \u00a77(" + Math.round(h.distance()) + "m)");
+                }
+                Chat.info("Type \u00a7e.fetch " + a[1] + "\u00a7r to walk to the nearest one and open it.");
+            }
+            case "fetch" -> {
+                if (a.length < 2) { Chat.error("Usage: .fetch <item>"); return; }
+                var hits = com.natan.vortex.memory.ChestMemory.INSTANCE.find(a[1], mc.player.blockPosition());
+                if (hits.isEmpty()) { Chat.error("No remembered chest has '" + a[1] + "'."); return; }
+                nav.start(new com.natan.vortex.nav.process.ChestIndexProcess(hits.get(0).pos(), a[1]));
+            }
+            case "indexchests", "scanchests" -> nav.start(new com.natan.vortex.nav.process.ChestIndexProcess(a.length > 1 ? Integer.parseInt(a[1]) : 24));
+            case "memory" -> Chat.info("World memory: " + com.natan.vortex.memory.WorldMemory.INSTANCE.count() + " blocks in " + com.natan.vortex.memory.WorldMemory.INSTANCE.chunksScanned()
+                + " chunks this session \u00b7 " + com.natan.vortex.memory.ChestMemory.INSTANCE.size() + " chests indexed");
+            case "suffix" -> {
+                if (a.length < 2) { Chat.info("Suffix: '" + com.natan.vortex.module.client.ChatSuffix.suffix + "'"); return; }
+                com.natan.vortex.module.client.ChatSuffix.suffix = " " + line.substring(line.indexOf(' ') + 1);
+                Chat.info("Chat suffix set. Turn on the ChatSuffix module to use it.");
+            }
             case "toggle", "t" -> {
                 Module m = find(a, 1);
                 if (m != null) { m.toggle(); Chat.info(m.name + (m.isEnabled() ? " §aON" : " §cOFF")); }
@@ -136,13 +170,14 @@ public final class Commands {
     }
 
     private static boolean isNavCommand(String c) {
-        return Set.of("goto", "g", "home", "mine", "follow", "explore", "farm", "tunnel", "hunt", "kill", "collect", "pickup", "find", "surface", "up", "flee", "run", "patrol").contains(c.toLowerCase());
+        return Set.of("goto", "g", "home", "mine", "follow", "explore", "farm", "tunnel", "hunt", "kill", "collect", "pickup", "find", "surface", "up", "flee", "run", "patrol", "locate", "fetch", "indexchests", "scanchests").contains(c.toLowerCase());
     }
 
     private static void help() {
         Chat.info("§lNavigation§r: .goto x y z | .goto x z | .goto <waypoint> | .home | .sethome | .stop | .pause | .resume");
         Chat.info("§lTasks§r: .mine <block...> [limit N] [nohome] | .follow [player] | .explore [step] | .farm [radius] | .tunnel [length] [1x2|2x2|3x3]");
         Chat.info("§lMore§r: .hunt <mob|hostiles|animals> [N] | .collect [item] | .find <block> | .surface | .flee [blocks] | .patrol <wp> <wp>...");
+        Chat.info("§lFar & storage§r: .find <block> (remembers every chunk you saw) | .locate <structure> / .locate biome <b> | .where <item> | .fetch <item> | .indexchests [r] | .memory");
         Chat.info("§lWaypoints§r: .wp add <name> | .wp del <name> | .wp list   (death point is saved automatically)");
         Chat.info("§lClient§r: .toggle <module> | .bind <module> <key|none> | .preset save|load|list <name> | .panic | .modules");
     }

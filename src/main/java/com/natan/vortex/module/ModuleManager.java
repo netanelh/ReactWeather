@@ -31,26 +31,26 @@ public class ModuleManager {
         add(new Parkour()); add(new AutoWalk()); add(new ElytraFly()); add(new BoatFly()); add(new LongJump()); add(new Blink());
         add(new NoSlow()); add(new FastClimb()); add(new AntiVoid()); add(new AutoJump()); add(new Strafe()); add(new ReverseStep());
         add(new Sneak()); add(new IceSpeed()); add(new AquaSpeed()); add(new EntitySpeed()); add(new ClickTP()); add(new TridentBoost());
-        add(new GuiMove()); add(new NoJumpDelay());
+        add(new GuiMove()); add(new NoJumpDelay()); add(new Jetpack());
         // Render
         add(new Fullbright()); add(new Xray()); add(new Esp()); add(new NoWeather()); add(new Radar()); add(new TargetHud());
         add(new DangerAlert()); add(new NoOverlay()); add(new Zoom()); add(new PotionHud()); add(new InventoryHud());
         add(new Keystrokes()); add(new PingHud()); add(new ClockHud()); add(new BlockInfo()); add(new NearbyPlayers());
-        add(new Compass()); add(new ServerInfo()); add(new TotemCounter()); add(new LogoutSpots());
+        add(new Compass()); add(new ServerInfo()); add(new TotemCounter()); add(new LogoutSpots()); add(new BlockRadar());
         // Player
         add(new AutoEat()); add(new AutoTool()); add(new ChestStealer()); add(new AutoRespawn());
         add(new AntiAfk()); add(new AutoFish()); add(new FastPlace()); add(new FastBreak()); add(new AutoReplenish());
         add(new InventoryCleaner()); add(new AutoMend()); add(new MiddleClickPearl()); add(new AntiHunger());
         add(new AutoReconnect()); add(new Spammer()); add(new ChestSwap()); add(new AntiDrown()); add(new Mlg()); add(new Notifier());
-        add(new ItemMagnet());
+        add(new ItemMagnet()); add(new SpeedMine()); add(new Derp());
         // World
         add(new Nuker()); add(new Scaffold()); add(new AutoFarm());
         add(new AutoBreed()); add(new AutoShear()); add(new VeinMiner()); add(new TreeAura()); add(new LiquidFiller()); add(new AutoTorch());
-        add(new StashFinder()); add(new AirPlace()); add(new HoleFiller());
+        add(new StashFinder()); add(new AirPlace()); add(new HoleFiller()); add(new com.natan.vortex.module.world.Timer());
         // Pathing (our own navigator)
         add(new NavSettings()); add(new AutoMine()); add(new FarmBot()); add(new Follow()); add(new Explore()); add(new Tunnel()); add(new Hunt()); add(new Collect());
         // Client
-        add(clickGui = new ClickGui()); add(new Hud()); add(new com.natan.vortex.module.client.Panic()); add(new com.natan.vortex.module.client.FriendsModule());
+        add(clickGui = new ClickGui()); add(new Hud()); add(new com.natan.vortex.module.client.Panic()); add(new com.natan.vortex.module.client.FriendsModule()); add(new com.natan.vortex.module.client.ChatSuffix());
     }
 
     private void add(Module m) { modules.add(m); }

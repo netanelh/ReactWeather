@@ -104,6 +104,29 @@ final class HudElements {
         }
 
         if (m.isActive(Keystrokes.class)) drawKeys(g, mc, f, acc, w, h);
+
+        BlockRadar br = m.get(BlockRadar.class);
+        if (br.isEnabled()) {
+            java.util.Set<net.minecraft.world.level.block.Block> want = new java.util.HashSet<>();
+            if (br.diamonds.on()) { want.add(net.minecraft.world.level.block.Blocks.DIAMOND_ORE); want.add(net.minecraft.world.level.block.Blocks.DEEPSLATE_DIAMOND_ORE); }
+            if (br.debris.on()) want.add(net.minecraft.world.level.block.Blocks.ANCIENT_DEBRIS);
+            if (br.emeralds.on()) { want.add(net.minecraft.world.level.block.Blocks.EMERALD_ORE); want.add(net.minecraft.world.level.block.Blocks.DEEPSLATE_EMERALD_ORE); }
+            if (br.gold.on()) { want.add(net.minecraft.world.level.block.Blocks.GOLD_ORE); want.add(net.minecraft.world.level.block.Blocks.DEEPSLATE_GOLD_ORE); }
+            if (br.spawners.on()) { want.add(net.minecraft.world.level.block.Blocks.SPAWNER); want.add(net.minecraft.world.level.block.Blocks.TRIAL_SPAWNER); }
+            if (br.storage.on()) { want.add(net.minecraft.world.level.block.Blocks.CHEST); want.add(net.minecraft.world.level.block.Blocks.BARREL); want.add(net.minecraft.world.level.block.Blocks.SHULKER_BOX); }
+            if (br.portals.on()) { want.add(net.minecraft.world.level.block.Blocks.NETHER_PORTAL); want.add(net.minecraft.world.level.block.Blocks.END_PORTAL_FRAME); }
+            var me = mc.player.blockPosition();
+            var list = com.natan.vortex.memory.WorldMemory.INSTANCE.nearest(want, me, br.lines.i());
+            String[] arrows = {"\u2191", "\u2197", "\u2192", "\u2198", "\u2193", "\u2199", "\u2190", "\u2196"};
+            for (var p : list) {
+                double dx = p.getX() + 0.5 - mc.player.getX(), dz = p.getZ() + 0.5 - mc.player.getZ();
+                double ang = ((Math.toDegrees(Math.atan2(dz, dx)) - 90 - mc.player.getYRot()) % 360 + 360) % 360;
+                String name = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(mc.level.getBlockState(p).isAir() ? net.minecraft.world.level.block.Blocks.AIR : mc.level.getBlockState(p).getBlock()).getPath();
+                if (name.equals("air")) name = "remembered";
+                y = line(g, f, arrows[(int) Math.round(ang / 45.0) % 8] + " " + name.replace("deepslate_", "").replace("_", " ") + " ",
+                    Math.round(Math.sqrt(dx * dx + dz * dz)) + "m \u00a77y" + p.getY(), 4, y, acc);
+            }
+        }
     }
 
     private static int line(GuiGraphicsExtractor g, Font f, String a, String b, int x, int y, int color) {

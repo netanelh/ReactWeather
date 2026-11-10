@@ -21,9 +21,6 @@ import java.util.concurrent.ThreadLocalRandom;
 public class KillAura extends Module {
     private final NumberSetting range = add(new NumberSetting("Range", "Attack reach in blocks", 3.6, 1, 6, 0.1));
     private final NumberSetting wallRange = add(new NumberSetting("Wall Range", "Reach when target is behind blocks", 0, 0, 6, 0.1));
-    private final BoolSetting players = add(new BoolSetting("Players", "Target players", true));
-    private final BoolSetting hostiles = add(new BoolSetting("Hostiles", "Target hostile mobs", true));
-    private final BoolSetting passives = add(new BoolSetting("Passives", "Target animals and other passive mobs", false));
     private final ModeSetting priority = add(new ModeSetting("Priority", "Which target goes first", "Angle", "Angle", "Distance", "Health", "Armor"));
     private final NumberSetting fov = add(new NumberSetting("FOV", "Only attack targets inside this view cone", 360, 30, 360, 5));
     private final ModeSetting rotate = add(new ModeSetting("Rotate", "Silent = server only, Client = moves your camera", "Silent", "Silent", "Client", "None"));
@@ -37,6 +34,7 @@ public class KillAura extends Module {
     private final BoolSetting autoSwitch = add(new BoolSetting("Auto Weapon", "Switch to the best hotbar weapon before hitting", false));
     private final BoolSetting predict = add(new BoolSetting("Predict", "Aim where moving targets will be (beats strafing)", true));
     private final BoolSetting ignoreNamed = add(new BoolSetting("Ignore Named", "Don't hit mobs with a name tag (pets)", true));
+    private final com.natan.vortex.util.MobFilter filter = new com.natan.vortex.util.MobFilter(this::add, true);
 
     private Entity target;
 
@@ -95,7 +93,7 @@ public class KillAura extends Module {
         List<Entity> list = new ArrayList<>();
         Vec3 eye = mc.player.getEyePosition();
         for (Entity e : mc.level.entitiesForRendering()) {
-            if (!Targets.valid(e, players.on(), hostiles.on(), passives.on())) continue;
+            if (!filter.test(e)) continue;
             if (ignoreNamed.on() && !(e instanceof net.minecraft.world.entity.player.Player) && e.hasCustomName()) continue;
             Vec3 p = Rotations.aimPoint(e);
             double dist = eye.distanceTo(p);
