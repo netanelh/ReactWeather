@@ -32,7 +32,7 @@ public class ScoutProcess implements Process {
         Map.entry("bastion", List.of("gilded_blackstone")),
         Map.entry("bastion_remnant", List.of("gilded_blackstone")),
         Map.entry("ruined_portal", List.of("crying_obsidian")),
-        Map.entry("desert_pyramid", List.of("suspicious_sand")),
+        Map.entry("desert_pyramid", List.of("blue_terracotta")),
         Map.entry("trail_ruins", List.of("suspicious_gravel")),
         Map.entry("end_city", List.of("purpur_block", "end_rod")),
         Map.entry("dungeon", List.of("spawner")),

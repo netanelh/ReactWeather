@@ -55,6 +55,7 @@ public class VortexClient implements ClientModInitializer {
         modules.onTick();
         com.natan.vortex.memory.WorldMemory.INSTANCE.tick();
         com.natan.vortex.memory.ChestMemory.INSTANCE.tick();
+        com.natan.vortex.seed.SeedCracker.tick();
         modules.get(com.natan.vortex.module.player.AutoReconnect.class).screenTick();
         if (modules.get(com.natan.vortex.module.pathing.NavSettings.class).isEnabled()) com.natan.vortex.nav.Navigator.INSTANCE.tick();
     }

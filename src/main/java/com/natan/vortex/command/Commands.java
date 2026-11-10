@@ -116,14 +116,36 @@ public final class Commands {
                 boolean biome = a[1].equalsIgnoreCase("biome");
                 if (biome && a.length < 3) { Chat.error("Usage: .locate biome <name>"); return; }
                 String what = (biome ? a[2] : a[1]).toLowerCase().replace("minecraft:", "");
+                Long known = com.natan.vortex.seed.SeedStore.current();
                 if (mc.getSingleplayerServer() != null) {
                     nav.start(new com.natan.vortex.nav.process.LocateProcess(what, biome)); // exact, reads your own world
+                } else if (known != null) {
+                    nav.start(new com.natan.vortex.nav.process.SeedLocateProcess(what, biome, known)); // exact, from the cracked seed
                 } else if (what.equals("stronghold")) {
                     nav.start(new com.natan.vortex.nav.process.StrongholdProcess()); // eye of ender triangulation
                 } else if (!biome && com.natan.vortex.nav.process.ScoutProcess.known(what)) {
                     nav.start(new com.natan.vortex.nav.process.ScoutProcess(what)); // explore + detect
                 } else {
-                    Chat.error("On multiplayer I can find: " + String.join(", ", new java.util.TreeSet<>(com.natan.vortex.nav.process.ScoutProcess.SIGNATURES.keySet())) + ", stronghold (eyes of ender). Biomes only in singleplayer.");
+                    Chat.error("On multiplayer I can find: " + String.join(", ", new java.util.TreeSet<>(com.natan.vortex.nav.process.ScoutProcess.SIGNATURES.keySet())) + ", stronghold (eyes of ender). Crack the seed (.seed) to find anything, biomes included.");
+                }
+            }
+            case "seed" -> {
+                String sub = a.length > 1 ? a[1].toLowerCase() : "";
+                if (mc.getSingleplayerServer() != null) { Chat.info("In singleplayer .locate already reads your world directly."); return; }
+                switch (sub) {
+                    case "" -> {
+                        Long k = com.natan.vortex.seed.SeedStore.current();
+                        Chat.info(k != null ? "Seed: " + k + "  (.seed clear to forget)"
+                            : "Seed unknown. Desert pyramids seen: " + com.natan.vortex.seed.SeedCracker.pyramids().size() + "/4" + (com.natan.vortex.seed.SeedCracker.running() ? " \u00b7 cracking: " + com.natan.vortex.seed.SeedCracker.status : "")
+                              + ". It cracks by itself once you've passed 4-5 pyramids. Commands: .seed crack | .seed hunt | .seed <number>");
+                    }
+                    case "crack" -> com.natan.vortex.seed.SeedCracker.crack(true);
+                    case "hunt" -> { nav.start(new com.natan.vortex.nav.process.ExploreProcess(160)); Chat.info("Exploring (head for deserts). .stop when done; the seed cracks automatically when there are enough."); }
+                    case "clear" -> { com.natan.vortex.seed.SeedStore.set(null); Chat.info("Seed forgotten for this server."); }
+                    default -> {
+                        try { com.natan.vortex.seed.SeedStore.set(Long.parseLong(a[1])); Chat.info("Seed saved for this server."); }
+                        catch (NumberFormatException e) { com.natan.vortex.seed.SeedStore.set((long) a[1].hashCode()); Chat.info("Text seed saved (as Minecraft hashes it)."); }
+                    }
                 }
             }
             case "where" -> {
@@ -186,7 +208,7 @@ public final class Commands {
         Chat.info("§lNavigation§r: .goto x y z | .goto x z | .goto <waypoint> | .home | .sethome | .stop | .pause | .resume");
         Chat.info("§lTasks§r: .mine <block...> [limit N] [nohome] | .follow [player] | .explore [step] | .farm [radius] | .tunnel [length] [1x2|2x2|3x3]");
         Chat.info("§lMore§r: .hunt <mob|hostiles|animals> [N] | .collect [item] | .find <block> | .surface | .flee [blocks] | .patrol <wp> <wp>...");
-        Chat.info("§lFar & storage§r: .find <block> (remembers every chunk you saw) | .locate <structure> / .locate biome <b> | .where <item> | .fetch <item> | .indexchests [r] | .memory");
+        Chat.info("§lFar & storage§r: .find <block> (remembers every chunk you saw) | .locate <structure> / .locate biome <b> | .where <item> | .fetch <item> | .indexchests [r] | .memory | .seed (crack the server seed)");
         Chat.info("§lWaypoints§r: .wp add <name> | .wp del <name> | .wp list   (death point is saved automatically)");
         Chat.info("§lClient§r: .toggle <module> | .bind <module> <key|none> | .preset save|load|list <name> | .panic | .modules");
     }

@@ -4,6 +4,8 @@
   "compatibilityLevel": "JAVA_25",
   "client": [
     "MinecraftAccessor",
+    "ClientLevelMixin",
+    "StructurePlacementAccessor",
     "MinecraftMixin",
     "LightmapMixin",
     "BlockMixin",

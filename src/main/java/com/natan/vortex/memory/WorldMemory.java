@@ -41,7 +41,7 @@ public final class WorldMemory {
         "redstone_ore", "deepslate_redstone_ore", "copper_ore", "deepslate_copper_ore", "coal_ore", "nether_gold_ore", "nether_quartz_ore",
         "chest", "trapped_chest", "barrel", "ender_chest", "shulker_box", "spawner", "trial_spawner", "vault",
         "nether_portal", "end_portal_frame", "end_portal", "beacon", "enchanting_table", "anvil", "bell", "crafting_table",
-        "furnace", "blast_furnace", "smoker", "brewing_stand", "obsidian", "crying_obsidian", "budding_amethyst", "suspicious_sand", "suspicious_gravel"));
+        "furnace", "blast_furnace", "smoker", "brewing_stand", "obsidian", "crying_obsidian", "budding_amethyst", "suspicious_sand", "suspicious_gravel", "blue_terracotta"));
 
     private String key = "";
     private Map<String, Set<Long>> data = new HashMap<>();   // block id -> packed positions
