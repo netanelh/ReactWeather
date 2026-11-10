@@ -27,7 +27,7 @@ public class ModuleManager {
         add(new com.natan.vortex.module.combat.AutoWeb()); add(new com.natan.vortex.module.combat.AutoCity()); add(new com.natan.vortex.module.combat.AnchorAura());
         add(new com.natan.vortex.module.combat.BedAura()); add(new com.natan.vortex.module.combat.SuperKnockback()); add(new com.natan.vortex.module.combat.MaceSmash());
         add(new com.natan.vortex.module.combat.TotemPops()); add(new com.natan.vortex.module.combat.ArrowDodge());
-        add(new com.natan.vortex.module.movement.Glide()); add(new com.natan.vortex.module.movement.Anchor()); add(new com.natan.vortex.module.movement.NoPush()); add(new com.natan.vortex.module.movement.AntiLevitation());
+        add(new com.natan.vortex.module.movement.EntityControl()); add(new com.natan.vortex.module.movement.Glide()); add(new com.natan.vortex.module.movement.Anchor()); add(new com.natan.vortex.module.movement.NoPush()); add(new com.natan.vortex.module.movement.AntiLevitation());
         add(new com.natan.vortex.module.render.Freecam()); add(new com.natan.vortex.module.render.FreeLook()); add(new com.natan.vortex.module.render.Tracers());
         add(new com.natan.vortex.module.render.NoRender()); add(new com.natan.vortex.module.render.ServerLag());
         add(new com.natan.vortex.module.player.FakePlayer()); add(new com.natan.vortex.module.player.XCarry()); add(new com.natan.vortex.module.player.AutoMount()); add(new com.natan.vortex.module.player.AutoNametag());
