@@ -30,9 +30,10 @@ public class ServerLag extends Module {
     /** Seconds since the server last ticked for us, or 0 if fine. */
     public static double frozenFor() {
         if (lastPacket == 0 || Minecraft.getInstance().getConnection() == null) return 0;
+        if (Minecraft.getInstance().isPaused()) { lastPacket = 0; return 0; }
         double s = (System.currentTimeMillis() - lastPacket) / 1000.0;
         return s > 2.0 ? s : 0;
     }
 
-    public static void reset() { lastPacket = 0; count = 0; }
+    public static void reset() { lastPacket = 0; count = 0; idx = 0; }
 }

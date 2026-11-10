@@ -39,6 +39,7 @@ public class Freecam extends Module {
     public void onTick() {
         if (cam == null) return;
         if (!inGame()) { setEnabled(false); return; }
+        if (mc.getCameraEntity() != cam || cam.level() != mc.level) { setEnabled(false); return; }
         cam.setOldPosAndRot();
         var o = mc.options;
         double f = (o.keyUp.isDown() ? 1 : 0) - (o.keyDown.isDown() ? 1 : 0);

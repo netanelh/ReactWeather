@@ -2,6 +2,8 @@ package com.natan.vortex.mixin;
 
 import com.natan.vortex.VortexClient;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.natan.vortex.module.combat.Hitboxes;
 import com.natan.vortex.module.movement.NoSlow;
 import net.minecraft.client.Minecraft;
@@ -42,17 +44,13 @@ public abstract class EntityMixin {
             || VortexClient.modules.get(com.natan.vortex.module.render.FreeLook.class).turn(dx, dy)) ci.cancel();
     }
 
-    @Inject(method = "push(DDD)V", at = @At("HEAD"), cancellable = true)
-    private void vortex$noPush(double x, double y, double z, CallbackInfo ci) {
-        if (VortexClient.modules == null || (Object) this != Minecraft.getInstance().player) return;
-        var n = VortexClient.modules.get(com.natan.vortex.module.movement.NoPush.class);
-        if (n.on(n.entities)) ci.cancel();
-    }
-
-    @Inject(method = "isPushedByFluid", at = @At("HEAD"), cancellable = true)
-    private void vortex$noWaterPush(CallbackInfoReturnable<Boolean> cir) {
-        if (VortexClient.modules == null || (Object) this != Minecraft.getInstance().player) return;
-        var n = VortexClient.modules.get(com.natan.vortex.module.movement.NoPush.class);
-        if (n.on(n.water)) cir.setReturnValue(false);
+    /** NoPush: only entity-collision pushes on the local player are dropped (riptide etc. still work). */
+    @WrapOperation(method = "push(Lnet/minecraft/world/entity/Entity;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;push(DDD)V"))
+    private void vortex$noPush(Entity instance, double x, double y, double z, Operation<Void> original) {
+        if (VortexClient.modules != null && instance == Minecraft.getInstance().player) {
+            var n = VortexClient.modules.get(com.natan.vortex.module.movement.NoPush.class);
+            if (n.on(n.entities)) return;
+        }
+        original.call(instance, x, y, z);
     }
 }

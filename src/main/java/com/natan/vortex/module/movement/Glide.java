@@ -8,7 +8,7 @@ import com.natan.vortex.setting.NumberSetting;
 public class Glide extends Module {
     private final NumberSetting fall = add(new NumberSetting("Fall Speed", "Max fall speed (blocks/tick)", 0.05, 0.0, 0.5, 0.01));
 
-    public Glide() { super("Glide", "Fall slowly", Category.MOVEMENT); }
+    public Glide() { super("Glide", "Fall slowly (use NoFall to avoid landing damage)", Category.MOVEMENT); }
 
     @Override
     public void onTick() {

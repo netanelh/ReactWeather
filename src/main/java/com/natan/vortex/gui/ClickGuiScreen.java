@@ -205,7 +205,7 @@ public class ClickGuiScreen extends Screen {
         hits.add(new Hit(HitType.BIND, x + 1, ry, w - 1, ROW_H, null, m, null).clip(top, top + viewH));
         ry += ROW_H;
         if (m.category != Category.CLIENT) {
-            g.text(font, "Show in HUD", x + 10, ry + 3, C_DIM, false);
+            g.text(font, "Toggle Messages", x + 10, ry + 3, C_DIM, false);
             drawSwitch(g, x + w - 26, ry + 3, m.showInHud, a);
             hits.add(new Hit(HitType.HUD_VISIBLE, x + 1, ry, w - 1, ROW_H, null, m, null).clip(top, top + viewH));
             ry += ROW_H;
@@ -340,6 +340,16 @@ public class ClickGuiScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mx, double my, double horizontal, double vertical) {
+        // Ctrl/Shift + wheel over a number setting nudges its value
+        if (vertical != 0 && (Keys.isDown(GLFW.GLFW_KEY_LEFT_CONTROL) || Keys.isDown(GLFW.GLFW_KEY_LEFT_SHIFT))) {
+            for (Hit h : hits) {
+                if (h.type == HitType.SETTING && h.contains(mx, my) && h.setting instanceof NumberSetting n) {
+                    double st = n.step > 0 ? n.step : (n.max - n.min) / 100;
+                    n.set(n.d() + Math.signum(vertical) * st);
+                    return true;
+                }
+            }
+        }
         int step = (int) (vertical * 20);
         int contentX = winX + SIDEBAR_W, contentW = winW() - SIDEBAR_W;
         int settingsW = selectedModule != null ? Math.max(170, contentW * 42 / 100) : 0;

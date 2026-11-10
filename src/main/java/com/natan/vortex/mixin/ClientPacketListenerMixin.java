@@ -25,6 +25,7 @@ public abstract class ClientPacketListenerMixin {
 
     @Inject(method = "handleSetEntityMotion", at = @At("HEAD"))
     private void vortex$motionHead(ClientboundSetEntityMotionPacket packet, CallbackInfo ci) {
+        if (!Minecraft.getInstance().isSameThread()) return;
         var p = Minecraft.getInstance().player;
         vortex$before = p != null && packet.id() == p.getId() ? p.getDeltaMovement() : null;
     }
@@ -34,6 +35,7 @@ public abstract class ClientPacketListenerMixin {
 
     @Inject(method = "handleExplosion", at = @At("HEAD"))
     private void vortex$explosionHead(ClientboundExplodePacket packet, CallbackInfo ci) {
+        if (!Minecraft.getInstance().isSameThread()) return;
         var p = Minecraft.getInstance().player;
         vortex$before = p != null ? p.getDeltaMovement() : null;
     }

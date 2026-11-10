@@ -14,6 +14,8 @@ public class SuperKnockback extends Module {
         if (!isEnabled() || !(target instanceof LivingEntity)) return;
         var c = mc.getConnection();
         if (mc.player.isSprinting()) c.send(new ServerboundPlayerCommandPacket(mc.player, ServerboundPlayerCommandPacket.Action.STOP_SPRINTING));
-        c.send(new ServerboundPlayerCommandPacket(mc.player, ServerboundPlayerCommandPacket.Action.START_SPRINTING));
+        com.natan.vortex.module.player.AntiHunger.bypass = true;
+        try { c.send(new ServerboundPlayerCommandPacket(mc.player, ServerboundPlayerCommandPacket.Action.START_SPRINTING)); }
+        finally { com.natan.vortex.module.player.AntiHunger.bypass = false; }
     }
 }

@@ -72,6 +72,18 @@ final class Safety {
         return false;
     }
 
+    /** Called when a task stops or pauses: release right-click and clear state. */
+    static void reset() {
+        Minecraft mc = Minecraft.getInstance();
+        if (eating) {
+            eating = false;
+            mc.options.keyUse.setDown(false);
+            if (prevSlot != -1 && mc.player != null) Inv.select(prevSlot);
+        }
+        prevSlot = -1;
+        lowHpPaused = false;
+    }
+
     private static void stopEating() {
         eating = false;
         Minecraft.getInstance().options.keyUse.setDown(false);

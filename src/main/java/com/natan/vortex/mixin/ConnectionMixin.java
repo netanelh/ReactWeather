@@ -20,6 +20,7 @@ public abstract class ConnectionMixin {
             && VortexClient.modules.get(com.natan.vortex.module.player.XCarry.class).blockClose(close.getContainerId())) { ci.cancel(); return; }
         if (packet instanceof net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket cmd
             && cmd.getAction() == net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket.Action.START_SPRINTING
+            && !com.natan.vortex.module.player.AntiHunger.bypass
             && VortexClient.modules.isActive(com.natan.vortex.module.player.AntiHunger.class)) ci.cancel();
     }
 }

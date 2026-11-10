@@ -22,8 +22,10 @@ public class EndermanLook extends Module {
         if (mode.is("Avoid")) {
             for (Entity e : mc.level.entitiesForRendering()) {
                 if (!enderman(e) || e.distanceToSqr(mc.player) > 64 * 64) continue;
-                double a = Rotations.angleTo(e);
-                if (a < 12 && mc.player.getXRot() < 60) mc.player.setXRot(Math.min(90, mc.player.getXRot() + 25));
+                float[] ang = Rotations.anglesTo(e.getEyePosition()); // endermen check your gaze against their eyes
+                double dy = net.minecraft.util.Mth.wrapDegrees(ang[0] - mc.player.getYRot()), dp = ang[1] - mc.player.getXRot();
+                double a = Math.sqrt(dy * dy + dp * dp);
+                if (a < 18 && mc.player.getXRot() < 60) mc.player.setXRot(Math.min(90, mc.player.getXRot() + 25));
             }
         } else {
             Entity best = null; double bd = 48 * 48;

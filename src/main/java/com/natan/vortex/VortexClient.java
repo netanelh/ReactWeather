@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 public class VortexClient implements ClientModInitializer {
     public static final String MOD_ID = "vortex";
     public static final String NAME = "Vortex";
-    public static final String VERSION = "1.0";
+    public static final String VERSION = "1.1";
     public static final Logger LOG = LoggerFactory.getLogger(NAME);
 
     public static Minecraft mc;
@@ -39,7 +39,10 @@ public class VortexClient implements ClientModInitializer {
         LOG.info("{} {} loaded with {} modules", NAME, VERSION, modules.all().size());
     }
 
+    private static Object lastLevel;
+
     private void onTick() {
+        if (mc.level != lastLevel) { lastLevel = mc.level; com.natan.vortex.module.render.ServerLag.reset(); }
         java.util.List<Integer> keys = new java.util.ArrayList<>();
         for (var m : modules.all()) keys.add(m.key);
         java.util.Set<Integer> fresh = Keys.update(keys);

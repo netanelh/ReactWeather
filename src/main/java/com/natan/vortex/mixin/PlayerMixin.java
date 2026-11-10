@@ -20,6 +20,14 @@ public abstract class PlayerMixin {
         if (VortexClient.modules.isActive(SafeWalk.class)) cir.setReturnValue(true);
     }
 
+    /** NoPush Water: Player overrides isPushedByFluid, so the hook must live here. */
+    @Inject(method = "isPushedByFluid", at = @At("HEAD"), cancellable = true)
+    private void vortex$noWaterPush(CallbackInfoReturnable<Boolean> cir) {
+        if (VortexClient.modules == null || (Object) this != Minecraft.getInstance().player) return;
+        var n = VortexClient.modules.get(com.natan.vortex.module.movement.NoPush.class);
+        if (n.on(n.water)) cir.setReturnValue(false);
+    }
+
     @ModifyReturnValue(method = "entityInteractionRange", at = @At("RETURN"))
     private double vortex$entityReach(double original) {
         if (VortexClient.modules == null || (Object) this != Minecraft.getInstance().player) return original;

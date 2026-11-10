@@ -60,13 +60,14 @@ public final class Navigator {
         pathGoal = null;
         calculating = false;
         Actions.releaseKeys();
+        Safety.reset();
         Minecraft mc = Minecraft.getInstance();
         if (mc.gameMode != null && mc.gameMode.isDestroying()) mc.gameMode.stopDestroyBlock();
     }
 
     public void setPaused(boolean p) {
         paused = p;
-        if (p) Actions.releaseKeys();
+        if (p) { Actions.releaseKeys(); Safety.reset(); }
         Chat.info(p ? "Paused." : "Resumed.");
     }
 
@@ -181,8 +182,8 @@ public final class Navigator {
     }
 
     private void onResult(PathFinder.Result r, Goal goal, Process forProcess, AtomicBoolean myCancel, NavSettings s) {
-        calculating = false;
         if (myCancel.get() || process != forProcess) return;
+        calculating = false;
         if (r == null || r.steps().size() < 2) {
             failures++;
             lastCalc = "no path (" + (r == null ? 0 : r.expanded()) + " nodes)";

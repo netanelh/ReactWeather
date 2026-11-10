@@ -6,6 +6,15 @@ import net.minecraft.core.Direction;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.BedBlock;
+import net.minecraft.world.level.block.DoorBlock;
+import net.minecraft.world.level.block.FenceGateBlock;
+import net.minecraft.world.level.block.LadderBlock;
+import net.minecraft.world.level.block.ScaffoldingBlock;
+import net.minecraft.world.level.block.ShulkerBoxBlock;
+import net.minecraft.world.level.block.StainedGlassBlock;
+import net.minecraft.world.level.block.StainedGlassPaneBlock;
+import net.minecraft.world.level.block.TrapDoorBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
 
@@ -67,6 +76,10 @@ public final class World {
         BlockState s = state(x, y, z);
         if (s.isAir()) return 0;
         if (!s.getFluidState().isEmpty() || NEVER_BREAK.contains(s.getBlock())) return -1;
+        Block b = s.getBlock();
+        if (b instanceof DoorBlock || b instanceof TrapDoorBlock || b instanceof FenceGateBlock || b instanceof BedBlock
+            || b instanceof LadderBlock || b instanceof ScaffoldingBlock || b instanceof ShulkerBoxBlock
+            || b instanceof StainedGlassBlock || b instanceof StainedGlassPaneBlock || b == Blocks.GLASS) return -1; // don't wreck the base
         BlockPos p = new BlockPos(x, y, z);
         float hardness = s.getDestroySpeed(mc().level, p);
         if (hardness < 0) return -1;
