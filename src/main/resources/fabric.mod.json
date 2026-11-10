@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "vortex",
   "version": "${version}",
-  "name": "Vortex Client",
+  "name": "Zephex",
   "description": "Utility client for private servers and singleplayer. Right Shift opens the ClickGUI.",
   "authors": ["Natan"],
   "license": "All-Rights-Reserved",

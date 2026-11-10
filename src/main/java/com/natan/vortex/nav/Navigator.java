@@ -166,7 +166,7 @@ public final class Navigator {
         AtomicBoolean myCancel = cancel;
         BlockPos start = feet();
         PathFinder.Config cfg = new PathFinder.Config(s.allowBreak.on(), s.allowPlace.on(), s.maxFall.i(), s.sprint.on(),
-            s.avoidWater.on(), s.maxNodes.i() * 1000, s.timeout.i() * 1000L, Actions.countThrowaways(), s.parkour.on());
+            s.avoidWater.on(), s.maxNodes.i() * 1000, s.timeout.i() * 1000L, Actions.countThrowaways(), s.parkour.on(), s.longRange.on());
         Process forProcess = process;
         worker.submit(() -> {
             PathFinder.Result r;

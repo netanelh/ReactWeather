@@ -30,6 +30,6 @@ public class AutoLog extends Module {
         }
         if (reason == null) return;
         if (disableAfter.on()) setEnabledSilently(false);
-        mc.getConnection().getConnection().disconnect(Component.literal("[Vortex AutoLog] " + reason));
+        mc.getConnection().getConnection().disconnect(Component.literal("[Zephex AutoLog] " + reason));
     }
 }

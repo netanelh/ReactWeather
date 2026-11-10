@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /** Weighted A* over the block grid. Runs on the navigator's background thread. */
 public final class PathFinder {
     public record Config(boolean allowBreak, boolean allowPlace, int maxFall, boolean sprint, boolean avoidWater,
-                         int maxNodes, long timeoutMs, int throwaways, boolean parkour) {}
+                         int maxNodes, long timeoutMs, int throwaways, boolean parkour, boolean useMemory) {}
 
     public record Result(List<Step> steps, boolean complete, int expanded, long millis) {}
 
@@ -110,6 +110,17 @@ public final class PathFinder {
         return c;
     }
 
+    private Candidate memoryStep(int x, int y, int z, int nx, int nz) {
+        int surf = com.natan.vortex.nav.NavMemory.INSTANCE.surfaceY(nx, nz);
+        if (surf == Integer.MIN_VALUE) return null;                 // unknown terrain: don't guess
+        if (com.natan.vortex.nav.NavMemory.INSTANCE.dangerAt(nx, nz)) return null;
+        int ny = surf + 1;                                          // feet above the remembered floor
+        int dy = ny - y;
+        if (dy > 4 || dy < -cfg.maxFall() - 8) return null;         // too big a change to trust blindly
+        // extra cost so A* prefers loaded, verified routes and treats memory as a last resort
+        return new Candidate(nx, ny, nz, (walk + Math.abs(dy) * 2) * 1.4 + 6, Step.Move.WALK, null, null);
+    }
+
     private List<Candidate> neighbors(Node n) {
         List<Candidate> out = new ArrayList<>(12);
         int x = n.x, y = n.y, z = n.z;
@@ -117,8 +128,15 @@ public final class PathFinder {
 
         for (int[] d : DIRS) {
             int nx = x + d[0], nz = z + d[1];
-            if (!World.loaded(nx, nz)) continue;
             boolean diagonal = d[0] != 0 && d[1] != 0;
+            if (!World.loaded(nx, nz)) {
+                // beyond loaded chunks: step across the remembered walk-map, re-planned once it loads
+                if (cfg.useMemory() && !diagonal) {
+                    Candidate mc = memoryStep(x, y, z, nx, nz);
+                    if (mc != null) out.add(mc);
+                }
+                continue;
+            }
 
             if (diagonal) {
                 // no mining or bridging on diagonals; both corners must be open (no clipping through edges)

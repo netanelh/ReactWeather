@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 
 public class VortexClient implements ClientModInitializer {
     public static final String MOD_ID = "vortex";
-    public static final String NAME = "Vortex";
+    public static final String NAME = "Zephex";
     public static final String VERSION = "1.1";
     public static final Logger LOG = LoggerFactory.getLogger(NAME);
 
@@ -36,7 +36,7 @@ public class VortexClient implements ClientModInitializer {
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> { config.save(); com.natan.vortex.memory.WorldMemory.INSTANCE.save(); });
         com.natan.vortex.command.Commands.register();
 
-        LOG.info("{} {} loaded with {} modules", NAME, VERSION, modules.all().size());
+        LOG.info("{} (vortex) {} loaded with {} modules", NAME, VERSION, modules.all().size());
     }
 
     private static Object lastLevel;
@@ -58,6 +58,7 @@ public class VortexClient implements ClientModInitializer {
         modules.onTick();
         com.natan.vortex.memory.WorldMemory.INSTANCE.tick();
         com.natan.vortex.memory.ChestMemory.INSTANCE.tick();
+        com.natan.vortex.nav.NavMemory.INSTANCE.tick();
         com.natan.vortex.seed.SeedCracker.tick();
         modules.get(com.natan.vortex.module.player.AutoReconnect.class).screenTick();
         if (modules.get(com.natan.vortex.module.pathing.NavSettings.class).isEnabled()) com.natan.vortex.nav.Navigator.INSTANCE.tick();

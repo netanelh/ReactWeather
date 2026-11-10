@@ -49,7 +49,7 @@ public class ClickGuiScreen extends Screen {
     private Module binding;
     private int listContentH, settingsContentH;
 
-    public ClickGuiScreen() { super(Component.literal("Vortex")); }
+    public ClickGuiScreen() { super(Component.literal("Zephex")); }
 
     private ClickGui cfg() { return VortexClient.modules.clickGui(); }
     private int acc(int i) { return cfg().accent(i); }
@@ -87,10 +87,10 @@ public class ClickGuiScreen extends Screen {
         g.fill(x, y, x + w, y + h, C_BG);
         g.fill(x, y, x + w, y + TITLE_H, C_TITLE);
         g.fill(x, y + TITLE_H - 1, x + w, y + TITLE_H, acc(0));
-        g.text(font, "Vortex", x + 8, y + 7, acc(0), true);
+        g.text(font, "Zephex", x + 8, y + 7, acc(0), true);
         int enabled = 0, total = VortexClient.modules.all().size();
         for (Module m : VortexClient.modules.all()) if (m.isEnabled() && m.category != Category.CLIENT) enabled++;
-        g.text(font, enabled + " on · " + total + " modules", x + 8 + font.width("Vortex") + 8, y + 7, C_FAINT, false);
+        g.text(font, enabled + " on · " + total + " modules", x + 8 + font.width("Zephex") + 8, y + 7, C_FAINT, false);
         hits.add(new Hit(HitType.TITLE, x, y, w - 170, TITLE_H, null, null, null));
 
         // search box (top right)

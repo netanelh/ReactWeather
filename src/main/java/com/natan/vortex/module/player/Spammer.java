@@ -10,7 +10,7 @@ import java.util.List;
 
 /** Repeats chat messages set with ".spam add <text>". */
 public class Spammer extends Module {
-    public static final List<String> messages = new ArrayList<>(List.of("Vortex on top"));
+    public static final List<String> messages = new ArrayList<>(List.of("Zephex on top"));
     private final NumberSetting delay = add(new NumberSetting("Delay", "Seconds between messages", 10, 1, 300, 1));
     private final BoolSetting random = add(new BoolSetting("Random Order", "Pick messages randomly", false));
     private int timer, index;

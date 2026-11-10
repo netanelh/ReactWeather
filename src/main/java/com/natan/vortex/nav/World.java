@@ -101,4 +101,18 @@ public final class World {
     public static boolean isLavaAt(int x, int y, int z) { return isLava(state(x, y, z)); }
 
     public static FluidState fluid(BlockPos p) { return mc().level.getFluidState(p); }
+
+    /** Air-like for the memory scanner: no collision and not a hazard to pass. */
+    public static boolean air2(BlockState s) {
+        if (s.isAir()) return true;
+        if (isLava(s) || DANGER_PASS.contains(s.getBlock())) return false;
+        return s.getCollisionShape(mc().level, BlockPos.ZERO).isEmpty();
+    }
+
+    /** Standable for the memory scanner (floor the player can stand on). */
+    public static boolean standable2(BlockState s, BlockPos p) {
+        if (s.isAir() || DANGER_FLOOR.contains(s.getBlock())) return false;
+        if (isWater(s)) return true;
+        return !s.getCollisionShape(mc().level, p).isEmpty();
+    }
 }

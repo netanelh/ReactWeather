@@ -13,6 +13,7 @@ public class NavSettings extends Module {
     public final NumberSetting maxFall = add(new NumberSetting("Max Fall", "Highest drop it will take without water (blocks)", 3, 1, 20, 1));
     public final BoolSetting sprint = add(new BoolSetting("Sprint", "Sprint on long straight stretches", true));
     public final BoolSetting parkour = add(new BoolSetting("Parkour", "Sprint-jump over 1-2 block gaps instead of walking around", true));
+    public final BoolSetting longRange = add(new BoolSetting("Long Range", "Plan across chunks you have explored before but are not loaded now (re-checks as they load)", true));
     public final BoolSetting selfDefense = add(new BoolSetting("Self Defense", "Fight back against hostile mobs that get close while pathing", true));
     public final BoolSetting autoEat = add(new BoolSetting("Auto Eat", "Stop and eat from the hotbar when hungry during tasks", true));
     public final NumberSetting lowHealth = add(new NumberSetting("Pause Below HP", "Pause the task below these hearts until you heal (0 = off)", 4, 0, 10, 0.5));

@@ -18,7 +18,7 @@ public class FakePlayer extends Module {
     @Override
     public void onEnable() {
         if (!inGame()) { setEnabledSilently(false); return; }
-        dummy = new RemotePlayer(mc.level, new GameProfile(ID, "VortexDummy"));
+        dummy = new RemotePlayer(mc.level, new GameProfile(ID, "ZephexDummy"));
         dummy.setId(-424242);
         dummy.snapTo(mc.player.getX(), mc.player.getY(), mc.player.getZ(), mc.player.getYRot(), mc.player.getXRot());
         dummy.setOldPosAndRot();

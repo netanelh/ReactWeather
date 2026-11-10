@@ -10,7 +10,7 @@ public final class Chat {
     public static void info(String msg) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
-        mc.execute(() -> { if (mc.player != null) mc.player.sendSystemMessage(Component.literal("§5[Vortex]§r " + msg)); });
+        mc.execute(() -> { if (mc.player != null) mc.player.sendSystemMessage(Component.literal("§5[Zephex]§r " + msg)); });
     }
 
     public static void error(String msg) { info("§c" + msg); }
