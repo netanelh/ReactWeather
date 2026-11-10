@@ -359,18 +359,18 @@ public class ClickGuiScreen extends Screen {
         if (key == GLFW.GLFW_KEY_BACKSPACE && !search.isEmpty()) { search = search.substring(0, search.length() - 1); listScroll = 0; return true; }
         if (key == GLFW.GLFW_KEY_ESCAPE && !search.isEmpty()) { search = ""; return true; }
         if (key == cfg().key && search.isEmpty()) { onClose(); return true; }
+        char c = 0;
+        if (key >= GLFW.GLFW_KEY_A && key <= GLFW.GLFW_KEY_Z) c = (char) ('a' + (key - GLFW.GLFW_KEY_A));
+        else if (key >= GLFW.GLFW_KEY_0 && key <= GLFW.GLFW_KEY_9) c = (char) ('0' + (key - GLFW.GLFW_KEY_0));
+        else if (key >= GLFW.GLFW_KEY_KP_0 && key <= GLFW.GLFW_KEY_KP_9) c = (char) ('0' + (key - GLFW.GLFW_KEY_KP_0));
+        else if (key == GLFW.GLFW_KEY_SPACE && !search.isEmpty()) c = ' ';
+        if (c != 0 && search.length() < 24) { search += c; listScroll = 0; return true; }
         return super.keyPressed(input);
     }
 
     @Override
     public boolean charTyped(CharacterEvent event) {
-        char c = (char) event.codepoint();
-        if (binding == null && (Character.isLetterOrDigit(c) || c == ' ') && search.length() < 24) {
-            search += c;
-            listScroll = 0;
-            return true;
-        }
-        return super.charTyped(event);
+        return true; // typing is handled in keyPressed (char events don't reach screens reliably with some input mods)
     }
 
     @Override public boolean isPauseScreen() { return false; }
