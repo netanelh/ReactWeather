@@ -10,7 +10,6 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.BiomeManager;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.structure.BuiltinStructureSets;
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement;
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadType;
@@ -60,7 +59,7 @@ public final class SeedCracker {
         List<int[]> out = new ArrayList<>();
         if (mc.player == null) return out;
         Set<Long> seen = new HashSet<>();
-        for (BlockPos b : WorldMemory.INSTANCE.nearest(Set.of(Blocks.BLUE_TERRACOTTA), mc.player.blockPosition(), 4000)) {
+        for (BlockPos b : WorldMemory.INSTANCE.nearest(com.natan.vortex.util.BlockSets.parse("blue_terracotta"), mc.player.blockPosition(), 4000)) {
             if (Math.floorMod(b.getX() - 10, 16) != 0 || Math.floorMod(b.getZ() - 10, 16) != 0) continue;
             int cx = (b.getX() - 10) >> 4, cz = (b.getZ() - 10) >> 4;
             if (seen.add(ChunkPos.pack(cx, cz))) out.add(new int[]{cx, cz});
