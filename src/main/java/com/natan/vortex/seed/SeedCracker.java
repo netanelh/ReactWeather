@@ -50,7 +50,7 @@ public final class SeedCracker {
         timer = 100;
         if (!mc.level.dimension().equals(Level.OVERWORLD)) return;
         List<int[]> p = pyramids();
-        if (p.size() >= 4 && p.size() != lastCount) { lastCount = p.size(); crack(false); }
+        if (p.size() >= 5 && p.size() != lastCount) { lastCount = p.size(); crack(false); }
     }
 
     /** Chunk coords of every desert pyramid seen (centre blue terracotta sits at chunk corner +10,+10). */
@@ -71,8 +71,8 @@ public final class SeedCracker {
         Minecraft mc = Minecraft.getInstance();
         if (running) { Chat.info("Seed cracker already running: " + status); return; }
         List<int[]> p = pyramids();
-        if (p.size() < 4) {
-            if (loud) Chat.error("Need at least 4 desert pyramids, seen " + p.size() + ". Walk/fly through deserts (try .seed hunt), it cracks automatically.");
+        if (p.size() < 5) {
+            if (loud) Chat.error("Need at least 5 desert pyramids, seen " + p.size() + ". Walk/fly through deserts (try .seed hunt), it cracks automatically.");
             return;
         }
         long hashed = hashedSeed;
@@ -110,7 +110,7 @@ public final class SeedCracker {
             if (real.x() != r * spacing + mine[0] || real.z() != -r * spacing + mine[1]) { status = "placement formula changed in this version"; return null; }
         }
         Long s = solve(p, hashed);
-        if (s != null || p.size() < 5) return s;
+        if (s != null || p.size() < 6) return s;
         for (int skip = 0; skip < p.size(); skip++) { // one of them might be a fake (player-built) pyramid
             List<int[]> sub = new ArrayList<>(p);
             sub.remove(skip);

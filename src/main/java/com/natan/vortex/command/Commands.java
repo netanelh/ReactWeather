@@ -136,8 +136,8 @@ public final class Commands {
                     case "" -> {
                         Long k = com.natan.vortex.seed.SeedStore.current();
                         Chat.info(k != null ? "Seed: " + k + "  (.seed clear to forget)"
-                            : "Seed unknown. Desert pyramids seen: " + com.natan.vortex.seed.SeedCracker.pyramids().size() + "/4" + (com.natan.vortex.seed.SeedCracker.running() ? " \u00b7 cracking: " + com.natan.vortex.seed.SeedCracker.status : "")
-                              + ". It cracks by itself once you've passed 4-5 pyramids. Commands: .seed crack | .seed hunt | .seed <number>");
+                            : "Seed unknown. Desert pyramids seen: " + com.natan.vortex.seed.SeedCracker.pyramids().size() + "/5" + (com.natan.vortex.seed.SeedCracker.running() ? " \u00b7 cracking: " + com.natan.vortex.seed.SeedCracker.status : "")
+                              + ". It cracks by itself once you've passed 5-6 pyramids. Commands: .seed crack | .seed hunt | .seed <number>");
                     }
                     case "crack" -> com.natan.vortex.seed.SeedCracker.crack(true);
                     case "hunt" -> { nav.start(new com.natan.vortex.nav.process.ExploreProcess(160)); Chat.info("Exploring (head for deserts). .stop when done; the seed cracks automatically when there are enough."); }
