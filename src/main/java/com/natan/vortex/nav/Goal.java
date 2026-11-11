@@ -100,6 +100,13 @@ public interface Goal {
         public String describe() { return "the surface"; }
     }
 
+    /** Reach a Y level at any X/Z (e.g. mining height). */
+    record YLevel(int y) implements Goal {
+        public boolean isGoal(int px, int py, int pz) { return py == y; }
+        public double heuristic(int px, int py, int pz) { return vertical(y - py); }
+        public String describe() { return "y=" + y; }
+    }
+
     /** Get far away from a point (flee). */
     record Away(int x, int z, double distance) implements Goal {
         public boolean isGoal(int px, int py, int pz) { return Math.hypot(px - x, pz - z) >= distance; }

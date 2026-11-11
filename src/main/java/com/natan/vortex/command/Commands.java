@@ -49,6 +49,8 @@ public final class Commands {
         });
     }
 
+    public static void execute(String line) { run(line); }
+
     private static void run(String line) {
         String[] a = line.split("\\s+");
         if (a.length == 0 || a[0].isEmpty()) { help(); return; }
@@ -206,6 +208,11 @@ public final class Commands {
                 }
                 nav.start(new com.natan.vortex.nav.process.BuildProcess(new com.natan.vortex.builder.CuboidTarget(s1, s2, bs, cmd.equals("fill") ? "fill " + a[1] : "clear")));
             }
+            case "y", "ylevel" -> {
+                if (a.length < 2) { Chat.error("Usage: .y <level>   (walk to a Y height, e.g. .y 11)"); return; }
+                nav.start(new GotoProcess(new Goal.YLevel(Integer.parseInt(a[1])), "y=" + a[1]));
+            }
+            case "macro" -> com.natan.vortex.module.client.Macros.command(a);
             case "do", "chain" -> {
                 String rest = line.substring(a[0].length()).trim();
                 if (rest.isEmpty()) { Chat.error("Usage: .do goto 100 64 200 ; mine diamond 20 ; home   (tasks run one after another)"); return; }

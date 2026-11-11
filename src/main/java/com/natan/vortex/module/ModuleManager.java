@@ -34,7 +34,7 @@ public class ModuleManager {
         add(new com.natan.vortex.module.render.NoRender()); add(new com.natan.vortex.module.render.ServerLag());
         add(new com.natan.vortex.module.player.FakePlayer()); add(new com.natan.vortex.module.player.XCarry()); add(new com.natan.vortex.module.player.AutoMount()); add(new com.natan.vortex.module.player.AutoNametag());
         add(new com.natan.vortex.module.world.EndermanLook());
-        add(new com.natan.vortex.module.client.PaperSafe());
+        add(new com.natan.vortex.module.client.PaperSafe()); add(new com.natan.vortex.module.client.Macros());
         add(new com.natan.vortex.module.client.Performance()); add(new com.natan.vortex.module.client.AntiCrash());
         add(new AutoLog()); add(new ShieldBreaker()); add(new AutoShield()); add(new BowSpam()); add(new SelfTrap());
         // Movement
