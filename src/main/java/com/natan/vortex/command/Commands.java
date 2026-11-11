@@ -129,6 +129,11 @@ public final class Commands {
                     Chat.error("On multiplayer I can find: " + String.join(", ", new java.util.TreeSet<>(com.natan.vortex.nav.process.ScoutProcess.SIGNATURES.keySet())) + ", stronghold (eyes of ender). Crack the seed (.seed) to find anything, biomes included.");
                 }
             }
+            case "fly" -> {
+                if (a.length < 4) { Chat.error("Usage: .fly <x> <y> <z>   (elytra travel; needs an elytra + fireworks)"); return; }
+                nav.start(new com.natan.vortex.nav.process.FlyProcess(
+                    new net.minecraft.core.BlockPos(Integer.parseInt(a[1]), Integer.parseInt(a[2]), Integer.parseInt(a[3])), a[1] + " " + a[2] + " " + a[3]));
+            }
             case "vclip" -> {
                 if (a.length < 2) { Chat.error("Usage: .vclip <blocks>  (negative = down)"); return; }
                 com.natan.vortex.util.Teleport.to(mc.player.position().add(0, Double.parseDouble(a[1]), 0));
@@ -226,7 +231,7 @@ public final class Commands {
         Chat.info("§lTasks§r: .mine <block...> [limit N] [nohome] | .follow [player] | .explore [step] | .farm [radius] | .tunnel [length] [1x2|2x2|3x3]");
         Chat.info("§lMore§r: .hunt <mob|hostiles|animals> [N] | .collect [item] | .find <block> | .surface | .flee [blocks] | .patrol <wp> <wp>...");
         Chat.info("§lFar & storage§r: .find <block> (remembers every chunk you saw) | .locate <structure> / .locate biome <b> | .where <item> | .fetch <item> | .indexchests [r] | .memory | .seed (crack the server seed)");
-        Chat.info("§lTeleport§r: .vclip <n> | .hclip <n> | .tp <x> <y> <z>  (and ClickTP: Left Alt + right click)");
+        Chat.info("§lTeleport§r: .vclip <n> | .hclip <n> | .tp <x> <y> <z> | .fly <x> <y> <z>  (and ClickTP: Left Alt + right click)");
         Chat.info("§lWaypoints§r: .wp add <name> | .wp del <name> | .wp list   (death point is saved automatically)");
         Chat.info("§lClient§r: .toggle <module> | .bind <module> <key|none> | .preset save|load|list <name> | .panic | .modules");
     }
