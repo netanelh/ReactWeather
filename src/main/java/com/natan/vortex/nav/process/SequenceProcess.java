@@ -37,5 +37,6 @@ public class SequenceProcess implements Process {
 
     @Override public Goal goal() { Process c = cur(); return c == null ? null : c.goal(); }
     @Override public void atGoal() { Process c = cur(); if (c != null) c.atGoal(); }
+    @Override public boolean onPathFailed() { Process c = cur(); return c != null && c.onPathFailed(); }
     @Override public void onStop() { Process c = cur(); if (c != null) c.onStop(); }
 }

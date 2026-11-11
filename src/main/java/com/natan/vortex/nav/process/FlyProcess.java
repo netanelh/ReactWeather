@@ -70,9 +70,9 @@ public class FlyProcess implements Process {
             case TAKEOFF -> {
                 if (p.isFallFlying()) { boostCd = 0; phase = Phase.CRUISE; return; } // first rocket fires in CRUISE
                 takeoffTicks++;
+                if (takeoffTicks > 60) { o.keyJump.setDown(false); Chat.error("Couldn't take off. Try from higher ground."); phase = Phase.DONE; return; }
                 if (p.onGround()) { o.keyJump.setDown(true); return; }
                 o.keyJump.setDown(false);
-                if (takeoffTicks > 60) { Chat.error("Couldn't take off. Try from higher ground."); phase = Phase.DONE; return; }
                 if (Inv.findHotbar(s -> s.is(Items.FIREWORK_ROCKET)) == -1) { Chat.error("No firework rockets for takeoff."); phase = Phase.DONE; return; }
                 // airborne and falling: ask to start gliding (every 5 ticks, no rockets wasted until we glide)
                 if (p.getDeltaMovement().y < 0 && takeoffTicks % 5 == 0)

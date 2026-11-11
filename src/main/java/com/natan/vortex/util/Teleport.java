@@ -10,6 +10,8 @@ public final class Teleport {
     public static void to(Vec3 to) {
         Minecraft mc = Minecraft.getInstance();
         Vec3 from = mc.player.position();
+        if (!Double.isFinite(to.x) || !Double.isFinite(to.y) || !Double.isFinite(to.z)) { Chat.error("Invalid position."); return; }
+        if (from.distanceTo(to) > 256) { Chat.error("Too far (max 256 blocks per teleport)."); return; }
         double hopSize = 8.5;
         var ps = com.natan.vortex.VortexClient.modules.get(com.natan.vortex.module.client.PaperSafe.class);
         if (ps.isEnabled()) hopSize = ps.hop();

@@ -23,6 +23,7 @@ public final class HudRenderer {
     public static void render(GuiGraphicsExtractor g, DeltaTracker delta) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || VortexClient.modules == null) return;
+        if (VortexClient.modules.get(com.natan.vortex.module.pathing.NavSettings.class).showPath.on()) PathOverlay.render(g);
         Hud hud = VortexClient.modules.get(Hud.class);
         if (!hud.isEnabled()) return;
         ClickGui gui = VortexClient.modules.clickGui();

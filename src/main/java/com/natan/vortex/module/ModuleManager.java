@@ -16,6 +16,8 @@ import java.util.List;
 
 public class ModuleManager {
     private final List<Module> modules = new ArrayList<>();
+    /** O(1) lookup; filled once in the constructor, then only read (safe from render threads). */
+    private final java.util.Map<Class<?>, Module> byClass = new java.util.IdentityHashMap<>();
     private final ClickGui clickGui;
 
     public ModuleManager() {
@@ -63,7 +65,7 @@ public class ModuleManager {
         add(clickGui = new ClickGui()); add(new Hud()); add(new com.natan.vortex.module.client.Panic()); add(new com.natan.vortex.module.client.FriendsModule()); add(new com.natan.vortex.module.client.ChatSuffix());
     }
 
-    private void add(Module m) { modules.add(m); }
+    private void add(Module m) { modules.add(m); byClass.put(m.getClass(), m); }
 
     public List<Module> all() { return Collections.unmodifiableList(modules); }
 
@@ -75,7 +77,8 @@ public class ModuleManager {
 
     @SuppressWarnings("unchecked")
     public <T extends Module> T get(Class<T> type) {
-        for (Module m : modules) if (m.getClass() == type) return (T) m;
+        Module m = byClass.get(type);
+        if (m != null) return (T) m;
         throw new IllegalArgumentException("No module " + type.getSimpleName());
     }
 

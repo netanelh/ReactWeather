@@ -14,6 +14,8 @@ public final class ReplaceTarget implements BuildTarget {
     private final BlockState to; // null = remove matches
     private final List<BlockPos> cells = new ArrayList<>();
     private final String label;
+    /** Cells that held `from` when first seen: they still want `to` after we mine them. */
+    private final java.util.Set<BlockPos> matched = new java.util.HashSet<>();
 
     public ReplaceTarget(BlockPos a, BlockPos b, Block from, BlockState to, String label) {
         this.from = from; this.to = to; this.label = label;
@@ -21,14 +23,19 @@ public final class ReplaceTarget implements BuildTarget {
         int y1 = Math.min(a.getY(), b.getY()), y2 = Math.max(a.getY(), b.getY());
         int z1 = Math.min(a.getZ(), b.getZ()), z2 = Math.max(a.getZ(), b.getZ());
         for (int y = y1; y <= y2; y++) for (int z = z1; z <= z2; z++) for (int x = x1; x <= x2; x++)
-            cells.add(new BlockPos(x, y, z));
+        {
+            BlockPos q = new BlockPos(x, y, z);
+            cells.add(q);
+            if (Minecraft.getInstance().level.getBlockState(q).getBlock() == from) matched.add(q);
+        }
     }
 
     @Override public List<BlockPos> cells() { return cells; }
     @Override public BlockState desired(BlockPos w) {
         // only cells that currently hold `from` have a desired state; others return their own block (no-op)
+        if (matched.contains(w)) return to;
         BlockState have = Minecraft.getInstance().level.getBlockState(w);
-        if (have.getBlock() == from) return to;
+        if (have.getBlock() == from) { matched.add(w.immutable()); return to; }
         return have; // BuildProcess sees have==have -> not wrong -> skipped
     }
     @Override public String label() { return label; }

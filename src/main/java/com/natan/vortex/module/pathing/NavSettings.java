@@ -11,6 +11,7 @@ public class NavSettings extends Module {
     public final BoolSetting allowBreak = add(new BoolSetting("Allow Break", "Mine through blocks that are in the way", true));
     public final BoolSetting allowPlace = add(new BoolSetting("Allow Place", "Bridge gaps and pillar up with throwaway blocks", true));
     public final NumberSetting maxFall = add(new NumberSetting("Max Fall", "Highest drop it will take without water (blocks)", 3, 1, 20, 1));
+    public final BoolSetting showPath = add(new BoolSetting("Show Path", "Draw the planned path on screen", true));
     public final BoolSetting sprint = add(new BoolSetting("Sprint", "Sprint on long straight stretches", true));
     public final BoolSetting parkour = add(new BoolSetting("Parkour", "Sprint-jump over 1-2 block gaps instead of walking around", true));
     public final BoolSetting longRange = add(new BoolSetting("Long Range", "Plan across chunks you have explored before but are not loaded now (re-checks as they load)", true));

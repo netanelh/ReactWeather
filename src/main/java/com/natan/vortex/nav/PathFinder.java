@@ -96,6 +96,11 @@ public final class PathFinder {
         for (Node n = end; n != null; n = n.parent)
             out.add(new Step(new BlockPos(n.x, n.y, n.z), n.move, n.breaks == null ? List.of() : n.breaks, n.place));
         Collections.reverse(out);
+        // steps through unloaded chunks are a guess from memory: stop there and re-plan once they load
+        for (int i = 1; i < out.size(); i++) {
+            BlockPos q = out.get(i).pos();
+            if (!World.loaded(q.getX(), q.getZ())) return new ArrayList<>(out.subList(0, i));
+        }
         return out;
     }
 
@@ -115,7 +120,7 @@ public final class PathFinder {
         int surf = com.natan.vortex.nav.NavMemory.INSTANCE.surfaceY(nx, nz);
         if (surf == Integer.MIN_VALUE) return null;                 // unknown terrain: don't guess
         if (com.natan.vortex.nav.NavMemory.INSTANCE.dangerAt(nx, nz)) return null;
-        int ny = surf + 1;                                          // feet above the remembered floor
+        int ny = surf;                                              // memory already stores the feet Y
         int dy = ny - y;
         if (dy > 4 || dy < -cfg.maxFall() - 8) return null;         // too big a change to trust blindly
         // extra cost so A* prefers loaded, verified routes and treats memory as a last resort

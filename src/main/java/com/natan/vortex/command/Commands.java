@@ -164,6 +164,7 @@ public final class Commands {
             case "replace" -> {
                 var s1 = com.natan.vortex.builder.BuildState.sel1; var s2 = com.natan.vortex.builder.BuildState.sel2;
                 if (s1 == null || s2 == null) { Chat.error("Set corners first (.sel1 / .sel2)"); return; }
+                if (selectionVolume(s1, s2) > 65536) { Chat.error("Selection too big (max 65536 blocks)."); return; }
                 if (a.length < 3) { Chat.error("Usage: .replace <from> <to>   e.g. .replace stone deepslate   (.replace <from> air to remove)"); return; }
                 var from = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getOptional(net.minecraft.resources.Identifier.parse(a[1].contains(":") ? a[1] : "minecraft:" + a[1])).orElse(null);
                 if (from == null) { Chat.error("Unknown block: " + a[1]); return; }
@@ -177,6 +178,7 @@ public final class Commands {
             case "copy" -> {
                 var s1 = com.natan.vortex.builder.BuildState.sel1; var s2 = com.natan.vortex.builder.BuildState.sel2;
                 if (s1 == null || s2 == null) { Chat.error("Set corners first (.sel1 / .sel2)"); return; }
+                if (selectionVolume(s1, s2) > 65536) { Chat.error("Selection too big (max 65536 blocks)."); return; }
                 int n = com.natan.vortex.builder.CopyBuffer.copy(s1, s2);
                 Chat.info("Copied " + n + " blocks. Stand where the corner should go and type .paste");
             }
@@ -186,7 +188,7 @@ public final class Commands {
                 nav.start(new com.natan.vortex.nav.process.BuildProcess(new com.natan.vortex.builder.PasteTarget(at)));
             }
             case "sel", "sel1", "sel2" -> {
-                net.minecraft.core.BlockPos at = mc.hitResult instanceof net.minecraft.world.phys.BlockHitResult bhr ? bhr.getBlockPos() : mc.player.blockPosition().below();
+                net.minecraft.core.BlockPos at = mc.hitResult instanceof net.minecraft.world.phys.BlockHitResult bhr && bhr.getType() == net.minecraft.world.phys.HitResult.Type.BLOCK ? bhr.getBlockPos() : mc.player.blockPosition().below();
                 boolean two = cmd.equals("sel2") || (a.length > 1 && a[1].equals("2"));
                 if (two) com.natan.vortex.builder.BuildState.sel2 = at; else com.natan.vortex.builder.BuildState.sel1 = at;
                 Chat.info("Corner " + (two ? "2" : "1") + " = " + at.getX() + " " + at.getY() + " " + at.getZ());
@@ -317,7 +319,7 @@ public final class Commands {
     }
 
     private static boolean isNavCommand(String c) {
-        return Set.of("goto", "g", "home", "mine", "follow", "explore", "farm", "tunnel", "hunt", "kill", "collect", "pickup", "find", "surface", "up", "flee", "run", "patrol", "locate", "scout", "fetch", "indexchests", "scanchests", "do", "chain", "fly", "build", "fill", "clear").contains(c.toLowerCase());
+        return Set.of("goto", "g", "home", "mine", "follow", "explore", "farm", "tunnel", "hunt", "kill", "collect", "pickup", "find", "surface", "up", "flee", "run", "patrol", "locate", "scout", "fetch", "indexchests", "scanchests", "do", "chain", "fly", "build", "fill", "clear", "replace", "walls", "shell", "sphere", "paste").contains(c.toLowerCase());
     }
 
     private static void help() {
@@ -337,6 +339,7 @@ public final class Commands {
         Minecraft mc = Minecraft.getInstance();
         var s1 = com.natan.vortex.builder.BuildState.sel1; var s2 = com.natan.vortex.builder.BuildState.sel2;
         if (s1 == null || s2 == null) { Chat.error("Set corners first: look at a block and type .sel1 then .sel2"); return; }
+        if (selectionVolume(s1, s2) > 65536) { Chat.error("Selection too big (max 65536 blocks)."); return; }
         if (a.length < 2) { Chat.error("Usage: ." + cmd + " <block>"); return; }
         net.minecraft.world.level.block.state.BlockState bs;
         try { bs = net.minecraft.commands.arguments.blocks.BlockStateParser.parseForBlock(mc.level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.BLOCK), new com.mojang.brigadier.StringReader(a[1]), false).blockState(); }

@@ -92,9 +92,12 @@ public final class NavMemory {
             int surf = Short.MIN_VALUE;
             boolean danger = false;
             // highest spot with 2 air above standable ground
-            for (int y = maxY - 2; y > minY; y--) {
+            int top = mc.level.dimension() == net.minecraft.world.level.Level.NETHER ? Math.min(maxY - 2, 122) : maxY - 2; // below the nether roof
+            for (int y = top; y > minY; y--) {
                 m.set(baseX + lx, y - 1, baseZ + lz);
                 BlockState floor = chunk.getBlockState(m);
+                if (World.isLava(floor)) { surf = y; danger = true; break; }
+                if (floor.getBlock() instanceof net.minecraft.world.level.block.LeavesBlock) continue; // treetops aren't ground
                 if (!World.standable2(floor, m)) continue;
                 m.set(baseX + lx, y, baseZ + lz);
                 if (!World.air2(chunk.getBlockState(m))) continue;

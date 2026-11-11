@@ -99,6 +99,7 @@ public final class World {
         if (s.isAir()) return true;
         if (isLava(s) || DANGER_PASS.contains(s.getBlock())) return false;
         if (isHandDoor(s)) return true; // the executor opens it on the way through
+        if (s.getBlock() instanceof LadderBlock) return true; // thin box: we climb inside it
         BlockPos p = new BlockPos(x, y, z);
         return s.getCollisionShape(mc().level, p).isEmpty();
     }

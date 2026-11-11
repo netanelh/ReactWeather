@@ -15,6 +15,7 @@ final class Safety {
     private static int prevSlot = -1;
     private static boolean lowHpPaused;
     private static boolean mlgPlaced;
+    private static int mlgTicks;
     private static int mlgSlotPrev = -1;
     private static net.minecraft.core.BlockPos mlgWater;
 
@@ -84,14 +85,16 @@ final class Safety {
     private static boolean mlg(Minecraft mc, net.minecraft.client.player.LocalPlayer p) {
         // already placed water: pick it back up once we have landed in it
         if (mlgPlaced) {
-            if (mlgWater != null && p.onGround() && (p.isInWater() || com.natan.vortex.nav.World.inWater(p.getBlockX(), p.getBlockY(), p.getBlockZ()))) {
-                int b = Inv.findHotbar(st -> st.is(net.minecraft.world.item.Items.WATER_BUCKET) || st.is(net.minecraft.world.item.Items.BUCKET));
+            mlgTicks++;
+            boolean wet = p.isInWater() || com.natan.vortex.nav.World.inWater(p.getBlockX(), p.getBlockY(), p.getBlockZ());
+            if (mlgWater != null && p.onGround() && wet) {
                 int empty = Inv.findHotbar(st -> st.is(net.minecraft.world.item.Items.BUCKET));
-                if (empty != -1) { Inv.select(empty); Actions.lookAt(net.minecraft.world.phys.Vec3.atCenterOf(mlgWater), 60); mc.gameMode.useItem(p, net.minecraft.world.InteractionHand.MAIN_HAND); }
-                mlgPlaced = false; mlgWater = null;
-                if (mlgSlotPrev != -1) Inv.select(mlgSlotPrev);
-                mlgSlotPrev = -1;
-            }
+                if (empty != -1) { Inv.select(empty); p.setXRot(90f); mc.gameMode.useItem(p, net.minecraft.world.InteractionHand.MAIN_HAND); }
+            } else if (mlgTicks < 60 && !(p.onGround() && mlgTicks > 5)) return false;
+            // landed (or gave up): reset so MLG works again next fall
+            mlgPlaced = false; mlgWater = null; mlgTicks = 0;
+            if (mlgSlotPrev != -1) Inv.select(mlgSlotPrev);
+            mlgSlotPrev = -1;
             return false;
         }
         if (p.onGround() || p.getDeltaMovement().y > -0.6 || p.isInWater() || p.getAbilities().flying) return false;
@@ -102,18 +105,15 @@ final class Safety {
         int bx = p.getBlockX(), bz = p.getBlockZ();
         int fy = p.getBlockY();
         net.minecraft.core.BlockPos ground = null;
-        for (int k = 1; k <= 4; k++) {
+        for (int k = 1; k <= 3; k++) {
             if (com.natan.vortex.nav.World.standable(bx, fy - k, bz)) { ground = new net.minecraft.core.BlockPos(bx, fy - k + 1, bz); break; }
         }
         if (ground == null) return false;
         Actions.releaseKeys();
-        mlgSlotPrev = Inv.selected();
+        if (mlgSlotPrev == -1) mlgSlotPrev = Inv.selected();
         Inv.select(slot);
-        Actions.lookAt(new net.minecraft.world.phys.Vec3(bx + 0.5, fy - 1, bz + 0.5), 80);
-        net.minecraft.world.phys.BlockHitResult hit = new net.minecraft.world.phys.BlockHitResult(
-            net.minecraft.world.phys.Vec3.atCenterOf(ground.below()), net.minecraft.core.Direction.UP, ground.below(), false);
-        mc.gameMode.useItemOn(p, net.minecraft.world.InteractionHand.MAIN_HAND, hit);
-        mlgPlaced = true; mlgWater = ground;
+        p.setXRot(90f); // buckets only act through use(): look straight down and use
+        if (mc.gameMode.useItem(p, net.minecraft.world.InteractionHand.MAIN_HAND).consumesAction()) { mlgPlaced = true; mlgWater = ground; mlgTicks = 0; }
         return true;
     }
 
@@ -127,7 +127,7 @@ final class Safety {
         }
         prevSlot = -1;
         lowHpPaused = false;
-        mlgPlaced = false; mlgWater = null; mlgSlotPrev = -1;
+        mlgPlaced = false; mlgWater = null; mlgSlotPrev = -1; mlgTicks = 0;
     }
 
     private static void stopEating() {

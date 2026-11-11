@@ -43,7 +43,10 @@ public final class Place {
      */
     public static boolean at(BlockPos pos, int hotbarSlot, boolean rotate) { return at(pos, hotbarSlot, rotate, null); }
 
-    public static boolean at(BlockPos pos, int hotbarSlot, boolean rotate, Direction preferFace) {
+    public static boolean at(BlockPos pos, int hotbarSlot, boolean rotate, Direction preferFace) { return at(pos, hotbarSlot, rotate, preferFace, 0); }
+
+    /** @param yOff shifts the click up/down on a side face (+0.25 = top half of slabs/stairs) */
+    public static boolean at(BlockPos pos, int hotbarSlot, boolean rotate, Direction preferFace, double yOff) {
         Minecraft mc = Minecraft.getInstance();
         if (hotbarSlot < 0 || !mc.level.getBlockState(pos).canBeReplaced()) return false;
         Vec3 eye = mc.player.getEyePosition();
@@ -59,6 +62,7 @@ public final class Place {
         }
         if (bestFace == null || bestDist > 5.0) return false;
         Vec3 hit = Vec3.atCenterOf(bestNeighbor).add(bestFace.getStepX() * 0.5, bestFace.getStepY() * 0.5, bestFace.getStepZ() * 0.5);
+        if (bestFace.getAxis() != Direction.Axis.Y) hit = hit.add(0, yOff, 0);
         Inv.select(hotbarSlot);
         if (rotate) { float[] a = Rotations.anglesTo(hit); Rotations.sendSilent(a[0], a[1]); }
         mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, new BlockHitResult(hit, bestFace, bestNeighbor, false));
@@ -76,24 +80,28 @@ public final class Place {
         if (desired == null) return at(pos, hotbarSlot, rotate);
         Float yaw = null, pitch = null;
         Direction preferFace = null;
-        // horizontal facing (stairs, furnace, observer, ...): most face away from the player
+        double yOff = 0;
+        // horizontal facing: stairs/doors/gates/beds face the way the player looks; furnaces, chests etc. face the player
+        var blk = desired.getBlock();
+        boolean facesPlayerDir = blk instanceof net.minecraft.world.level.block.StairBlock || blk instanceof net.minecraft.world.level.block.DoorBlock
+            || blk instanceof net.minecraft.world.level.block.FenceGateBlock || blk instanceof net.minecraft.world.level.block.BedBlock;
         if (desired.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
             Direction f = desired.getValue(BlockStateProperties.HORIZONTAL_FACING);
-            yaw = f.toYRot() + 180f;
+            yaw = facesPlayerDir ? f.toYRot() : f.toYRot() + 180f;
         }
         if (desired.hasProperty(BlockStateProperties.FACING)) {
             Direction f = desired.getValue(BlockStateProperties.FACING);
             if (f.getAxis() == Direction.Axis.Y) pitch = f == Direction.UP ? 80f : -80f;
             else yaw = f.toYRot() + 180f;
         }
-        // slab / stairs half -> click top or bottom part of a face
+        // slab / stairs half is decided by where on the face we click (above or below the middle)
         if (desired.hasProperty(BlockStateProperties.SLAB_TYPE)) {
             String t = desired.getValue(BlockStateProperties.SLAB_TYPE).toString();
-            if (t.equals("top")) pitch = -60f; else if (t.equals("bottom")) pitch = 60f;
+            if (t.equals("top")) yOff = 0.25; else if (t.equals("bottom")) yOff = -0.25;
         }
         if (desired.hasProperty(BlockStateProperties.HALF)) {
             String h = desired.getValue(BlockStateProperties.HALF).toString();
-            if (h.equals("top")) pitch = -60f; else pitch = 60f;
+            yOff = h.equals("top") ? 0.25 : -0.25;
         }
         // log / pillar axis -> click the matching face
         if (desired.hasProperty(BlockStateProperties.AXIS)) {
@@ -105,8 +113,8 @@ public final class Place {
             float np = pitch != null ? pitch : mc.player.getXRot();
             Rotations.sendSilent(ny, np);
         }
-        if (at(pos, hotbarSlot, rotate && yaw == null && pitch == null, preferFace)) return true;
-        return preferFace == null ? false : at(pos, hotbarSlot, false, null); // fall back if the preferred face had no support
+        if (at(pos, hotbarSlot, rotate && yaw == null && pitch == null, preferFace, yOff)) return true;
+        return preferFace == null ? false : at(pos, hotbarSlot, false, null, yOff); // fall back if the preferred face had no support
     }
 
     public static int findSlot(Predicate<ItemStack> p) { return Inv.findHotbar(p); }
