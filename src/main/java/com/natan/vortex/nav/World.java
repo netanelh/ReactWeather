@@ -18,7 +18,6 @@ import net.minecraft.world.level.block.TrapDoorBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.block.VineBlock;
-import net.minecraft.world.level.block.properties.BlockStateProperties;
 
 import java.util.Set;
 
