@@ -133,33 +133,33 @@ public final class Commands {
             case "schem", "schematic" -> {
                 try {
                     if (a.length < 2) {
-                        java.nio.file.Path d = com.natan.vortex.build.Schematic.dir();
+                        java.nio.file.Path d = com.natan.vortex.builder.Schematic.dir();
                         if (!java.nio.file.Files.isDirectory(d)) { Chat.info("Put .schem files in " + d); return; }
                         var names = new java.util.ArrayList<String>();
                         try (var st = java.nio.file.Files.list(d)) { st.filter(f -> f.toString().endsWith(".schem")).forEach(f -> names.add(f.getFileName().toString())); }
                         Chat.info(names.isEmpty() ? "No .schem files in " + d : "Schematics: " + String.join(", ", names));
                     } else {
-                        com.natan.vortex.build.BuildState.schematic = com.natan.vortex.build.Schematic.load(a[1], mc.level.registryAccess());
-                        var sc = com.natan.vortex.build.BuildState.schematic;
+                        com.natan.vortex.builder.BuildState.schematic = com.natan.vortex.builder.Schematic.load(a[1], mc.level.registryAccess());
+                        var sc = com.natan.vortex.builder.BuildState.schematic;
                         Chat.info("Loaded " + sc.name + " (" + sc.width + "x" + sc.height + "x" + sc.length + "). Stand at the build corner and type .build");
                     }
                 } catch (Exception e) { Chat.error("Schematic error: " + e.getMessage()); }
             }
             case "build" -> {
-                if (com.natan.vortex.build.BuildState.schematic == null) { Chat.error("Load one first: .schem <name>"); return; }
+                if (com.natan.vortex.builder.BuildState.schematic == null) { Chat.error("Load one first: .schem <name>"); return; }
                 net.minecraft.core.BlockPos origin = a.length >= 4
                     ? new net.minecraft.core.BlockPos(Integer.parseInt(a[1]), Integer.parseInt(a[2]), Integer.parseInt(a[3]))
                     : mc.player.blockPosition();
-                nav.start(new com.natan.vortex.nav.process.BuildProcess(new com.natan.vortex.build.SchematicTarget(com.natan.vortex.build.BuildState.schematic, origin)));
+                nav.start(new com.natan.vortex.nav.process.BuildProcess(new com.natan.vortex.builder.SchematicTarget(com.natan.vortex.builder.BuildState.schematic, origin)));
             }
             case "sel", "sel1", "sel2" -> {
                 net.minecraft.core.BlockPos at = mc.hitResult instanceof net.minecraft.world.phys.BlockHitResult bhr ? bhr.getBlockPos() : mc.player.blockPosition().below();
                 boolean two = cmd.equals("sel2") || (a.length > 1 && a[1].equals("2"));
-                if (two) com.natan.vortex.build.BuildState.sel2 = at; else com.natan.vortex.build.BuildState.sel1 = at;
+                if (two) com.natan.vortex.builder.BuildState.sel2 = at; else com.natan.vortex.builder.BuildState.sel1 = at;
                 Chat.info("Corner " + (two ? "2" : "1") + " = " + at.getX() + " " + at.getY() + " " + at.getZ());
             }
             case "fill", "clear" -> {
-                var s1 = com.natan.vortex.build.BuildState.sel1; var s2 = com.natan.vortex.build.BuildState.sel2;
+                var s1 = com.natan.vortex.builder.BuildState.sel1; var s2 = com.natan.vortex.builder.BuildState.sel2;
                 if (s1 == null || s2 == null) { Chat.error("Set both corners first: look at a block and type .sel1 then .sel2"); return; }
                 net.minecraft.world.level.block.state.BlockState bs = null;
                 if (cmd.equals("fill")) {
@@ -167,7 +167,7 @@ public final class Commands {
                     try { bs = net.minecraft.commands.arguments.blocks.BlockStateParser.parseForBlock(mc.level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.BLOCK), new java.io.StringReader(a[1]), false).blockState(); }
                     catch (Exception e) { Chat.error("Unknown block: " + a[1]); return; }
                 }
-                nav.start(new com.natan.vortex.nav.process.BuildProcess(new com.natan.vortex.build.CuboidTarget(s1, s2, bs, cmd.equals("fill") ? "fill " + a[1] : "clear")));
+                nav.start(new com.natan.vortex.nav.process.BuildProcess(new com.natan.vortex.builder.CuboidTarget(s1, s2, bs, cmd.equals("fill") ? "fill " + a[1] : "clear")));
             }
             case "fly" -> {
                 if (a.length < 4) { Chat.error("Usage: .fly <x> <y> <z>   (elytra travel; needs an elytra + fireworks)"); return; }

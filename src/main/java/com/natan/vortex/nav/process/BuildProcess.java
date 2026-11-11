@@ -1,6 +1,6 @@
 package com.natan.vortex.nav.process;
 
-import com.natan.vortex.build.BuildTarget;
+import com.natan.vortex.builder.BuildTarget;
 import com.natan.vortex.nav.Actions;
 import com.natan.vortex.nav.Goal;
 import com.natan.vortex.nav.Process;
