@@ -53,11 +53,12 @@ public class BuildProcess implements Process {
 
     private void rescan(Minecraft mc) {
         BlockPos me = mc.player.blockPosition();
+        BlockPos prev = current;
         current = target.cells().stream()
             .filter(c -> !blocked.contains(k(c)) && !missing.contains(k(c)) && wrong(mc, c))
             .min(Comparator.comparingDouble(c -> c.distSqr(me)))
             .orElse(null);
-        lastD = Double.MAX_VALUE; stuck = 0;
+        if (current == null || !current.equals(prev)) { lastD = Double.MAX_VALUE; stuck = 0; } // keep counting on the same cell
         if (current == null) finish();
     }
 
@@ -87,7 +88,9 @@ public class BuildProcess implements Process {
         BlockState want = target.desired(current);
         BlockState have = mc.level.getBlockState(current);
         // clear a wrong block first
-        if (!have.isAir() && (want == null || have.getBlock() != want.getBlock())) {
+        // (water, lava, grass etc. are replaced by placing straight into them)
+        if (!have.isAir() && !(want != null && have.canBeReplaced()) && (want == null || have.getBlock() != want.getBlock())) {
+            stuck = 0; // mining is progress, even on slow blocks
             if (Actions.mine(current)) mined++;
             return;
         }
@@ -107,6 +110,14 @@ public class BuildProcess implements Process {
             return;
         }
         if (Place.at(current, slot, true)) { placed++; current = null; }
+    }
+
+    @Override
+    public boolean onPathFailed() {
+        if (current == null) return false;
+        blocked.add(k(current)); // unreachable: skip this cell instead of stopping the whole build
+        current = null;
+        return true;
     }
 
     private static boolean isBlock(ItemStack s, Block b) {

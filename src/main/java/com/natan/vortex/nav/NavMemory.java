@@ -38,6 +38,9 @@ public final class NavMemory {
     private final Map<Long, Chunk> chunks = new ConcurrentHashMap<>();
     private String key = "";
     private int saveTimer;
+    /** Tick each chunk was last recorded, so we rescan only a couple of chunks per tick. */
+    private final java.util.HashMap<Long, Integer> scannedAt = new java.util.HashMap<>();
+    private int ticks;
     private volatile boolean dirty;
 
     private NavMemory() {}
@@ -46,7 +49,7 @@ public final class NavMemory {
 
     private static String worldKey() {
         Minecraft mc = Minecraft.getInstance();
-        String w = mc.getCurrentServer() != null ? mc.getCurrentServer().ip : "singleplayer";
+        String w = mc.getCurrentServer() != null ? mc.getCurrentServer().ip : (mc.getSingleplayerServer() != null ? "sp_" + mc.getSingleplayerServer().getWorldData().getLevelName() : "singleplayer");
         String d = mc.level == null ? "none" : mc.level.dimension().identifier().getPath();
         return (w + "_" + d).replaceAll("[^a-zA-Z0-9._-]", "_");
     }
@@ -58,12 +61,22 @@ public final class NavMemory {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) return;
         String k = worldKey();
-        if (!k.equals(key)) { save(); key = k; chunks.clear(); load(); }
+        if (!k.equals(key)) { save(); key = k; chunks.clear(); scannedAt.clear(); load(); }
         int view = Math.min(8, mc.options.renderDistance().get());
         int cx = mc.player.getBlockX() >> 4, cz = mc.player.getBlockZ() >> 4;
-        for (int x = cx - view; x <= cx + view; x++) for (int z = cz - view; z <= cz + view; z++)
-            if (mc.level.getChunkSource().hasChunk(x, z)) record(x, z);
-        if (dirty && saveTimer-- <= 0) { saveTimer = 1200; save(); }
+        ticks++;
+        int budget = 2;
+        outer:
+        for (int x = cx - view; x <= cx + view; x++) for (int z = cz - view; z <= cz + view; z++) {
+            if (!mc.level.getChunkSource().hasChunk(x, z)) continue;
+            long c = ck(x, z);
+            Integer t = scannedAt.get(c);
+            if (t != null && ticks - t < 1200) continue; // re-record each chunk at most once a minute
+            record(x, z);
+            scannedAt.put(c, ticks);
+            if (--budget <= 0) break outer;
+        }
+        if (dirty && saveTimer-- <= 0) { saveTimer = 6000; save(); }
     }
 
     private void record(int cx, int cz) {

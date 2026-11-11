@@ -25,6 +25,9 @@ final class Safety {
         Minecraft mc = Minecraft.getInstance();
         var p = mc.player;
 
+        // gliding: never take over the elytra controls (eating / MLG / fighting mid-flight would crash us)
+        if (p.isFallFlying()) { if (eating) stopEating(); return false; }
+
         // 0) MLG water bucket to survive a long fall
         if (s.mlg.on() && mlg(mc, p)) return true;
 
@@ -103,6 +106,7 @@ final class Safety {
             if (com.natan.vortex.nav.World.standable(bx, fy - k, bz)) { ground = new net.minecraft.core.BlockPos(bx, fy - k + 1, bz); break; }
         }
         if (ground == null) return false;
+        Actions.releaseKeys();
         mlgSlotPrev = Inv.selected();
         Inv.select(slot);
         Actions.lookAt(new net.minecraft.world.phys.Vec3(bx + 0.5, fy - 1, bz + 0.5), 80);
@@ -123,6 +127,7 @@ final class Safety {
         }
         prevSlot = -1;
         lowHpPaused = false;
+        mlgPlaced = false; mlgWater = null; mlgSlotPrev = -1;
     }
 
     private static void stopEating() {

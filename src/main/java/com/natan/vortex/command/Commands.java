@@ -161,6 +161,8 @@ public final class Commands {
             case "fill", "clear" -> {
                 var s1 = com.natan.vortex.builder.BuildState.sel1; var s2 = com.natan.vortex.builder.BuildState.sel2;
                 if (s1 == null || s2 == null) { Chat.error("Set both corners first: look at a block and type .sel1 then .sel2"); return; }
+                long vol = selectionVolume(s1, s2);
+                if (vol > 65536) { Chat.error("Selection too big (" + vol + " blocks, max 65536)."); return; }
                 net.minecraft.world.level.block.state.BlockState bs = null;
                 if (cmd.equals("fill")) {
                     if (a.length < 2) { Chat.error("Usage: .fill <block>   e.g. .fill stone"); return; }
@@ -215,7 +217,9 @@ public final class Commands {
                               + ". It cracks by itself once you've passed 5-6 pyramids. Commands: .seed crack | .seed hunt | .seed <number>");
                     }
                     case "crack" -> com.natan.vortex.seed.SeedCracker.crack(true);
-                    case "hunt" -> { nav.start(new com.natan.vortex.nav.process.ExploreProcess(160)); Chat.info("Exploring (head for deserts). .stop when done; the seed cracks automatically when there are enough."); }
+                    case "hunt" -> {
+                        if (!VortexClient.modules.get(NavSettings.class).isEnabled()) { Chat.error("Navigator module is off. Turn it on in the Pathing panel."); return; }
+                        nav.start(new com.natan.vortex.nav.process.ExploreProcess(160)); Chat.info("Exploring (head for deserts). .stop when done; the seed cracks automatically when there are enough."); }
                     case "clear" -> { com.natan.vortex.seed.SeedStore.set(null); Chat.info("Seed forgotten for this server."); }
                     default -> {
                         try { com.natan.vortex.seed.SeedStore.set(Long.parseLong(a[1])); Chat.info("Seed saved for this server."); }
@@ -275,8 +279,12 @@ public final class Commands {
         }
     }
 
+    private static long selectionVolume(BlockPos s1, BlockPos s2) {
+        return (long) (Math.abs(s1.getX() - s2.getX()) + 1) * (Math.abs(s1.getY() - s2.getY()) + 1) * (Math.abs(s1.getZ() - s2.getZ()) + 1);
+    }
+
     private static boolean isNavCommand(String c) {
-        return Set.of("goto", "g", "home", "mine", "follow", "explore", "farm", "tunnel", "hunt", "kill", "collect", "pickup", "find", "surface", "up", "flee", "run", "patrol", "locate", "fetch", "indexchests", "scanchests").contains(c.toLowerCase());
+        return Set.of("goto", "g", "home", "mine", "follow", "explore", "farm", "tunnel", "hunt", "kill", "collect", "pickup", "find", "surface", "up", "flee", "run", "patrol", "locate", "scout", "fetch", "indexchests", "scanchests", "do", "chain", "fly", "build", "fill", "clear").contains(c.toLowerCase());
     }
 
     private static void help() {
@@ -319,6 +327,7 @@ public final class Commands {
             case "fill", "clear" -> {
                 var s1 = com.natan.vortex.builder.BuildState.sel1; var s2 = com.natan.vortex.builder.BuildState.sel2;
                 if (s1 == null || s2 == null) return null;
+                if (selectionVolume(s1, s2) > 65536) { Chat.error("Selection too big (max 65536 blocks)."); return null; }
                 net.minecraft.world.level.block.state.BlockState bs = null;
                 if (a[0].equalsIgnoreCase("fill")) {
                     if (a.length < 2) return null;

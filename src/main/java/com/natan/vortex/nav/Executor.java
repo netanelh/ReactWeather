@@ -32,7 +32,7 @@ public final class Executor {
         if (index >= steps.size()) { Actions.releaseKeys(); return Status.DONE; }
         Step step = steps.get(index);
         BlockPos target = step.pos();
-        ticksOnStep++;
+        if (++ticksOnStep > 600) return Status.FAILED; // stuck mining/placing/climbing for 30s
 
         // 1) mine whatever blocks this step needs cleared
         for (BlockPos b : step.toBreak()) {
@@ -81,8 +81,9 @@ public final class Executor {
         // 2c) climbing a ladder / vine / scaffolding
         if (step.move() == Step.Move.CLIMB) {
             Actions.faceYaw(Vec3.atCenterOf(target), 40);
-            o.keyUp.setDown(true);
-            o.keyJump.setDown(target.getY() > p.getY());
+            boolean up = target.getY() > p.getY() - 0.2; // going down: let go and slide
+            o.keyUp.setDown(up);
+            o.keyJump.setDown(up && target.getY() > p.getY());
             o.keyShift.setDown(false);
             double dy = target.getY() - p.getY();
             if (Math.abs(dy) < 0.3 && Math.hypot(target.getX() + 0.5 - p.getX(), target.getZ() + 0.5 - p.getZ()) < 0.6) {
@@ -109,7 +110,8 @@ public final class Executor {
         }
 
         // off the path or stuck -> let the navigator re-plan from here
-        if (horiz > (step.move() == Step.Move.PARKOUR ? 4.5 : 3.5) || dy < -4 || dy > 2.5) return Status.FAILED;
+        double maxDrop = step.move() == Step.Move.DESCEND ? Math.max(4, steps.get(index - 1).pos().getY() - target.getY() + 2) : 4;
+        if (horiz > (step.move() == Step.Move.PARKOUR ? 4.5 : 3.5) || dy < -maxDrop || dy > 2.5) return Status.FAILED;
         double d = horiz + Math.abs(dy);
         if (d < bestDist - 0.05) { bestDist = d; stuckTicks = 0; } else if (++stuckTicks > 60) return Status.FAILED;
 

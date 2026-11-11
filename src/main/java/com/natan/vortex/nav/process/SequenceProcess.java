@@ -30,6 +30,7 @@ public class SequenceProcess implements Process {
         c.tick();
         if (c.isDone()) {
             Chat.info("Chain step " + (i + 1) + "/" + steps.size() + " done.");
+            c.onStop(); // release keys / clean up before the next step
             i++;
         }
     }

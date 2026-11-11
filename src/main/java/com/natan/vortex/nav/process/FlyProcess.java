@@ -68,14 +68,15 @@ public class FlyProcess implements Process {
                 mc.gameMode.useItem(p, InteractionHand.MAIN_HAND); // equips the elytra to the chest slot
             }
             case TAKEOFF -> {
-                if (p.isFallFlying()) { phase = Phase.CRUISE; return; }
+                if (p.isFallFlying()) { boostCd = 0; phase = Phase.CRUISE; return; } // first rocket fires in CRUISE
                 takeoffTicks++;
                 if (p.onGround()) { o.keyJump.setDown(true); return; }
                 o.keyJump.setDown(false);
-                // airborne: start gliding and kick a firework
-                mc.getConnection().send(new ServerboundPlayerCommandPacket(p, ServerboundPlayerCommandPacket.Action.START_FALL_FLYING));
-                if (!boostIfPossible(mc)) { Chat.error("No firework rockets for takeoff."); phase = Phase.DONE; }
-                if (takeoffTicks > 60) { Chat.error("Couldn't take off. Try from higher ground."); phase = Phase.DONE; }
+                if (takeoffTicks > 60) { Chat.error("Couldn't take off. Try from higher ground."); phase = Phase.DONE; return; }
+                if (Inv.findHotbar(s -> s.is(Items.FIREWORK_ROCKET)) == -1) { Chat.error("No firework rockets for takeoff."); phase = Phase.DONE; return; }
+                // airborne and falling: ask to start gliding (every 5 ticks, no rockets wasted until we glide)
+                if (p.getDeltaMovement().y < 0 && takeoffTicks % 5 == 0)
+                    mc.getConnection().send(new ServerboundPlayerCommandPacket(p, ServerboundPlayerCommandPacket.Action.START_FALL_FLYING));
             }
             case CRUISE -> {
                 if (!p.isFallFlying()) { // landed or stalled: retry takeoff if far, else finish

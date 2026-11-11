@@ -71,7 +71,8 @@ public final class PathFinder {
             for (Candidate c : neighbors(cur)) {
                 long k = key(c.x, c.y, c.z);
                 Node n = nodes.get(k);
-                double g = cur.g + c.cost + World.hostilePenalty(c.x, c.y, c.z);
+                double g = cur.g + c.cost + World.hostilePenalty(c.x, c.y, c.z)
+                    + World.failPenalty(c.x, c.y, c.z) * (c.move() == Step.Move.PARKOUR ? 3 : 1);
                 if (n == null) {
                     n = new Node(c.x, c.y, c.z);
                     nodes.put(k, n);
@@ -178,7 +179,7 @@ public final class PathFinder {
             }
 
             // --- step up one block ---
-            if (World.standable(nx, y, nz) && !World.inWater(nx, y, nz)) {
+            if (World.stepUp(nx, y, nz)) {
                 List<BlockPos> ub = new ArrayList<>(3);
                 double a = clear(x, y + 2, z, ub);
                 double b = a < 0 ? -1 : clear(nx, y + 1, nz, ub);

@@ -40,7 +40,7 @@ public final class ChestMemory {
     public void tick() {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
-        String k = (mc.getCurrentServer() != null ? mc.getCurrentServer().ip : "singleplayer") + "_" + mc.level.dimension().identifier().getPath();
+        String k = (mc.getCurrentServer() != null ? mc.getCurrentServer().ip : (mc.getSingleplayerServer() != null ? "sp_" + mc.getSingleplayerServer().getWorldData().getLevelName() : "singleplayer")) + "_" + mc.level.dimension().identifier().getPath();
         k = k.replaceAll("[^a-zA-Z0-9._-]", "_");
         if (!k.equals(key)) { key = k; load(); }
 

@@ -77,6 +77,7 @@ public class MineProcess implements Process {
                 setPhase(Phase.GO_HOME);
             }
         }
+        if (phase == Phase.GO_HOME && Waypoints.INSTANCE.get("home") == null) setPhase(resumePos != null ? Phase.RETURN : Phase.SEARCH);
 
         switch (phase) {
             case SEARCH -> {
@@ -85,6 +86,11 @@ public class MineProcess implements Process {
                 else if (wander == null) wander = new ExploreProcess(48);
             }
             case MINE -> {
+                // a remembered ore in a chunk that isn't loaded reads as air: walk there before judging it
+                if (current != null && !com.natan.vortex.nav.World.loaded(current.getX(), current.getZ())) {
+                    if (phaseTicks > 20 * 60 * 3) { blacklist.add(current); found.remove(current); setPhase(Phase.SEARCH); }
+                    return;
+                }
                 if (current == null || !targets.contains(mc.level.getBlockState(current).getBlock())) {
                     if (current != null && mc.level.getBlockState(current).isAir()) { mined++; pickupTicks = 0; setPhase(Phase.PICKUP); }
                     else setPhase(Phase.SEARCH);
@@ -107,7 +113,7 @@ public class MineProcess implements Process {
             case SEARCH -> wander != null ? wander.goal() : null;
             case MINE -> new Goal.Reach(current);
             case PICKUP -> new Goal.Block(current);
-            case GO_HOME -> new Goal.Near(Waypoints.INSTANCE.get("home").pos(), 2.5);
+            case GO_HOME -> Waypoints.INSTANCE.get("home") == null ? null : new Goal.Near(Waypoints.INSTANCE.get("home").pos(), 2.5);
             case RETURN -> new Goal.Near(resumePos, 2);
             case DEPOSIT -> null;
         };
@@ -172,7 +178,8 @@ public class MineProcess implements Process {
     private BlockPos pickNext() {
         Minecraft mc = Minecraft.getInstance();
         BlockPos me = mc.player.blockPosition();
-        found.removeIf(p -> !targets.contains(mc.level.getBlockState(p).getBlock()) || blacklist.contains(p));
+        found.removeIf(p -> blacklist.contains(p)
+            || com.natan.vortex.nav.World.loaded(p.getX(), p.getZ()) && !targets.contains(mc.level.getBlockState(p).getBlock()));
         return found.stream().min(Comparator.comparingDouble(p -> p.distSqr(me) + (p.getY() < me.getY() ? 0 : 4))).orElse(null);
     }
 

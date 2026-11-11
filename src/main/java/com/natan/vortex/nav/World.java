@@ -61,6 +61,23 @@ public final class World {
         return worst;
     }
 
+    /** Steps that failed while walking; the pathfinder makes them more expensive so it tries another way. */
+    private static final java.util.concurrent.ConcurrentHashMap<Long, Integer> failed = new java.util.concurrent.ConcurrentHashMap<>();
+    public static void markFailed(BlockPos p) { failed.merge(p.asLong(), 40, (a, b) -> Math.min(200, a + b)); }
+    public static void clearFailed() { failed.clear(); }
+    public static double failPenalty(int x, int y, int z) {
+        Integer v = failed.get(BlockPos.asLong(x, y, z));
+        return v == null ? 0 : v;
+    }
+
+    /** Can we step up onto this cell with a single jump? (no fences/walls/doors, which are taller than a block) */
+    public static boolean stepUp(int x, int y, int z) {
+        BlockState s = state(x, y, z);
+        if (s.isAir() || isWater(s) || isHandDoor(s) || DANGER_FLOOR.contains(s.getBlock())) return false;
+        var sh = s.getCollisionShape(mc().level, new BlockPos(x, y, z));
+        return !sh.isEmpty() && sh.max(Direction.Axis.Y) <= 1.0;
+    }
+
     /** A door/gate/trapdoor we can open by hand (not iron). */
     public static boolean isHandDoor(BlockState s) {
         Block b = s.getBlock();

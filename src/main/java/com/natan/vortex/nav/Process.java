@@ -19,4 +19,7 @@ public interface Process {
     boolean isDone();
 
     default void onStop() {}
+
+    /** The navigator couldn't find a path several times. Return true if the process skipped that target and wants to keep going. */
+    default boolean onPathFailed() { return false; }
 }

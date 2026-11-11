@@ -60,7 +60,7 @@ public final class WorldMemory {
 
     private static String worldKey() {
         Minecraft mc = Minecraft.getInstance();
-        String w = mc.getCurrentServer() != null ? mc.getCurrentServer().ip : "singleplayer";
+        String w = mc.getCurrentServer() != null ? mc.getCurrentServer().ip : (mc.getSingleplayerServer() != null ? "sp_" + mc.getSingleplayerServer().getWorldData().getLevelName() : "singleplayer");
         String d = mc.level == null ? "none" : mc.level.dimension().identifier().getPath();
         return (w + "_" + d).replaceAll("[^a-zA-Z0-9._-]", "_");
     }

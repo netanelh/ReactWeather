@@ -45,6 +45,7 @@ public final class Navigator {
         process = p;
         failures = 0;
         paused = false;
+        World.clearFailed();
         Chat.info("§a" + p.name() + "§r started. Type §e.stop§r to cancel.");
     }
 
@@ -85,7 +86,15 @@ public final class Navigator {
     public String lastCalc() { return lastCalc; }
 
     /** Goal the current path leads to (for the HUD arrow / distance). */
-    public Goal currentGoal() { return process == null ? null : process.goal(); }
+    public Goal currentGoal() {
+        try { return process == null ? null : process.goal(); } catch (Throwable t) { return null; }
+    }
+
+    private void crashed(Throwable t) {
+        VortexClient.LOG.error("Process {} crashed", process.name(), t);
+        Chat.error(process.name() + " crashed: " + t.getMessage());
+        stop(false);
+    }
 
     public void tick() {
         Minecraft mc = Minecraft.getInstance();
@@ -109,9 +118,7 @@ public final class Navigator {
         try {
             process.tick();
         } catch (Throwable t) {
-            VortexClient.LOG.error("Process {} crashed", process.name(), t);
-            Chat.error(process.name() + " crashed: " + t.getMessage());
-            stop(false);
+            crashed(t);
             return;
         }
         if (process == null) return;
@@ -121,14 +128,20 @@ public final class Navigator {
             return;
         }
 
-        Goal goal = process.goal();
-        if (goal == null) { executor = null; pathGoal = null; return; } // process is acting in place
+        Goal goal;
+        try {
+            goal = process.goal();
+            if (goal == null) { executor = null; pathGoal = null; return; } // process is acting in place
 
-        BlockPos feet = feet();
-        if (goal.isGoal(feet.getX(), feet.getY(), feet.getZ())) {
-            executor = null; pathGoal = null;
-            Actions.releaseKeys();
-            process.atGoal();
+            BlockPos feet = feet();
+            if (goal.isGoal(feet.getX(), feet.getY(), feet.getZ())) {
+                executor = null; pathGoal = null;
+                Actions.releaseKeys();
+                process.atGoal();
+                return;
+            }
+        } catch (Throwable t) {
+            crashed(t);
             return;
         }
 
@@ -147,7 +160,10 @@ public final class Navigator {
         if (status == Executor.Status.DONE) {
             executor = null; // partial path finished -> next tick plans the rest
         } else if (status == Executor.Status.FAILED) {
+            // remember the step that failed so the next plan avoids repeating it
+            World.markFailed(executor.steps().get(Math.min(executor.index(), executor.steps().size() - 1)).pos());
             executor = null;
+            if (mc.gameMode != null && mc.gameMode.isDestroying()) mc.gameMode.stopDestroyBlock();
             Actions.releaseKeys();
             repathCooldown = 5;
         }
@@ -203,6 +219,7 @@ public final class Navigator {
         if (r == null || r.steps().size() < 2) {
             failures++;
             lastCalc = "no path (" + (r == null ? 0 : r.expanded()) + " nodes)";
+            if (failures >= 4 && process.onPathFailed()) { failures = 0; repathCooldown = 5; return; }
             if (failures >= 4) {
                 Chat.error("Can't find a path to " + goal.describe() + ". Try enabling Allow Break / Allow Place.");
                 stop(false);
