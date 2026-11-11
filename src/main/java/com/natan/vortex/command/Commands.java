@@ -169,6 +169,19 @@ public final class Commands {
                 }
                 nav.start(new com.natan.vortex.nav.process.BuildProcess(new com.natan.vortex.builder.CuboidTarget(s1, s2, bs, cmd.equals("fill") ? "fill " + a[1] : "clear")));
             }
+            case "do", "chain" -> {
+                String rest = line.substring(a[0].length()).trim();
+                if (rest.isEmpty()) { Chat.error("Usage: .do goto 100 64 200 ; mine diamond 20 ; home   (tasks run one after another)"); return; }
+                java.util.List<com.natan.vortex.nav.Process> steps = new java.util.ArrayList<>();
+                for (String seg : rest.split(";")) {
+                    String t = seg.trim(); if (t.isEmpty()) continue;
+                    com.natan.vortex.nav.Process pr = chainProcess(t.split("\\s+"));
+                    if (pr == null) { Chat.error("Can't chain: " + t + "  (use goto/mine/fly/build/fill/clear/wait/home)"); return; }
+                    steps.add(pr);
+                }
+                if (steps.isEmpty()) return;
+                nav.start(new com.natan.vortex.nav.process.SequenceProcess(steps, steps.size() + " tasks"));
+            }
             case "fly" -> {
                 if (a.length < 4) { Chat.error("Usage: .fly <x> <y> <z>   (elytra travel; needs an elytra + fireworks)"); return; }
                 nav.start(new com.natan.vortex.nav.process.FlyProcess(
@@ -271,10 +284,51 @@ public final class Commands {
         Chat.info("§lTasks§r: .mine <block...> [limit N] [nohome] | .follow [player] | .explore [step] | .farm [radius] | .tunnel [length] [1x2|2x2|3x3]");
         Chat.info("§lMore§r: .hunt <mob|hostiles|animals> [N] | .collect [item] | .find <block> | .surface | .flee [blocks] | .patrol <wp> <wp>...");
         Chat.info("§lFar & storage§r: .find <block> (remembers every chunk you saw) | .locate <structure> / .locate biome <b> | .where <item> | .fetch <item> | .indexchests [r] | .memory | .seed (crack the server seed)");
+        Chat.info("§lChain§r: .do goto x y z ; mine diamond 20 ; home  (tasks run in order)");
         Chat.info("§lBuild§r: .schem <name> | .build | .sel1 / .sel2 | .fill <block> | .clear");
         Chat.info("§lTeleport§r: .vclip <n> | .hclip <n> | .tp <x> <y> <z> | .fly <x> <y> <z>  (and ClickTP: Left Alt + right click)");
         Chat.info("§lWaypoints§r: .wp add <name> | .wp del <name> | .wp list   (death point is saved automatically)");
         Chat.info("§lClient§r: .toggle <module> | .bind <module> <key|none> | .preset save|load|list <name> | .panic | .modules");
+    }
+
+    /** Builds a single chainable task; returns null if the verb can't be chained. */
+    private static com.natan.vortex.nav.Process chainProcess(String[] a) {
+        Minecraft mc = Minecraft.getInstance();
+        switch (a[0].toLowerCase()) {
+            case "goto", "g" -> {
+                if (a.length == 4) return new GotoProcess(new Goal.Block(coord(a[1], mc.player.getBlockX()), coord(a[2], mc.player.getBlockY()), coord(a[3], mc.player.getBlockZ())), "goto");
+                if (a.length == 3) return new GotoProcess(new Goal.XZ(coord(a[1], mc.player.getBlockX()), coord(a[2], mc.player.getBlockZ())), "goto");
+                if (a.length == 2) { var wp = Waypoints.INSTANCE.get(a[1]); return wp == null ? null : new GotoProcess(new Goal.Near(wp.pos(), 1.5), a[1]); }
+                return null;
+            }
+            case "home" -> { var wp = Waypoints.INSTANCE.get("home"); return wp == null ? null : new GotoProcess(new Goal.Near(wp.pos(), 1.5), "home"); }
+            case "mine" -> {
+                if (a.length < 2) return null;
+                java.util.Set<net.minecraft.world.level.block.Block> blocks = com.natan.vortex.util.BlockSets.parse(a[1]);
+                if (blocks.isEmpty()) return null;
+                int limit = a.length > 2 ? Integer.parseInt(a[2]) : 0;
+                return new MineProcess(blocks, a[1], 24, limit, false);
+            }
+            case "fly" -> { if (a.length < 4) return null; return new com.natan.vortex.nav.process.FlyProcess(new net.minecraft.core.BlockPos(Integer.parseInt(a[1]), Integer.parseInt(a[2]), Integer.parseInt(a[3])), "fly"); }
+            case "wait" -> { return new com.natan.vortex.nav.process.WaitProcess(a.length > 1 ? Double.parseDouble(a[1]) : 1); }
+            case "build" -> {
+                if (com.natan.vortex.builder.BuildState.schematic == null) return null;
+                net.minecraft.core.BlockPos o = a.length >= 4 ? new net.minecraft.core.BlockPos(Integer.parseInt(a[1]), Integer.parseInt(a[2]), Integer.parseInt(a[3])) : mc.player.blockPosition();
+                return new com.natan.vortex.nav.process.BuildProcess(new com.natan.vortex.builder.SchematicTarget(com.natan.vortex.builder.BuildState.schematic, o));
+            }
+            case "fill", "clear" -> {
+                var s1 = com.natan.vortex.builder.BuildState.sel1; var s2 = com.natan.vortex.builder.BuildState.sel2;
+                if (s1 == null || s2 == null) return null;
+                net.minecraft.world.level.block.state.BlockState bs = null;
+                if (a[0].equalsIgnoreCase("fill")) {
+                    if (a.length < 2) return null;
+                    try { bs = net.minecraft.commands.arguments.blocks.BlockStateParser.parseForBlock(mc.level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.BLOCK), new com.mojang.brigadier.StringReader(a[1]), false).blockState(); }
+                    catch (Exception e) { return null; }
+                }
+                return new com.natan.vortex.nav.process.BuildProcess(new com.natan.vortex.builder.CuboidTarget(s1, s2, bs, a[0]));
+            }
+            default -> { return null; }
+        }
     }
 
     private static void gotoCmd(String[] a) {

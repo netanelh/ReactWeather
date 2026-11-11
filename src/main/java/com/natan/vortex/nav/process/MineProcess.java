@@ -46,6 +46,7 @@ public class MineProcess implements Process {
 
     public MineProcess(Set<Block> targets, String label, int radius, int limit, boolean depositHome) {
         this.targets = targets; this.label = label; this.radius = radius; this.limit = limit; this.depositHome = depositHome;
+        for (Block b : targets) com.natan.vortex.memory.WorldMemory.INSTANCE.track(b);
     }
 
     @Override public String name() { return "Mine"; }
@@ -195,6 +196,9 @@ public class MineProcess implements Process {
         hits.sort(Comparator.comparingDouble(p -> p.distSqr(me)));
         found.clear();
         found.addAll(hits.subList(0, Math.min(hits.size(), 64)));
+        if (found.isEmpty()) // none in view: head toward ores remembered from chunks you've explored
+            for (BlockPos p : com.natan.vortex.memory.WorldMemory.INSTANCE.nearest(targets, me, 8))
+                if (!blacklist.contains(p)) found.add(p);
     }
 
     public boolean forceStopped() { return mined >= Integer.MAX_VALUE / 2; }
