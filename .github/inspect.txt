@@ -1,2 +1,2 @@
-net.minecraft.client.renderer.GameRenderer
-net.minecraft.client.renderer.LevelRenderer
+net.minecraft.world.level.block.Block
+net.minecraft.client.renderer.block.ModelBlockRenderer
