@@ -32,6 +32,25 @@ public final class Schematic {
 
     public static Path dir() { return FabricLoader.getInstance().getConfigDir().resolve("vortex-schematics"); }
 
+    static Schematic of(String name, int w, int h, int l, BlockState[] b) { return new Schematic(name, w, h, l, b); }
+
+    /** Build from a sparse map of absolute positions; normalizes to the min corner. */
+    public static Schematic fromSparse(String name, java.util.Map<net.minecraft.core.BlockPos, BlockState> map) {
+        if (map.isEmpty()) return new Schematic(name, 0, 0, 0, new BlockState[0]);
+        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
+        for (var p : map.keySet()) {
+            minX = Math.min(minX, p.getX()); minY = Math.min(minY, p.getY()); minZ = Math.min(minZ, p.getZ());
+            maxX = Math.max(maxX, p.getX()); maxY = Math.max(maxY, p.getY()); maxZ = Math.max(maxZ, p.getZ());
+        }
+        int w = maxX - minX + 1, h = maxY - minY + 1, l = maxZ - minZ + 1;
+        BlockState[] out = new BlockState[w * h * l];
+        for (var e : map.entrySet()) {
+            int x = e.getKey().getX() - minX, y = e.getKey().getY() - minY, z = e.getKey().getZ() - minZ;
+            out[(y * l + z) * w + x] = e.getValue();
+        }
+        return new Schematic(name, w, h, l, out);
+    }
+
     public BlockState at(int x, int y, int z) {
         if (x < 0 || y < 0 || z < 0 || x >= width || y >= height || z >= length) return null;
         return blocks[(y * length + z) * width + x];

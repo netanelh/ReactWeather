@@ -109,7 +109,7 @@ public class BuildProcess implements Process {
             Inv.click(Inv.toMenuSlot(inv), Inv.selected(), ContainerInput.SWAP);
             return;
         }
-        if (Place.at(current, slot, true)) { placed++; current = null; }
+        if (Place.atOriented(current, slot, want, true)) { placed++; current = null; }
     }
 
     @Override

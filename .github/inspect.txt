@@ -1,3 +1,2 @@
+net.minecraft.nbt.ListTag
 net.minecraft.nbt.CompoundTag
-net.minecraft.commands.arguments.blocks.BlockStateParser
-net.minecraft.commands.arguments.blocks.BlockStateParser$BlockResult

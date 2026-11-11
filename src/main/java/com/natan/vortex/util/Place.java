@@ -8,6 +8,9 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.Property;
 
 import java.util.Set;
 import java.util.function.Predicate;
@@ -38,12 +41,15 @@ public final class Place {
      * Places a block from the given hotbar slot at pos, against any solid neighbour.
      * @return true if a placement packet was sent
      */
-    public static boolean at(BlockPos pos, int hotbarSlot, boolean rotate) {
+    public static boolean at(BlockPos pos, int hotbarSlot, boolean rotate) { return at(pos, hotbarSlot, rotate, null); }
+
+    public static boolean at(BlockPos pos, int hotbarSlot, boolean rotate, Direction preferFace) {
         Minecraft mc = Minecraft.getInstance();
         if (hotbarSlot < 0 || !mc.level.getBlockState(pos).canBeReplaced()) return false;
         Vec3 eye = mc.player.getEyePosition();
         Direction bestFace = null; BlockPos bestNeighbor = null; double bestDist = Double.MAX_VALUE;
         for (Direction d : Direction.values()) {
+            if (preferFace != null && d != preferFace && d != preferFace.getOpposite()) continue;
             BlockPos neighbor = pos.relative(d);
             if (mc.level.getBlockState(neighbor).canBeReplaced()) continue;
             Direction face = d.getOpposite();
@@ -58,6 +64,49 @@ public final class Place {
         mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, new BlockHitResult(hit, bestFace, bestNeighbor, false));
         mc.player.swing(InteractionHand.MAIN_HAND);
         return true;
+    }
+
+    /**
+     * Places a block trying to match the desired state's orientation: aims the player's yaw for
+     * horizontal facing, pitch for vertical facing / slab half, and prefers the face that sets the
+     * log/pillar axis. Best-effort — falls back to a plain place when it can't match.
+     */
+    public static boolean atOriented(BlockPos pos, int hotbarSlot, BlockState desired, boolean rotate) {
+        Minecraft mc = Minecraft.getInstance();
+        if (desired == null) return at(pos, hotbarSlot, rotate);
+        Float yaw = null, pitch = null;
+        Direction preferFace = null;
+        // horizontal facing (stairs, furnace, observer, ...): most face away from the player
+        if (desired.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
+            Direction f = desired.getValue(BlockStateProperties.HORIZONTAL_FACING);
+            yaw = f.toYRot() + 180f;
+        }
+        if (desired.hasProperty(BlockStateProperties.FACING)) {
+            Direction f = desired.getValue(BlockStateProperties.FACING);
+            if (f.getAxis() == Direction.Axis.Y) pitch = f == Direction.UP ? 80f : -80f;
+            else yaw = f.toYRot() + 180f;
+        }
+        // slab / stairs half -> click top or bottom part of a face
+        if (desired.hasProperty(BlockStateProperties.SLAB_TYPE)) {
+            String t = desired.getValue(BlockStateProperties.SLAB_TYPE).toString();
+            if (t.equals("top")) pitch = -60f; else if (t.equals("bottom")) pitch = 60f;
+        }
+        if (desired.hasProperty(BlockStateProperties.HALF)) {
+            String h = desired.getValue(BlockStateProperties.HALF).toString();
+            if (h.equals("top")) pitch = -60f; else pitch = 60f;
+        }
+        // log / pillar axis -> click the matching face
+        if (desired.hasProperty(BlockStateProperties.AXIS)) {
+            Direction.Axis ax = desired.getValue(BlockStateProperties.AXIS);
+            preferFace = switch (ax) { case Y -> Direction.UP; case X -> Direction.EAST; case Z -> Direction.NORTH; };
+        }
+        if (yaw != null || pitch != null) {
+            float ny = yaw != null ? yaw : mc.player.getYRot();
+            float np = pitch != null ? pitch : mc.player.getXRot();
+            Rotations.sendSilent(ny, np);
+        }
+        if (at(pos, hotbarSlot, rotate && yaw == null && pitch == null, preferFace)) return true;
+        return preferFace == null ? false : at(pos, hotbarSlot, false, null); // fall back if the preferred face had no support
     }
 
     public static int findSlot(Predicate<ItemStack> p) { return Inv.findHotbar(p); }
