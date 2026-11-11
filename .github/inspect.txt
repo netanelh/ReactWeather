@@ -1,6 +1,1 @@
-net.minecraft.world.inventory.MerchantMenu
-net.minecraft.world.inventory.AbstractFurnaceMenu
-net.minecraft.world.item.trading.MerchantOffer
-net.minecraft.network.protocol.game.ServerboundSelectTradePacket
-net.minecraft.client.multiplayer.MultiPlayerGameMode
-net.minecraft.world.inventory.ClickType
+net.minecraft.world.inventory.ContainerInput
