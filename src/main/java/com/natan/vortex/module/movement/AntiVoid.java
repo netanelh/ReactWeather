@@ -14,8 +14,9 @@ public class AntiVoid extends Module {
     public void onTick() {
         if (!inGame()) return;
         var p = mc.player;
-        int min = mc.level.getMinY();
-        if (p.getY() > min + 2 || p.getDeltaMovement().y >= 0) return;
+        // void damage starts at minY - 64; let the player fall, catch them right before that
+        double trigger = mc.level.getMinY() - 58;
+        if (p.getY() > trigger || p.getDeltaMovement().y >= 0) return;
         p.setDeltaMovement(p.getDeltaMovement().x, mode.is("Bounce") ? 1.2 : 0, p.getDeltaMovement().z);
         p.fallDistance = 0;
     }

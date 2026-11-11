@@ -35,8 +35,11 @@ public class StashFinder extends Module {
             int count = 0; BlockPos any = null;
             for (BlockPos p : chunk.getBlockEntities().keySet()) {
                 var b = mc.level.getBlockState(p).getBlock();
+                String id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(b).getPath();
                 if (b == Blocks.CHEST || b == Blocks.TRAPPED_CHEST || b == Blocks.BARREL || b == Blocks.ENDER_CHEST
-                    || net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(b).getPath().endsWith("shulker_box")) { count++; any = p; }
+                    || b == Blocks.HOPPER || b == Blocks.DISPENSER || b == Blocks.DROPPER
+                    || b == Blocks.FURNACE || b == Blocks.BLAST_FURNACE || b == Blocks.SMOKER || b == Blocks.BREWING_STAND
+                    || id.endsWith("shulker_box")) { count++; any = p; }
             }
             if (count >= minChests.i() && any != null && any.getY() >= minY && any.getY() < maxY) {
                 reported.add(key);

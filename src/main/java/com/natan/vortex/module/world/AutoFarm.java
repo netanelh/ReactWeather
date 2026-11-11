@@ -54,10 +54,12 @@ public class AutoFarm extends Module {
     }
 
     private void use(BlockPos target, int slot) {
+        int prev = Inv.selected();
         Inv.select(slot);
         Vec3 hit = Vec3.atCenterOf(target).add(0, 0.5, 0);
         float[] a = Rotations.anglesTo(hit);
         Rotations.sendSilent(a[0], a[1]);
         mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, new BlockHitResult(hit, Direction.UP, target, false));
+        Inv.select(prev);   // switch back to your hoe/tool instead of staying on seeds
     }
 }

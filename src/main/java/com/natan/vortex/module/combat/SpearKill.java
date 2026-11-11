@@ -17,7 +17,9 @@ import net.minecraft.world.phys.Vec3;
  * this sends a back-and-forward "dash" so the server sees a huge forward speed -> one-shot.
  */
 public class SpearKill extends Module {
-    private final NumberSetting dash = add(new NumberSetting("Dash", "Fake speed: blocks per packet (9 = ~180 blocks/s)", 9, 1, 9.5, 0.5));
+    private final NumberSetting dash = add(new NumberSetting("Dash", "Fake speed: blocks per packet (9.5 = max before rejection)", 9.5, 1, 9.5, 0.5));
+    private final NumberSetting interval = add(new NumberSetting("Interval", "Ticks between lunges (higher = far less lag)", 6, 1, 20, 1));
+    private int timer;
     private final NumberSetting reach = add(new NumberSetting("Reach", "Target distance", 4.5, 2, 6, 0.5));
     private final BoolSetting aim = add(new BoolSetting("Auto Aim", "Turn toward the target while charging", true));
     private final BoolSetting players = add(new BoolSetting("Players", "Target players", true));
@@ -33,6 +35,7 @@ public class SpearKill extends Module {
     @Override
     public void onTick() {
         if (!inGame() || !mc.player.isUsingItem() || !holdingSpear()) return;
+        if (timer-- > 0) return;
         Entity target = null; double best = reach.d() * reach.d();
         for (Entity e : mc.level.entitiesForRendering()) {
             if (!Targets.valid(e, players.on(), hostiles.on(), passives.on())) continue;
@@ -57,5 +60,6 @@ public class SpearKill extends Module {
         var c = mc.getConnection();
         c.send(new ServerboundMovePlayerPacket.Pos(x + back.x, y, z + back.z, ground, false));
         c.send(new ServerboundMovePlayerPacket.Pos(x, y, z, ground, false));
+        timer = interval.i();   // one lunge per interval instead of every tick = much less lag
     }
 }

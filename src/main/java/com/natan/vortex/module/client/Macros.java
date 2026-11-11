@@ -47,7 +47,7 @@ public class Macros extends Module {
         for (var e : binds.entrySet()) {
             boolean down = Keys.isDown(e.getKey());
             if (down && !was.getOrDefault(e.getKey(), false))
-                for (String c : e.getValue().split(";")) { String t = c.trim(); if (!t.isEmpty()) Commands.execute(t.startsWith(".") ? t : "." + t); }
+                for (String c : e.getValue().split(";")) { String t = c.trim(); if (!t.isEmpty()) Commands.execute(t.startsWith(".") ? t.substring(1) : t); }
             was.put(e.getKey(), down);
         }
     }

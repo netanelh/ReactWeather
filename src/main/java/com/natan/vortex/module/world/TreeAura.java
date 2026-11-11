@@ -31,6 +31,8 @@ public class TreeAura extends Module {
         if (current != null && Actions.mine(current)) current = null;
     }
 
+    @Override public void onDisable() { current = null; Actions.stopMining(); }
+
     private boolean isLog(BlockPos p) {
         String id = BuiltInRegistries.BLOCK.getKey(mc.level.getBlockState(p).getBlock()).getPath();
         return (id.endsWith("_log") || id.endsWith("_stem")) && !id.startsWith("stripped_");

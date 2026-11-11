@@ -28,11 +28,14 @@ public class EndermanLook extends Module {
                 if (a < 18 && mc.player.getXRot() < 60) mc.player.setXRot(Math.min(90, mc.player.getXRot() + 25));
             }
         } else {
-            Entity best = null; double bd = 48 * 48;
-            for (Entity e : mc.level.entitiesForRendering()) if (enderman(e) && e.distanceToSqr(mc.player) < bd) { bd = e.distanceToSqr(mc.player); best = e; }
+            Entity best = null; double bd = 63 * 63; // endermen only aggro within 64 blocks
+            for (Entity e : mc.level.entitiesForRendering())
+                if (enderman(e) && e.distanceToSqr(mc.player) < bd && mc.player.hasLineOfSight(e)) { bd = e.distanceToSqr(mc.player); best = e; }
             if (best != null) {
-                float[] a = Rotations.anglesTo(best.getEyePosition());
-                mc.player.setYRot(a[0]); mc.player.setXRot(a[1]);
+                float[] a = Rotations.anglesTo(best.getEyePosition()); // staring at its eyes provokes it
+                mc.player.setYRot(a[0]);
+                mc.player.setXRot(a[1]);
+                mc.player.setYHeadRot(a[0]);
             }
         }
     }

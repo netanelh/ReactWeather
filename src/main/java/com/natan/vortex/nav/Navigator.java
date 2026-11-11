@@ -63,7 +63,7 @@ public final class Navigator {
         Actions.releaseKeys();
         Safety.reset();
         Minecraft mc = Minecraft.getInstance();
-        if (mc.gameMode != null && mc.gameMode.isDestroying()) mc.gameMode.stopDestroyBlock();
+        Actions.stopMining();
     }
 
     public void setPaused(boolean p) {
@@ -163,7 +163,7 @@ public final class Navigator {
             // remember the step that failed so the next plan avoids repeating it
             World.markFailed(executor.steps().get(Math.min(executor.index(), executor.steps().size() - 1)).pos());
             executor = null;
-            if (mc.gameMode != null && mc.gameMode.isDestroying()) mc.gameMode.stopDestroyBlock();
+            Actions.stopMining();
             Actions.releaseKeys();
             repathCooldown = 5;
         }

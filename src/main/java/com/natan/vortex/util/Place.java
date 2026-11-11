@@ -118,4 +118,11 @@ public final class Place {
     }
 
     public static int findSlot(Predicate<ItemStack> p) { return Inv.findHotbar(p); }
+
+    /** A slot to seal with: obsidian/crying first; if anyBlock, fall back to any cheap full block. */
+    public static int buildBlockSlot(boolean anyBlock) {
+        int o = findSlot(s -> s.is(net.minecraft.world.item.Items.OBSIDIAN) || s.is(net.minecraft.world.item.Items.CRYING_OBSIDIAN));
+        if (o != -1 || !anyBlock) return o;
+        return findSlot(Place::isThrowaway);
+    }
 }

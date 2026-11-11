@@ -54,21 +54,34 @@ public final class Actions {
         Inv.select(best);
     }
 
+    private static BlockPos mining;
+
     /** Mines a block a little each tick. Returns true once the block is gone. */
     public static boolean mine(BlockPos pos) {
         var mc = mc();
         BlockState st = mc.level.getBlockState(pos);
-        if (st.isAir() || !st.getFluidState().isEmpty() && st.canBeReplaced()) return true;
+        if (st.isAir() || !st.getFluidState().isEmpty() && st.canBeReplaced()) { mining = null; return true; }
         Vec3 center = Vec3.atCenterOf(pos);
-        if (center.distanceTo(mc.player.getEyePosition()) > 5.2) return false;
+        if (center.distanceTo(mc.player.getEyePosition()) > 5.5) return false;
         selectBestTool(st);
         lookAt(center, 60);
         Direction face = faceToward(pos);
-        if (mc.gameMode.isDestroying()) mc.gameMode.continueDestroyBlock(pos, face);
-        else mc.gameMode.startDestroyBlock(pos, face);
+        if (mc.player.getAbilities().instabuild) {
+            mc.gameMode.destroyBlock(pos);                 // creative: one hit
+        } else if (!pos.equals(mining)) {
+            if (mining != null) mc.gameMode.stopDestroyBlock();
+            mc.gameMode.startDestroyBlock(pos, face);      // survival: start once...
+            mining = pos;
+        } else {
+            mc.gameMode.continueDestroyBlock(pos, face);   // ...then keep hitting the same block
+        }
         mc.player.swing(InteractionHand.MAIN_HAND);
-        return mc.level.getBlockState(pos).isAir();
+        if (mc.level.getBlockState(pos).isAir()) { mining = null; return true; }
+        return false;
     }
+
+    /** Stop any in-progress mining (call when a task ends). */
+    public static void stopMining() { if (mining != null) { mc().gameMode.stopDestroyBlock(); mining = null; } }
 
     public static Direction faceToward(BlockPos pos) {
         Vec3 d = mc().player.getEyePosition().subtract(Vec3.atCenterOf(pos));

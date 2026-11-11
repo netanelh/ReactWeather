@@ -16,6 +16,8 @@ public class Surround extends Module {
 
     private int startY;
 
+    private final com.natan.vortex.setting.BoolSetting anyBlock = add(new com.natan.vortex.setting.BoolSetting("Any Block", "If no obsidian, seal with any full block", true));
+
     public Surround() { super("Surround", "Boxes your feet in obsidian against crystals", Category.COMBAT); }
 
     @Override
@@ -33,7 +35,7 @@ public class Surround extends Module {
     public void onTick() {
         if (!inGame()) return;
         if (disableOnJump.on() && mc.player.getBlockY() > startY) { toggle(); return; }
-        int slot = Place.findSlot(s -> s.is(Items.OBSIDIAN) || s.is(Items.CRYING_OBSIDIAN));
+        int slot = Place.buildBlockSlot(anyBlock.on());
         if (slot == -1) return;
         BlockPos feet = mc.player.blockPosition();
         int placed = 0, prev = com.natan.vortex.util.Inv.selected();

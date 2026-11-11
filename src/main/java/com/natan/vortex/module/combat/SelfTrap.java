@@ -12,12 +12,14 @@ import net.minecraft.world.item.Items;
 public class SelfTrap extends Module {
     private final BoolSetting top = add(new BoolSetting("Top", "Cover the block above your head", true));
 
+    private final com.natan.vortex.setting.BoolSetting anyBlock = add(new com.natan.vortex.setting.BoolSetting("Any Block", "If no obsidian, seal with any full block", true));
+
     public SelfTrap() { super("SelfTrap", "Encases you in obsidian (sides at head height + top)", Category.COMBAT); }
 
     @Override
     public void onTick() {
         if (!inGame()) return;
-        int slot = Place.findSlot(s -> s.is(Items.OBSIDIAN) || s.is(Items.CRYING_OBSIDIAN));
+        int slot = Place.buildBlockSlot(anyBlock.on());
         if (slot == -1) return;
         int prev = Inv.selected();
         BlockPos head = mc.player.blockPosition().above();

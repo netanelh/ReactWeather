@@ -62,5 +62,5 @@ public class VeinMiner extends Module {
         }
     }
 
-    @Override public void onDisable() { queue.clear(); watching = null; }
+    @Override public void onDisable() { queue.clear(); watching = null; Actions.stopMining(); }
 }

@@ -20,6 +20,8 @@ public class AutoTrap extends Module {
 
     private Player target;
 
+    private final com.natan.vortex.setting.BoolSetting anyBlock = add(new com.natan.vortex.setting.BoolSetting("Any Block", "If no obsidian, seal with any full block", true));
+
     public AutoTrap() { super("AutoTrap", "Traps the nearest player in obsidian", Category.COMBAT); }
 
     @Override public String info() { return target != null ? target.getName().getString() : null; }
@@ -34,7 +36,7 @@ public class AutoTrap extends Module {
             if (d < best) { best = d; target = p; }
         }
         if (target == null) return;
-        int slot = Place.findSlot(s -> s.is(Items.OBSIDIAN) || s.is(Items.CRYING_OBSIDIAN));
+        int slot = Place.buildBlockSlot(anyBlock.on());
         if (slot == -1) return;
         BlockPos feet = target.blockPosition();
         List<BlockPos> plan = new ArrayList<>();
