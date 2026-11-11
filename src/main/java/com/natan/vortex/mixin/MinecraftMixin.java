@@ -14,6 +14,6 @@ public abstract class MinecraftMixin {
     @ModifyReturnValue(method = "shouldEntityAppearGlowing", at = @At("RETURN"))
     private boolean vortex$espGlow(boolean original, Entity entity) {
         if (original || VortexClient.modules == null) return original;
-        return VortexClient.modules.get(Esp.class).colorFor(entity) != null;
+        return VortexClient.modules.get(Esp.class).glowColor(entity) != null;
     }
 }

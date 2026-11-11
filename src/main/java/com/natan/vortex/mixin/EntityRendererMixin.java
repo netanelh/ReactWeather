@@ -16,7 +16,7 @@ public abstract class EntityRendererMixin<T extends Entity, S extends EntityRend
     @Inject(method = "extractRenderState", at = @At("TAIL"))
     private void vortex$espColor(T entity, S state, float partialTicks, CallbackInfo ci) {
         if (VortexClient.modules == null) return;
-        Integer color = VortexClient.modules.get(Esp.class).colorFor(entity);
+        Integer color = VortexClient.modules.get(Esp.class).glowColor(entity);
         if (color != null) state.outlineColor = color;
     }
 }

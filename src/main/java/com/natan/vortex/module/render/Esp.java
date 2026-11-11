@@ -20,11 +20,18 @@ public class Esp extends Module {
     private final ModeSetting passiveColor = add(new ModeSetting("Passive Color", "Outline color for animals", "Green", Colors.NAMES).visibleWhen(passives::on));
     private final BoolSetting items = add(new BoolSetting("Items", "Outline dropped items", false));
     private final ModeSetting itemColor = add(new ModeSetting("Item Color", "Outline color for items", "Cyan", Colors.NAMES).visibleWhen(items::on));
+    public final BoolSetting box = add(new BoolSetting("2D Box", "Draw a box around entities (projected on screen)", true));
+    public final BoolSetting tracer = add(new BoolSetting("Tracers", "Line from the bottom of the screen to each entity", false));
+    public final BoolSetting nametag = add(new BoolSetting("Name Tags", "Name, health and distance above the box", true));
+    public final BoolSetting glow = add(new BoolSetting("Glow", "Also outline through walls with the glow effect", true));
     private final BoolSetting healthColor = add(new BoolSetting("Health Color", "Players: green to red by health instead of a fixed color", false).visibleWhen(players::on));
 
     public Esp() { super("ESP", "Outlines entities through walls", Category.RENDER); }
 
     /** Returns ARGB outline color, or null if the entity should not be highlighted. */
+    /** Color for the glow outline (null = no glow), separate so boxes can be shown without glow. */
+    public Integer glowColor(Entity e) { return glow.on() ? colorFor(e) : null; }
+
     public Integer colorFor(Entity e) {
         if (!isEnabled() || e == mc.player) return null;
         if (e instanceof Player p) {
