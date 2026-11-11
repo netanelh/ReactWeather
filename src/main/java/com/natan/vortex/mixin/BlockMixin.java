@@ -17,6 +17,6 @@ public abstract class BlockMixin {
     private static void vortex$xrayFaces(BlockState state, BlockState neighborState, Direction direction, CallbackInfoReturnable<Boolean> cir) {
         if (VortexClient.modules == null) return;
         Xray xray = VortexClient.modules.get(Xray.class);
-        if (xray.isEnabled()) cir.setReturnValue(xray.shows(state.getBlock()));
+        if (xray.isEnabled() && xray.hideTerrain()) cir.setReturnValue(xray.shows(state.getBlock()));
     }
 }

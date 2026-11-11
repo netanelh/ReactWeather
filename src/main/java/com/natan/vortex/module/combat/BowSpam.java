@@ -7,7 +7,7 @@ import net.minecraft.world.item.BowItem;
 import net.minecraft.world.item.CrossbowItem;
 
 public class BowSpam extends Module {
-    private final NumberSetting charge = add(new NumberSetting("Charge", "Ticks to draw before releasing (3 = spam, 20 = full power)", 3, 3, 20, 1));
+    private final NumberSetting charge = add(new NumberSetting("Charge", "Ticks to draw before releasing (10+ for real damage, 20 = full power)", 14, 4, 20, 1));
 
     public BowSpam() { super("BowSpam", "Fires arrows as fast as possible while holding right click", Category.COMBAT); }
 

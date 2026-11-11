@@ -5,6 +5,13 @@ import com.natan.vortex.module.Module;
 import com.natan.vortex.setting.BoolSetting;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
+import com.natan.vortex.setting.NumberSetting;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -19,8 +26,13 @@ public class Xray extends Module {
     private final BoolSetting spawners = add(new BoolSetting("Spawners", "Mob spawners and trial spawners", true));
     private final BoolSetting valuables = add(new BoolSetting("Valuables", "Mineral blocks, beacons, obsidian", false));
 
+    private final NumberSetting range = add(new NumberSetting("Range", "How far to highlight ores (blocks)", 24, 8, 48, 4));
+    private final BoolSetting boxes = add(new BoolSetting("Boxes", "Draw boxes around ores through walls (works with Sodium)", true));
+    private final BoolSetting hideBlocks = add(new BoolSetting("Hide Terrain", "Also make stone invisible (needs a non-Sodium chunk renderer)", false));
+
     private volatile Set<Block> visible = Set.of(); // swapped atomically: read from chunk-building threads
-    private int settingsHash;
+    private volatile List<BlockPos> found = List.of();
+    private int settingsHash, scanTimer;
 
     public Xray() { super("Xray", "See ores and loot through walls", Category.RENDER); }
 
@@ -31,10 +43,53 @@ public class Xray extends Module {
     public void onTick() {
         int h = java.util.Objects.hash(ores.get(), diamonds.get(), emeralds.get(), debris.get(), nether.get(), storage.get(), spawners.get(), valuables.get());
         if (h != settingsHash) { settingsHash = h; rebuild(); reload(); }
+        if (boxes.on() && scanTimer-- <= 0) { scanTimer = 15; scan(); }
     }
 
     /** Called from the block renderer mixins (render threads, so keep it cheap). */
     public boolean shows(Block b) { return visible.contains(b); }
+
+    /** Pipeline hiding only applies when Hide Terrain is on (otherwise boxes do the work, Sodium-safe). */
+    public boolean hideTerrain() { return hideBlocks.on(); }
+
+    public List<BlockPos> found() { return found; }
+
+    /** A color per ore type for the boxes. */
+    public int colorOf(Block b) {
+        String id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(b).getPath();
+        if (id.contains("diamond")) return 0xFF22D3EE;
+        if (id.contains("emerald")) return 0xFF22C55E;
+        if (id.contains("gold") || id.contains("debris")) return 0xFFF59E0B;
+        if (id.contains("iron") || id.contains("copper")) return 0xFFFCA5A5;
+        if (id.contains("redstone")) return 0xFFEF4444;
+        if (id.contains("lapis")) return 0xFF3B82F6;
+        if (id.contains("spawner") || id.contains("vault")) return 0xFFA855F7;
+        if (id.contains("chest") || id.contains("barrel") || id.contains("shulker")) return 0xFFEAB308;
+        return 0xFFFFFFFF;
+    }
+
+    private void scan() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || visible.isEmpty()) { found = List.of(); return; }
+        int r = range.i();
+        BlockPos me = mc.player.blockPosition();
+        List<BlockPos> hits = new ArrayList<>();
+        var level = mc.level;
+        BlockPos.MutableBlockPos m = new BlockPos.MutableBlockPos();
+        int minY = level.getMinY(), maxY = minY + level.getHeight();
+        for (int dx = -r; dx <= r; dx++) for (int dz = -r; dz <= r; dz++) {
+            int wx = me.getX() + dx, wz = me.getZ() + dz;
+            if (!level.getChunkSource().hasChunk(wx >> 4, wz >> 4)) continue;
+            for (int dy = -r; dy <= r; dy++) {
+                int wy = me.getY() + dy;
+                if (wy < minY || wy >= maxY) continue;
+                m.set(wx, wy, wz);
+                if (visible.contains(level.getBlockState(m).getBlock())) { hits.add(m.immutable()); if (hits.size() >= 600) break; }
+            }
+        }
+        hits.sort(Comparator.comparingDouble(p -> p.distSqr(me)));
+        found = hits;
+    }
 
     private void reload() { if (mc.levelExtractor != null) mc.levelExtractor.allChanged(); }
 

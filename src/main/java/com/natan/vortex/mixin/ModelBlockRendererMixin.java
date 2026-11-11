@@ -23,6 +23,6 @@ public abstract class ModelBlockRendererMixin {
                                  BlockAndTintGetter level, BlockState state, BlockPos pos, CallbackInfo ci) {
         if (VortexClient.modules == null) return;
         Xray xray = VortexClient.modules.get(Xray.class);
-        if (xray.isEnabled() && !xray.shows(state.getBlock())) ci.cancel();
+        if (xray.isEnabled() && xray.hideTerrain() && !xray.shows(state.getBlock())) ci.cancel();
     }
 }

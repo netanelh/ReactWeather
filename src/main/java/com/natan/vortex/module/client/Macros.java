@@ -55,17 +55,26 @@ public class Macros extends Module {
     /** .macro <key> <commands> | .macro list | .macro clear <key> */
     public static void command(String[] a) {
         if (!loaded) load();
-        if (a.length < 2) { Chat.info("Macros: " + (binds.isEmpty() ? "none" : "")); binds.forEach((k, v) -> Chat.info(keyName(k) + " -> " + v)); Chat.info("Usage: .macro <key> <commands>  |  .macro clear <key>"); return; }
-        if (a[1].equalsIgnoreCase("list")) { if (binds.isEmpty()) Chat.info("No macros."); else binds.forEach((k, v) -> Chat.info(keyName(k) + " -> " + v)); return; }
-        int key = keyCode(a[1].equalsIgnoreCase("clear") && a.length > 2 ? a[2] : a[1]);
-        if (key == GLFW.GLFW_KEY_UNKNOWN) { Chat.error("Unknown key: " + a[1]); return; }
-        if (a[1].equalsIgnoreCase("clear")) { binds.remove(key); save(); Chat.info("Cleared macro on " + keyName(key)); return; }
+        if (a.length < 2 || a[1].equalsIgnoreCase("help")) {
+            Chat.info("§l§6Macros§r - press a key to run commands.");
+            Chat.info("§eBind:§r  .macro <key> <commands>   (separate commands with ; )");
+            Chat.info("§eExample:§r  .macro g .goto 100 64 200 ; .mine diamond 20 ; .home");
+            Chat.info("§eExample:§r  .macro h .toggle killaura");
+            Chat.info("§eKeys:§r A-Z, 0-9, F1-F12    §eList:§r .macro list    §eRemove:§r .macro clear <key>");
+            if (!binds.isEmpty()) { Chat.info("§7Current:"); binds.forEach((k, v) -> Chat.info("  §f" + keyName(k) + "§7 -> " + v)); }
+            return;
+        }
+        if (a[1].equalsIgnoreCase("list")) { if (binds.isEmpty()) Chat.info("No macros set. Type .macro for help."); else binds.forEach((k, v) -> Chat.info("§f" + keyName(k) + "§7 -> " + v)); return; }
+        boolean clear = a[1].equalsIgnoreCase("clear");
+        int key = keyCode(clear && a.length > 2 ? a[2] : a[1]);
+        if (key == GLFW.GLFW_KEY_UNKNOWN) { Chat.error("That is not a usable key. Use a single letter A-Z, a digit 0-9, or F1-F12."); return; }
+        if (clear) { binds.remove(key); save(); Chat.info("Cleared the macro on " + keyName(key)); return; }
         StringBuilder cmd = new StringBuilder();
         for (int i = 2; i < a.length; i++) cmd.append(a[i]).append(' ');
-        if (cmd.length() == 0) { Chat.error("Give commands: .macro " + a[1] + " .goto 0 64 0 ; .mine diamond"); return; }
+        if (cmd.length() == 0) { Chat.error("Add commands after the key, e.g. .macro " + a[1] + " .goto 0 64 0 ; .mine diamond"); return; }
         binds.put(key, cmd.toString().trim());
         save();
-        Chat.info("Bound " + keyName(key) + " -> " + cmd.toString().trim());
+        Chat.info("§aBound §f" + keyName(key) + "§a: press it to run §f" + cmd.toString().trim());
     }
 
     private static int keyCode(String s) {
