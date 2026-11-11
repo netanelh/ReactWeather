@@ -164,7 +164,7 @@ public final class Commands {
                 net.minecraft.world.level.block.state.BlockState bs = null;
                 if (cmd.equals("fill")) {
                     if (a.length < 2) { Chat.error("Usage: .fill <block>   e.g. .fill stone"); return; }
-                    try { bs = net.minecraft.commands.arguments.blocks.BlockStateParser.parseForBlock(mc.level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.BLOCK), new java.io.StringReader(a[1]), false).blockState(); }
+                    try { bs = net.minecraft.commands.arguments.blocks.BlockStateParser.parseForBlock(mc.level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.BLOCK), new com.mojang.brigadier.StringReader(a[1]), false).blockState(); }
                     catch (Exception e) { Chat.error("Unknown block: " + a[1]); return; }
                 }
                 nav.start(new com.natan.vortex.nav.process.BuildProcess(new com.natan.vortex.builder.CuboidTarget(s1, s2, bs, cmd.equals("fill") ? "fill " + a[1] : "clear")));

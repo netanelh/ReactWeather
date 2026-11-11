@@ -10,6 +10,7 @@ import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.world.level.block.state.BlockState;
 
+import com.mojang.brigadier.StringReader;
 import java.io.DataInputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -44,20 +45,20 @@ public final class Schematic {
             root = NbtIo.read(in, NbtAccounter.create(64L * 1024 * 1024));
         }
         // v3 nests everything under "Schematic"; v2 is flat
-        CompoundTag s = root.contains("Schematic") ? root.getCompound("Schematic") : root;
-        int w = s.getShort("Width") & 0xFFFF, h = s.getShort("Height") & 0xFFFF, l = s.getShort("Length") & 0xFFFF;
-        CompoundTag blockContainer = s.contains("Blocks") ? s.getCompound("Blocks") : s; // v3: Blocks{Palette,Data}; v2: Palette,BlockData
-        CompoundTag paletteTag = blockContainer.getCompound("Palette");
-        byte[] data = blockContainer.contains("Data") ? blockContainer.getByteArray("Data") : blockContainer.getByteArray("BlockData");
+        CompoundTag s = root.contains("Schematic") ? root.getCompoundOrEmpty("Schematic") : root;
+        int w = s.getShortOr("Width", (short) 0) & 0xFFFF, h = s.getShortOr("Height", (short) 0) & 0xFFFF, l = s.getShortOr("Length", (short) 0) & 0xFFFF;
+        CompoundTag blockContainer = s.contains("Blocks") ? s.getCompoundOrEmpty("Blocks") : s; // v3: Blocks{Palette,Data}; v2: Palette,BlockData
+        CompoundTag paletteTag = blockContainer.getCompoundOrEmpty("Palette");
+        byte[] data = blockContainer.getByteArray("Data").orElseGet(() -> blockContainer.getByteArray("BlockData").orElse(new byte[0]));
 
         // palette index -> BlockState
         Map<Integer, BlockState> palette = new HashMap<>();
         HolderLookup<net.minecraft.world.level.block.Block> blockLookup = registries.lookupOrThrow(Registries.BLOCK);
-        for (String key : paletteTag.getAllKeys()) {
-            int id = paletteTag.getInt(key);
+        for (String key : paletteTag.keySet()) {
+            int id = paletteTag.getInt(key).orElse(0);
             BlockState state;
             try {
-                state = BlockStateParser.parseForBlock(blockLookup, new java.io.StringReader(key), false).blockState();
+                state = BlockStateParser.parseForBlock(blockLookup, new StringReader(key), false).blockState();
             } catch (Exception e) { state = null; }
             palette.put(id, state);
         }
