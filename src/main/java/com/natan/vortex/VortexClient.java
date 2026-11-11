@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 public class VortexClient implements ClientModInitializer {
     public static final String MOD_ID = "vortex";
     public static final String NAME = "Zephex";
-    public static final String VERSION = "1.2";
+    public static final String VERSION = "1.2.1";
     public static final Logger LOG = LoggerFactory.getLogger(NAME);
 
     public static Minecraft mc;
@@ -59,6 +59,7 @@ public class VortexClient implements ClientModInitializer {
         com.natan.vortex.memory.WorldMemory.INSTANCE.tick();
         com.natan.vortex.memory.ChestMemory.INSTANCE.tick();
         com.natan.vortex.nav.NavMemory.INSTANCE.tick();
+        modules.get(com.natan.vortex.module.client.PaperSafe.class).clampVelocity();
         com.natan.vortex.seed.SeedCracker.tick();
         modules.get(com.natan.vortex.module.player.AutoReconnect.class).screenTick();
         if (modules.get(com.natan.vortex.module.pathing.NavSettings.class).isEnabled()) com.natan.vortex.nav.Navigator.INSTANCE.tick();

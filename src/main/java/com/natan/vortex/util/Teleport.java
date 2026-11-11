@@ -10,7 +10,10 @@ public final class Teleport {
     public static void to(Vec3 to) {
         Minecraft mc = Minecraft.getInstance();
         Vec3 from = mc.player.position();
-        int hops = Math.max(1, (int) Math.ceil(from.distanceTo(to) / 8.5));
+        double hopSize = 8.5;
+        var ps = com.natan.vortex.VortexClient.modules.get(com.natan.vortex.module.client.PaperSafe.class);
+        if (ps.isEnabled()) hopSize = ps.hop();
+        int hops = Math.max(1, (int) Math.ceil(from.distanceTo(to) / hopSize));
         for (int i = 1; i <= hops; i++) {
             Vec3 p = from.lerp(to, (double) i / hops);
             mc.getConnection().send(new ServerboundMovePlayerPacket.Pos(p.x, p.y, p.z, false, false));
