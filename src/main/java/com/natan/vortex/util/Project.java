@@ -12,7 +12,7 @@ public final class Project {
     /** @return {screenX, screenY} in GUI coords, or null if the point is behind the camera. */
     public static float[] toScreen(Vec3 world, int width, int height) {
         Minecraft mc = Minecraft.getInstance();
-        Camera cam = mc.gameRenderer.getMainCamera();
+        Camera cam = mc.gameRenderer.mainCamera();
         Vec3 c = cam.position();
         double rx = world.x - c.x, ry = world.y - c.y, rz = world.z - c.z;
         Vector3fc f = cam.forwardVector(), u = cam.upVector(), l = cam.leftVector();
