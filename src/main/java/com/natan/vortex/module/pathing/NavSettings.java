@@ -14,6 +14,8 @@ public class NavSettings extends Module {
     public final BoolSetting sprint = add(new BoolSetting("Sprint", "Sprint on long straight stretches", true));
     public final BoolSetting parkour = add(new BoolSetting("Parkour", "Sprint-jump over 1-2 block gaps instead of walking around", true));
     public final BoolSetting longRange = add(new BoolSetting("Long Range", "Plan across chunks you have explored before but are not loaded now (re-checks as they load)", true));
+    public final BoolSetting mlg = add(new BoolSetting("MLG Water", "Place a water bucket to survive long falls, then scoop it back", true));
+    public final BoolSetting mobAvoid = add(new BoolSetting("Avoid Mobs", "Route around hostile mobs when planning", true));
     public final BoolSetting selfDefense = add(new BoolSetting("Self Defense", "Fight back against hostile mobs that get close while pathing", true));
     public final BoolSetting autoEat = add(new BoolSetting("Auto Eat", "Stop and eat from the hotbar when hungry during tasks", true));
     public final NumberSetting lowHealth = add(new NumberSetting("Pause Below HP", "Pause the task below these hearts until you heal (0 = off)", 4, 0, 10, 0.5));

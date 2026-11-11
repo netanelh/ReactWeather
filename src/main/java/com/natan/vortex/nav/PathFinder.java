@@ -71,7 +71,7 @@ public final class PathFinder {
             for (Candidate c : neighbors(cur)) {
                 long k = key(c.x, c.y, c.z);
                 Node n = nodes.get(k);
-                double g = cur.g + c.cost;
+                double g = cur.g + c.cost + World.hostilePenalty(c.x, c.y, c.z);
                 if (n == null) {
                     n = new Node(c.x, c.y, c.z);
                     nodes.put(k, n);
@@ -208,6 +208,13 @@ public final class PathFinder {
         // --- vertical moves ---
         if (inWater && World.passable(x, y + 1, z) && World.passable(x, y + 2, z))
             out.add(new Candidate(x, y + 1, z, 3, Step.Move.SWIM_UP, null, null));
+
+        // climb up/down ladders, vines and scaffolding
+        boolean onClimb = World.isClimbable(x, y, z);
+        if (onClimb && World.passable(x, y + 1, z) && World.passable(x, y + 2, z))
+            out.add(new Candidate(x, y + 1, z, 5, Step.Move.CLIMB, null, null));
+        if (World.isClimbable(x, y - 1, z))
+            out.add(new Candidate(x, y - 1, z, 3, Step.Move.CLIMB, null, null));
 
         if (cfg.allowPlace() && cfg.throwaways() > 0 && !inWater && World.standable(x, y - 1, z)) {
             List<BlockPos> pb = new ArrayList<>(1);

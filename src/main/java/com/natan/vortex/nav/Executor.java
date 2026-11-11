@@ -73,6 +73,26 @@ public final class Executor {
         pillarStartY = Double.NaN;
         o.keyShift.setDown(false);
 
+        // 2b) open any hand door/gate standing between us and the target
+        for (BlockPos d : new BlockPos[]{target, target.above(), step.pos()}) {
+            if (Actions.closedDoor(d)) { o.keyUp.setDown(false); Actions.useOn(d); return Status.RUNNING; }
+        }
+
+        // 2c) climbing a ladder / vine / scaffolding
+        if (step.move() == Step.Move.CLIMB) {
+            Actions.faceYaw(Vec3.atCenterOf(target), 40);
+            o.keyUp.setDown(true);
+            o.keyJump.setDown(target.getY() > p.getY());
+            o.keyShift.setDown(false);
+            double dy = target.getY() - p.getY();
+            if (Math.abs(dy) < 0.3 && Math.hypot(target.getX() + 0.5 - p.getX(), target.getZ() + 0.5 - p.getZ()) < 0.6) {
+                index++; ticksOnStep = 0; stuckTicks = 0; bestDist = Double.MAX_VALUE;
+                return index >= steps.size() ? done() : Status.RUNNING;
+            }
+            if (++stuckTicks > 80) return Status.FAILED;
+            return Status.RUNNING;
+        }
+
         // 3) move toward the step
         Vec3 goal = Vec3.atBottomCenterOf(target);
         double dx = goal.x - p.getX(), dz = goal.z - p.getZ();

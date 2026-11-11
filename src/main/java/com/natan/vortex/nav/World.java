@@ -17,6 +17,8 @@ import net.minecraft.world.level.block.StainedGlassPaneBlock;
 import net.minecraft.world.level.block.TrapDoorBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.block.VineBlock;
+import net.minecraft.world.level.block.properties.BlockStateProperties;
 
 import java.util.Set;
 
@@ -45,6 +47,33 @@ public final class World {
         return mc().level.getChunkSource().hasChunk(x >> 4, z >> 4);
     }
 
+    /** Hostile-mob positions captured on the main thread for the pathfinder to avoid. */
+    private static volatile int[] hostiles = new int[0];
+    public static void setHostiles(int[] packed) { hostiles = packed; }
+    /** Extra path cost near remembered hostile mobs (0 if none close). */
+    public static double hostilePenalty(int x, int y, int z) {
+        int[] h = hostiles;
+        double worst = 0;
+        for (int i = 0; i + 2 < h.length; i += 3) {
+            int dx = h[i] - x, dy = h[i + 1] - y, dz = h[i + 2] - z;
+            int d2 = dx * dx + dy * dy + dz * dz;
+            if (d2 < 64) worst = Math.max(worst, (64 - d2) * 2.0); // within 8 blocks
+        }
+        return worst;
+    }
+
+    /** A door/gate/trapdoor we can open by hand (not iron). */
+    public static boolean isHandDoor(BlockState s) {
+        Block b = s.getBlock();
+        if (b == Blocks.IRON_DOOR || b == Blocks.IRON_TRAPDOOR) return false;
+        return b instanceof DoorBlock || b instanceof FenceGateBlock || b instanceof TrapDoorBlock;
+    }
+
+    public static boolean isClimbable(int x, int y, int z) {
+        Block b = state(x, y, z).getBlock();
+        return b instanceof LadderBlock || b instanceof VineBlock || b instanceof ScaffoldingBlock;
+    }
+
     public static boolean isLava(BlockState s) { return s.getFluidState().is(FluidTags.LAVA); }
     public static boolean isWater(BlockState s) { return s.getFluidState().is(FluidTags.WATER); }
 
@@ -53,6 +82,7 @@ public final class World {
         BlockState s = state(x, y, z);
         if (s.isAir()) return true;
         if (isLava(s) || DANGER_PASS.contains(s.getBlock())) return false;
+        if (isHandDoor(s)) return true; // the executor opens it on the way through
         BlockPos p = new BlockPos(x, y, z);
         return s.getCollisionShape(mc().level, p).isEmpty();
     }

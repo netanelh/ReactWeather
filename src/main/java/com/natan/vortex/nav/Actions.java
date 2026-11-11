@@ -9,6 +9,8 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 /** Low-level player control shared by the executor and the processes (main thread only). */
 public final class Actions {
@@ -87,5 +89,20 @@ public final class Actions {
         int c = 0;
         for (int i = 0; i < 36; i++) if (com.natan.vortex.util.Place.isThrowaway(inv.getItem(i))) c += inv.getItem(i).getCount();
         return c;
+    }
+
+    /** Right-clicks a block face (opens doors, presses buttons) without placing. */
+    public static void useOn(BlockPos pos) {
+        var mc = mc();
+        Vec3 c = Vec3.atCenterOf(pos);
+        lookAt(c, 60);
+        mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, new BlockHitResult(c, faceToward(pos), pos, false));
+        mc.player.swing(InteractionHand.MAIN_HAND);
+    }
+
+    /** True if a hand-openable door/gate/trapdoor here is currently closed. */
+    public static boolean closedDoor(BlockPos pos) {
+        BlockState s = mc().level.getBlockState(pos);
+        return World.isHandDoor(s) && s.hasProperty(BlockStateProperties.OPEN) && !s.getValue(BlockStateProperties.OPEN);
     }
 }

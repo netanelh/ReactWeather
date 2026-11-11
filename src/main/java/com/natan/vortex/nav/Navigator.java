@@ -101,6 +101,7 @@ public final class Navigator {
 
         if (process == null || paused) return;
         NavSettings s = VortexClient.modules.get(NavSettings.class);
+        snapshotHostiles(mc, s);
 
         // ---- survival helpers that pre-empt any task ----
         if (Safety.tick(s)) { executor = null; return; }
@@ -150,6 +151,21 @@ public final class Navigator {
             Actions.releaseKeys();
             repathCooldown = 5;
         }
+    }
+
+    private void snapshotHostiles(Minecraft mc, NavSettings s) {
+        if (!s.mobAvoid.on()) { World.setHostiles(new int[0]); return; }
+        java.util.List<Integer> pts = new java.util.ArrayList<>();
+        int count = 0;
+        for (var e : mc.level.entitiesForRendering()) {
+            if (count >= 40) break;
+            if (!com.natan.vortex.util.Targets.isHostile(e) || !e.isAlive()) continue;
+            if (e.distanceToSqr(mc.player) > 48 * 48) continue;
+            pts.add(e.getBlockX()); pts.add(e.getBlockY()); pts.add(e.getBlockZ()); count++;
+        }
+        int[] arr = new int[pts.size()];
+        for (int i = 0; i < arr.length; i++) arr[i] = pts.get(i);
+        World.setHostiles(arr);
     }
 
     private BlockPos feet() {

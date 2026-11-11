@@ -14,6 +14,9 @@ final class Safety {
     private static boolean eating;
     private static int prevSlot = -1;
     private static boolean lowHpPaused;
+    private static boolean mlgPlaced;
+    private static int mlgSlotPrev = -1;
+    private static net.minecraft.core.BlockPos mlgWater;
 
     private Safety() {}
 
@@ -21,6 +24,9 @@ final class Safety {
     static boolean tick(NavSettings s) {
         Minecraft mc = Minecraft.getInstance();
         var p = mc.player;
+
+        // 0) MLG water bucket to survive a long fall
+        if (s.mlg.on() && mlg(mc, p)) return true;
 
         // 1) low health: stand still and let regen work (eat if we can)
         float hearts = (p.getHealth() + p.getAbsorptionAmount()) / 2f;
@@ -70,6 +76,41 @@ final class Safety {
 
         if (lowHpPaused) { Actions.releaseKeys(); return true; }
         return false;
+    }
+
+    private static boolean mlg(Minecraft mc, net.minecraft.client.player.LocalPlayer p) {
+        // already placed water: pick it back up once we have landed in it
+        if (mlgPlaced) {
+            if (mlgWater != null && p.onGround() && (p.isInWater() || com.natan.vortex.nav.World.inWater(p.getBlockX(), p.getBlockY(), p.getBlockZ()))) {
+                int b = Inv.findHotbar(st -> st.is(net.minecraft.world.item.Items.WATER_BUCKET) || st.is(net.minecraft.world.item.Items.BUCKET));
+                int empty = Inv.findHotbar(st -> st.is(net.minecraft.world.item.Items.BUCKET));
+                if (empty != -1) { Inv.select(empty); Actions.lookAt(net.minecraft.world.phys.Vec3.atCenterOf(mlgWater), 60); mc.gameMode.useItem(p, net.minecraft.world.InteractionHand.MAIN_HAND); }
+                mlgPlaced = false; mlgWater = null;
+                if (mlgSlotPrev != -1) Inv.select(mlgSlotPrev);
+                mlgSlotPrev = -1;
+            }
+            return false;
+        }
+        if (p.onGround() || p.getDeltaMovement().y > -0.6 || p.isInWater() || p.getAbilities().flying) return false;
+        if (p.fallDistance < 5) return false;
+        int slot = Inv.findHotbar(st -> st.is(net.minecraft.world.item.Items.WATER_BUCKET));
+        if (slot == -1) return false;
+        // find the solid block we are about to hit, within the next few blocks down
+        int bx = p.getBlockX(), bz = p.getBlockZ();
+        int fy = p.getBlockY();
+        net.minecraft.core.BlockPos ground = null;
+        for (int k = 1; k <= 4; k++) {
+            if (com.natan.vortex.nav.World.standable(bx, fy - k, bz)) { ground = new net.minecraft.core.BlockPos(bx, fy - k + 1, bz); break; }
+        }
+        if (ground == null) return false;
+        mlgSlotPrev = Inv.selected();
+        Inv.select(slot);
+        Actions.lookAt(new net.minecraft.world.phys.Vec3(bx + 0.5, fy - 1, bz + 0.5), 80);
+        net.minecraft.world.phys.BlockHitResult hit = new net.minecraft.world.phys.BlockHitResult(
+            net.minecraft.world.phys.Vec3.atCenterOf(ground.below()), net.minecraft.core.Direction.UP, ground.below(), false);
+        mc.gameMode.useItemOn(p, net.minecraft.world.InteractionHand.MAIN_HAND, hit);
+        mlgPlaced = true; mlgWater = ground;
+        return true;
     }
 
     /** Called when a task stops or pauses: release right-click and clear state. */
