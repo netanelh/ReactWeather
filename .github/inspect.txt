@@ -1,1 +1,2 @@
-net.minecraft.client.Camera
+net.minecraft.client.renderer.GameRenderer
+net.minecraft.client.renderer.LevelRenderer
