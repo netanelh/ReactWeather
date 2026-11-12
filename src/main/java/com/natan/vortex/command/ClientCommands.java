@@ -1,6 +1,8 @@
 package com.natan.vortex.command;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
@@ -14,8 +16,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
 
 /**
  * Registers every chat command as a real "/" client command too, so Minecraft gives tab-completion
@@ -68,11 +68,12 @@ public final class ClientCommands {
                 String canonical = c.names()[0];
                 SuggestionProvider<FabricClientCommandSource> sugg = provider(c.vocab());
                 for (String name : c.names()) {
-                    dispatcher.register(literal(name)
+                    LiteralArgumentBuilder<FabricClientCommandSource> node = LiteralArgumentBuilder.<FabricClientCommandSource>literal(name)
                         .executes(ctx -> { Commands.execute(canonical); return 1; })
-                        .then(argument("args", StringArgumentType.greedyString())
+                        .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("args", StringArgumentType.greedyString())
                             .suggests(sugg)
-                            .executes(ctx -> { Commands.execute(canonical + " " + StringArgumentType.getString(ctx, "args")); return 1; })));
+                            .executes(ctx -> { Commands.execute(canonical + " " + StringArgumentType.getString(ctx, "args")); return 1; }));
+                    dispatcher.register(node);
                 }
             }
         });
