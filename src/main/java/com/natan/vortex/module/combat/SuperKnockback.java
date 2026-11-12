@@ -10,8 +10,8 @@ import net.minecraft.world.entity.LivingEntity;
 public class SuperKnockback extends Module {
     public SuperKnockback() { super("SuperKnockback", "Every hit gets sprint knockback", Category.COMBAT); }
 
-    public void beforeAttack(Entity target) {
-        if (!isEnabled() || !(target instanceof LivingEntity)) return;
+    public void beforeAttack(Entity target, boolean crit) {
+        if (!isEnabled() || crit || !(target instanceof LivingEntity)) return;
         var c = mc.getConnection();
         if (mc.player.isSprinting()) c.send(new ServerboundPlayerCommandPacket(mc.player, ServerboundPlayerCommandPacket.Action.STOP_SPRINTING));
         com.natan.vortex.module.player.AntiHunger.bypass = true;

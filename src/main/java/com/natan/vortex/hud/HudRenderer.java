@@ -25,11 +25,19 @@ public final class HudRenderer {
         if (mc.player == null || VortexClient.modules == null) return;
         if (VortexClient.modules.get(com.natan.vortex.module.pathing.NavSettings.class).showPath.on()) PathOverlay.render(g);
         Hud hud = VortexClient.modules.get(Hud.class);
-        if (!hud.isEnabled()) return;
         ClickGui gui = VortexClient.modules.clickGui();
         Font font = mc.font;
         int w = g.guiWidth(), h = g.guiHeight();
         int bg = hud.background.on() ? 0x90101014 : 0;
+
+        // ESP / Xray boxes / Tracers / HUD widgets each check their own module, so they work even with "HUD" off
+        float pt = delta.getGameTimeDeltaPartialTick(false);
+        EspRender.render(g, mc, pt);
+        BlockEspRender.render(g, mc);
+        HudMore.render(g, mc, gui);
+        HudExtras.render(g, mc, gui);
+        VortexClient.modules.get(com.natan.vortex.module.render.LogoutSpots.class).renderMarkers(g);
+        if (!hud.isEnabled()) return;
 
         int by = h - 11;
         boolean chatOpen = mc.gui.screen() instanceof net.minecraft.client.gui.screens.ChatScreen;
@@ -51,10 +59,6 @@ public final class HudRenderer {
             drawLine(g, font, "FPS ", Integer.toString(MinecraftAccessor.vortex$getFps()), 2, by, bg, gui.accent(0));
         }
 
-        HudExtras.render(g, mc, gui);
-        HudMore.render(g, mc, gui);
-        EspRender.render(g, mc);
-        BlockEspRender.render(g, mc);
 
         if (hud.armor.on() && !mc.player.isCreative()) {
             EquipmentSlot[] slots = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};

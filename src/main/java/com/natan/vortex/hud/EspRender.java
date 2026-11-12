@@ -14,7 +14,7 @@ import net.minecraft.world.phys.Vec3;
 final class EspRender {
     private EspRender() {}
 
-    static void render(GuiGraphicsExtractor g, Minecraft mc) {
+    static void render(GuiGraphicsExtractor g, Minecraft mc, float pt) {
         Esp esp = VortexClient.modules.get(Esp.class);
         if (!esp.isEnabled() || mc.level == null || mc.player == null) return;
         if (!esp.box.on() && !esp.tracer.on() && !esp.nametag.on()) return;
@@ -23,13 +23,16 @@ final class EspRender {
             Integer col = esp.colorFor(e);
             if (col == null || e == mc.player) continue;
             AABB bb = e.getBoundingBox();
+            // interpolate to the frame position so boxes don't lag behind moving entities
+            Vec3 lerp = e.getPosition(pt);
+            double ox = lerp.x - e.getX(), oy = lerp.y - e.getY(), oz = lerp.z - e.getZ();
             // project the 8 corners, keep the screen bounding box
             float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE, maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
             boolean any = false;
             for (int i = 0; i < 8; i++) {
-                Vec3 corner = new Vec3((i & 1) == 0 ? bb.minX : bb.maxX, (i & 2) == 0 ? bb.minY : bb.maxY, (i & 4) == 0 ? bb.minZ : bb.maxZ);
+                Vec3 corner = new Vec3(((i & 1) == 0 ? bb.minX : bb.maxX) + ox, ((i & 2) == 0 ? bb.minY : bb.maxY) + oy, ((i & 4) == 0 ? bb.minZ : bb.maxZ) + oz);
                 float[] s = Project.toScreen(corner, w, h);
-                if (s == null) continue;
+                if (s == null) { any = false; break; } // partly behind the camera: skip, avoids huge broken boxes
                 any = true;
                 minX = Math.min(minX, s[0]); maxX = Math.max(maxX, s[0]);
                 minY = Math.min(minY, s[1]); maxY = Math.max(maxY, s[1]);

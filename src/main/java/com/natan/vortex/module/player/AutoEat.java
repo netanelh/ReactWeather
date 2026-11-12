@@ -27,7 +27,7 @@ public class AutoEat extends Module {
 
         if (eating) {
             if (!want || !mc.player.getMainHandItem().has(DataComponents.FOOD)) { stop(); return; }
-            mc.options.keyUse.setDown(true);
+            com.natan.vortex.util.Keys.hold(mc.options.keyUse, true);
             return;
         }
         if (!want || mc.gui.screen() != null) return;
@@ -36,7 +36,7 @@ public class AutoEat extends Module {
         prevSlot = Inv.selected();
         Inv.select(slot);
         eating = true;
-        mc.options.keyUse.setDown(true);
+        com.natan.vortex.util.Keys.hold(mc.options.keyUse, true);
     }
 
     private boolean isGoodFood(ItemStack s) {
@@ -48,7 +48,7 @@ public class AutoEat extends Module {
 
     private void stop() {
         eating = false;
-        mc.options.keyUse.setDown(false);
+        com.natan.vortex.util.Keys.hold(mc.options.keyUse, false);
         if (prevSlot != -1) Inv.select(prevSlot);
         prevSlot = -1;
     }

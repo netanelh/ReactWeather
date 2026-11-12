@@ -44,7 +44,7 @@ final class Safety {
         boolean wantEat = s.autoEat.on() && !p.isCreative() && (food <= 13 || lowHpPaused && food < 20);
         if (eating) {
             if (!wantEat || !p.getMainHandItem().has(DataComponents.FOOD)) { stopEating(); }
-            else { mc.options.keyUse.setDown(true); return true; }
+            else { com.natan.vortex.util.Keys.hold(mc.options.keyUse, true); return true; }
         } else if (wantEat) {
             int slot = Inv.findHotbar(st -> st.has(DataComponents.FOOD) && !com.natan.vortex.util.Items2.id(st).equals("rotten_flesh")
                 && !com.natan.vortex.util.Items2.id(st).equals("spider_eye"));
@@ -53,7 +53,7 @@ final class Safety {
                 prevSlot = Inv.selected();
                 Inv.select(slot);
                 eating = true;
-                mc.options.keyUse.setDown(true);
+                com.natan.vortex.util.Keys.hold(mc.options.keyUse, true);
                 return true;
             }
         }
@@ -122,7 +122,7 @@ final class Safety {
         Minecraft mc = Minecraft.getInstance();
         if (eating) {
             eating = false;
-            mc.options.keyUse.setDown(false);
+            com.natan.vortex.util.Keys.hold(mc.options.keyUse, false);
             if (prevSlot != -1 && mc.player != null) Inv.select(prevSlot);
         }
         prevSlot = -1;
@@ -132,7 +132,7 @@ final class Safety {
 
     private static void stopEating() {
         eating = false;
-        Minecraft.getInstance().options.keyUse.setDown(false);
+        Minecraft.getInstance()com.natan.vortex.util.Keys.hold(.options.keyUse, false);
         if (prevSlot != -1) Inv.select(prevSlot);
         prevSlot = -1;
     }

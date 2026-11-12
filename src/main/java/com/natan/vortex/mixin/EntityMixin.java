@@ -26,6 +26,15 @@ public abstract class EntityMixin {
         if (extra > 0) cir.setReturnValue(extra);
     }
 
+    /** ESP Glow: also report glowing here, so culling mods (e.g. Entity Culling) keep outlined entities behind walls. */
+    @com.llamalad7.mixinextras.injector.ModifyReturnValue(method = "isCurrentlyGlowing", at = @At("RETURN"))
+    private boolean vortex$espGlowCulling(boolean original) {
+        if (original || VortexClient.modules == null) return original;
+        Entity self = (Entity) (Object) this;
+        if (!self.level().isClientSide()) return original;
+        return VortexClient.modules.get(com.natan.vortex.module.render.Esp.class).glowColor(self) != null;
+    }
+
     /** NoSlow: soul sand / honey speed factor -> treat as stone. */
     @ModifyExpressionValue(method = "getBlockSpeedFactor", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/state/BlockState;getBlock()Lnet/minecraft/world/level/block/Block;"))
     private Block vortex$speedFactor(Block original) {

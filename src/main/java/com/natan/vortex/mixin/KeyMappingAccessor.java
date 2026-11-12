@@ -9,4 +9,8 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 public interface KeyMappingAccessor {
     @Accessor("key")
     InputConstants.Key vortex$getKey();
+
+    /** Sets the pressed state directly, skipping ToggleKeyMapping's toggle logic. */
+    @Accessor("isDown")
+    void vortex$setDownRaw(boolean down);
 }

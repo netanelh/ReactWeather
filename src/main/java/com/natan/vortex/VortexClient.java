@@ -17,7 +17,9 @@ import org.slf4j.LoggerFactory;
 public class VortexClient implements ClientModInitializer {
     public static final String MOD_ID = "vortex";
     public static final String NAME = "Zephex";
-    public static final String VERSION = "1.5.3";
+    public static final String VERSION = "1.5.4";
+    /** Sodium replaces vanilla chunk meshing, so terrain-hiding hooks never run with it. */
+    public static final boolean SODIUM = net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("sodium");
     public static final Logger LOG = LoggerFactory.getLogger(NAME);
 
     public static Minecraft mc;

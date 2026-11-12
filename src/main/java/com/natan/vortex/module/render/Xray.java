@@ -27,8 +27,8 @@ public class Xray extends Module {
     private final BoolSetting valuables = add(new BoolSetting("Valuables", "Mineral blocks, beacons, obsidian", false));
 
     private final NumberSetting range = add(new NumberSetting("Range", "How far to highlight ores (blocks)", 24, 8, 48, 4));
-    private final BoolSetting boxes = add(new BoolSetting("Boxes", "Draw boxes around ores through walls (works with Sodium)", true));
-    private final BoolSetting hideBlocks = add(new BoolSetting("Hide Terrain", "Also make stone invisible (needs a non-Sodium chunk renderer)", false));
+    private final BoolSetting boxes = add(new BoolSetting("Boxes", "Draw boxes around ores through walls (works with Sodium)", true).visibleWhen(() -> !com.natan.vortex.VortexClient.SODIUM));
+    private final BoolSetting hideBlocks = add(new BoolSetting("Hide Terrain", "Also make stone invisible (needs a non-Sodium chunk renderer)", false).visibleWhen(() -> !com.natan.vortex.VortexClient.SODIUM));
 
     private volatile Set<Block> visible = Set.of(); // swapped atomically: read from chunk-building threads
     private volatile List<BlockPos> found = List.of();
@@ -43,14 +43,17 @@ public class Xray extends Module {
     public void onTick() {
         int h = java.util.Objects.hash(ores.get(), diamonds.get(), emeralds.get(), debris.get(), nether.get(), storage.get(), spawners.get(), valuables.get(), hideBlocks.get());
         if (h != settingsHash) { settingsHash = h; rebuild(); reload(); }
-        if (boxes.on() && scanTimer-- <= 0) { scanTimer = 15; scan(); }
+        if (boxesOn() && scanTimer-- <= 0) { scanTimer = 15; scan(); }
     }
 
     /** Called from the block renderer mixins (render threads, so keep it cheap). */
     public boolean shows(Block b) { return visible.contains(b); }
 
     /** Pipeline hiding only applies when Hide Terrain is on (otherwise boxes do the work, Sodium-safe). */
-    public boolean hideTerrain() { return hideBlocks.on(); }
+    public boolean hideTerrain() { return hideBlocks.on() && !com.natan.vortex.VortexClient.SODIUM; }
+
+    /** With Sodium, boxes are the only way Xray can show anything, so they are always on. */
+    public boolean boxesOn() { return boxes.on() || com.natan.vortex.VortexClient.SODIUM; }
 
     public List<BlockPos> found() { return found; }
 
@@ -102,7 +105,12 @@ public class Xray extends Module {
         if (emeralds.on()) s.addAll(Set.of(Blocks.EMERALD_ORE, Blocks.DEEPSLATE_EMERALD_ORE));
         if (debris.on()) s.add(Blocks.ANCIENT_DEBRIS);
         if (nether.on()) s.addAll(Set.of(Blocks.NETHER_GOLD_ORE, Blocks.NETHER_QUARTZ_ORE, Blocks.GILDED_BLACKSTONE));
-        if (storage.on()) s.addAll(Set.of(Blocks.CHEST, Blocks.TRAPPED_CHEST, Blocks.BARREL, Blocks.ENDER_CHEST, Blocks.SHULKER_BOX));
+        if (storage.on()) {
+            s.addAll(Set.of(Blocks.CHEST, Blocks.TRAPPED_CHEST, Blocks.BARREL, Blocks.ENDER_CHEST, Blocks.SHULKER_BOX));
+            // every colour of shulker box, not just the undyed one
+            for (net.minecraft.world.level.block.Block b : net.minecraft.core.registries.BuiltInRegistries.BLOCK)
+                if (b instanceof net.minecraft.world.level.block.ShulkerBoxBlock) s.add(b);
+        }
         if (spawners.on()) s.addAll(Set.of(Blocks.SPAWNER, Blocks.TRIAL_SPAWNER, Blocks.VAULT));
         if (valuables.on()) s.addAll(Set.of(Blocks.DIAMOND_BLOCK, Blocks.EMERALD_BLOCK, Blocks.GOLD_BLOCK, Blocks.IRON_BLOCK,
             Blocks.NETHERITE_BLOCK, Blocks.BEACON, Blocks.OBSIDIAN, Blocks.CRYING_OBSIDIAN));

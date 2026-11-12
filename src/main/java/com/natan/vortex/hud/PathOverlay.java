@@ -44,6 +44,7 @@ public final class PathOverlay {
         Executor ex = Navigator.INSTANCE.executor();
         if (!valid || ex == null) return;
         List<Step> st = ex.steps();
+        if (st.isEmpty()) return;
         int w = g.guiWidth(), h = g.guiHeight();
         float[] prev = null;
         for (int i = Math.max(0, ex.index() - 1); i < st.size() && i < ex.index() + 64; i++) {

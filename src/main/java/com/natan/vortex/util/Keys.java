@@ -11,6 +11,15 @@ import java.util.Set;
 
 /** Polls the keyboard once per tick and detects fresh presses (edge-triggered). */
 public final class Keys {
+    /**
+     * Hold or release a game key from code. With "Toggle Sneak/Sprint/Use" on, vanilla setDown(true) flips the
+     * state every call (flicker) and setDown(false) never releases, so toggle keys get their state set directly.
+     */
+    public static void hold(net.minecraft.client.KeyMapping k, boolean down) {
+        if (k instanceof net.minecraft.client.ToggleKeyMapping) ((com.natan.vortex.mixin.KeyMappingAccessor) k).vortex$setDownRaw(down);
+        else k.setDown(down);
+    }
+
     public static final int NONE = GLFW.GLFW_KEY_UNKNOWN;
     private static final Set<Integer> downLastTick = new HashSet<>();
     private static final Map<Integer, String> NAMES = new HashMap<>();

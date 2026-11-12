@@ -26,10 +26,10 @@ public class AutoShield extends Module {
         }
         // drop the shield on the tick we're about to swing (full cooldown) so we can counter-attack
         if (threat && mc.player.getAttackStrengthScale(0.5f) >= 1f && mc.options.keyAttack.isDown()) threat = false;
-        if (threat) { mc.options.keyUse.setDown(true); blocking = true; } else release();
+        if (threat) { com.natan.vortex.util.Keys.hold(mc.options.keyUse, true); blocking = true; } else release();
     }
 
-    private void release() { if (blocking) { mc.options.keyUse.setDown(false); blocking = false; } }
+    private void release() { if (blocking) { com.natan.vortex.util.Keys.hold(mc.options.keyUse, false); blocking = false; } }
 
     @Override public void onDisable() { release(); }
 }

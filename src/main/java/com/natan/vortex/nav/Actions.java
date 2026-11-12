@@ -21,7 +21,7 @@ public final class Actions {
     public static void releaseKeys() {
         var o = mc().options;
         o.keyUp.setDown(false); o.keyDown.setDown(false); o.keyLeft.setDown(false); o.keyRight.setDown(false);
-        o.keyJump.setDown(false); o.keyShift.setDown(false); o.keySprint.setDown(false); o.keyAttack.setDown(false);
+        o.keyJump.setDown(false); com.natan.vortex.util.Keys.hold(o.keyShift, false); com.natan.vortex.util.Keys.hold(o.keySprint, false); o.keyAttack.setDown(false);
     }
 
     /** Turns the camera toward a point at most maxStep degrees per tick. Returns true when roughly facing it. */

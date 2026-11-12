@@ -19,6 +19,13 @@ public abstract class LocalPlayerMixin {
         return n.on(n.items) ? false : original;
     }
 
+    /** Sprint Omni: vanilla cancels sprint every tick when there is no forward input. */
+    @ModifyExpressionValue(method = "shouldStopRunSprinting", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/ClientInput;hasForwardImpulse()Z"))
+    private boolean vortex$omniSprint(boolean original) {
+        if (original || VortexClient.modules == null) return original;
+        return VortexClient.modules.get(com.natan.vortex.module.movement.Sprint.class).omniActive();
+    }
+
     @Inject(method = "isMovingSlowly", at = @At("HEAD"), cancellable = true)
     private void vortex$noSlowSneak(CallbackInfoReturnable<Boolean> cir) {
         if (VortexClient.modules == null) return;

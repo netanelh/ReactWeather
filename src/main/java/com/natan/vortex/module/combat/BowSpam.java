@@ -12,18 +12,18 @@ public class BowSpam extends Module {
     public BowSpam() { super("BowSpam", "Fires arrows as fast as possible while holding right click", Category.COMBAT); }
 
     @Override
-    public void onDisable() { if (inGame()) mc.options.keyUse.setDown(false); }
+    public void onDisable() { if (inGame()) com.natan.vortex.util.Keys.hold(mc.options.keyUse, false); }
 
     @Override
     public void onTick() {
         if (!inGame()) return;
         boolean bow = mc.player.getMainHandItem().getItem() instanceof BowItem || mc.player.getMainHandItem().getItem() instanceof CrossbowItem;
-        if (!bow) { mc.options.keyUse.setDown(false); return; }
+        if (!bow) { com.natan.vortex.util.Keys.hold(mc.options.keyUse, false); return; }
         if (mc.player.isUsingItem() && mc.player.getTicksUsingItem() >= charge.i()) {
             mc.gameMode.releaseUsingItem(mc.player);
-            mc.options.keyUse.setDown(false);   // let go, then re-draw next tick
+            com.natan.vortex.util.Keys.hold(mc.options.keyUse, false);   // let go, then re-draw next tick
         } else {
-            mc.options.keyUse.setDown(true);    // auto-draw: no need to hold right-click
+            com.natan.vortex.util.Keys.hold(mc.options.keyUse, true);    // auto-draw: no need to hold right-click
         }
     }
 }

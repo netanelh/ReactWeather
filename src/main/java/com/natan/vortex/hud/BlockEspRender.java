@@ -27,7 +27,7 @@ final class BlockEspRender {
             for (int i = 0; i < 8; i++) {
                 Vec3 c = new Vec3(p.getX() + (i & 1), p.getY() + ((i >> 1) & 1), p.getZ() + ((i >> 2) & 1));
                 float[] s = Project.toScreen(c, w, h);
-                if (s == null) continue;
+                if (s == null) { any = false; break; } // partly behind the camera: skip, avoids huge broken boxes
                 any = true;
                 minX = Math.min(minX, s[0]); maxX = Math.max(maxX, s[0]);
                 minY = Math.min(minY, s[1]); maxY = Math.max(maxY, s[1]);

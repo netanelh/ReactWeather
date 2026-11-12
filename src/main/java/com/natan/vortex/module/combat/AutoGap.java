@@ -23,7 +23,7 @@ public class AutoGap extends Module {
         if (eating) {
             var held = mc.player.getMainHandItem();
             if (!low || !(held.is(Items.GOLDEN_APPLE) || held.is(Items.ENCHANTED_GOLDEN_APPLE))) { stop(); return; }
-            mc.options.keyUse.setDown(true);
+            com.natan.vortex.util.Keys.hold(mc.options.keyUse, true);
             return;
         }
         if (!low || mc.gui.screen() != null) return;
@@ -33,12 +33,12 @@ public class AutoGap extends Module {
         prev = Inv.selected();
         Inv.select(slot);
         eating = true;
-        mc.options.keyUse.setDown(true);
+        com.natan.vortex.util.Keys.hold(mc.options.keyUse, true);
     }
 
     private void stop() {
         eating = false;
-        mc.options.keyUse.setDown(false);
+        com.natan.vortex.util.Keys.hold(mc.options.keyUse, false);
         if (prev != -1) Inv.select(prev);
         prev = -1;
     }

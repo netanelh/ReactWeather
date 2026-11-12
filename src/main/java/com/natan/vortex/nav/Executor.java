@@ -37,7 +37,7 @@ public final class Executor {
         // 1) mine whatever blocks this step needs cleared
         for (BlockPos b : step.toBreak()) {
             if (World.passable(b.getX(), b.getY(), b.getZ())) continue;
-            o.keyUp.setDown(false); o.keySprint.setDown(false); o.keyJump.setDown(false);
+            o.keyUp.setDown(false); com.natan.vortex.util.Keys.hold(o.keySprint, false); o.keyJump.setDown(false);
             Actions.mine(b);
             stuckTicks = 0;
             return Status.RUNNING;
@@ -62,7 +62,7 @@ public final class Executor {
                 return Status.RUNNING;
             }
             // bridging: crouch at the edge so we can't fall, then place against our own floor
-            o.keyShift.setDown(true);
+            com.natan.vortex.util.Keys.hold(o.keyShift, true);
             Actions.faceYaw(Vec3.atBottomCenterOf(target), 40);
             Vec3 c = Vec3.atBottomCenterOf(steps.get(index - 1).pos());
             double fromCenter = Math.hypot(p.getX() - c.x, p.getZ() - c.z);
@@ -71,7 +71,7 @@ public final class Executor {
             return Status.RUNNING;
         }
         pillarStartY = Double.NaN;
-        o.keyShift.setDown(false);
+        com.natan.vortex.util.Keys.hold(o.keyShift, false);
 
         // 2b) open any hand door/gate standing between us and the target
         for (BlockPos d : new BlockPos[]{target, target.above(), step.pos()}) {
@@ -84,7 +84,7 @@ public final class Executor {
             boolean up = target.getY() > p.getY() - 0.2; // going down: let go and slide
             o.keyUp.setDown(up);
             o.keyJump.setDown(up && target.getY() > p.getY());
-            o.keyShift.setDown(false);
+            com.natan.vortex.util.Keys.hold(o.keyShift, false);
             double dy = target.getY() - p.getY();
             if (Math.abs(dy) < 0.3 && Math.hypot(target.getX() + 0.5 - p.getX(), target.getZ() + 0.5 - p.getZ()) < 0.6) {
                 index++; ticksOnStep = 0; stuckTicks = 0; bestDist = Double.MAX_VALUE;
@@ -120,7 +120,7 @@ public final class Executor {
         o.keyUp.setDown(!vertical && horiz > 0.12);
         boolean flat = step.move() == Step.Move.WALK || step.move() == Step.Move.DIAGONAL;
         boolean canSprint = (sprint && flat && !p.isInWater() && remaining() > 2 && horiz > 0.8) || step.move() == Step.Move.PARKOUR;
-        o.keySprint.setDown(canSprint);
+        com.natan.vortex.util.Keys.hold(o.keySprint, canSprint);
         if (canSprint) p.setSprinting(true);
 
         boolean jump = false;

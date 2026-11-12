@@ -12,6 +12,9 @@ public class Sprint extends Module {
 
     @Override public String info() { return mode.get(); }
 
+    /** LocalPlayerMixin: vanilla stops sprinting without forward input; Omni keeps it. */
+    public boolean omniActive() { return isEnabled() && mode.is("Omni") && mc.player != null && Move.isMoving(); }
+
     @Override
     public void onTick() {
         if (!inGame()) return;
