@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 public class VortexClient implements ClientModInitializer {
     public static final String MOD_ID = "vortex";
     public static final String NAME = "Zephex";
-    public static final String VERSION = "1.5.4";
+    public static final String VERSION = "1.5.5";
     /** Sodium replaces vanilla chunk meshing, so terrain-hiding hooks never run with it. */
     public static final boolean SODIUM = net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("sodium");
     public static final Logger LOG = LoggerFactory.getLogger(NAME);
@@ -37,6 +37,7 @@ public class VortexClient implements ClientModInitializer {
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(MOD_ID, "hud"), HudRenderer::render);
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> { config.save(); com.natan.vortex.memory.WorldMemory.INSTANCE.save(); com.natan.vortex.nav.NavMemory.INSTANCE.save(); });
         com.natan.vortex.command.Commands.register();
+        com.natan.vortex.command.ClientCommands.register();
 
         LOG.info("{} (vortex) {} loaded with {} modules", NAME, VERSION, modules.all().size());
     }
