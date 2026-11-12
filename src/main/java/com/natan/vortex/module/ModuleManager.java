@@ -53,7 +53,7 @@ public class ModuleManager {
         add(new AutoEat()); add(new AutoTool()); add(new ChestStealer()); add(new AutoRespawn());
         add(new AntiAfk()); add(new AutoFish()); add(new FastPlace()); add(new FastBreak()); add(new AutoReplenish());
         add(new InventoryCleaner()); add(new AutoMend()); add(new MiddleClickPearl()); add(new AntiHunger());
-        add(new AutoReconnect()); add(new Spammer()); add(new ChestSwap()); add(new AntiDrown()); add(new Mlg()); add(new Notifier());
+        add(new AutoReconnect()); add(new AutoSmelt()); add(new AutoTrade()); add(new Spammer()); add(new ChestSwap()); add(new AntiDrown()); add(new Mlg()); add(new Notifier());
         add(new ItemMagnet()); add(new SpeedMine()); add(new Derp());
         // World
         add(new Nuker()); add(new Scaffold()); add(new AutoFarm());

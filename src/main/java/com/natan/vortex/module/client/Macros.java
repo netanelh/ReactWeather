@@ -47,9 +47,21 @@ public class Macros extends Module {
         for (var e : binds.entrySet()) {
             boolean down = Keys.isDown(e.getKey());
             if (down && !was.getOrDefault(e.getKey(), false))
-                for (String c : e.getValue().split(";")) { String t = c.trim(); if (!t.isEmpty()) Commands.execute(t.startsWith(".") ? t.substring(1) : t); }
+                runLine(e.getValue());
             was.put(e.getKey(), down);
         }
+    }
+
+    private static final java.util.Set<String> CHAINABLE = java.util.Set.of("goto", "g", "home", "mine", "fly", "wait", "build", "fill", "clear");
+
+    /** Several navigator tasks in one macro run one after another (via .do) instead of cancelling each other. */
+    private static void runLine(String line) {
+        java.util.List<String> segs = new java.util.ArrayList<>();
+        for (String c : line.split(";")) { String t = c.trim(); if (t.startsWith(".")) t = t.substring(1).trim(); if (!t.isEmpty()) segs.add(t); }
+        boolean chain = segs.size() > 1;
+        for (String s : segs) if (!CHAINABLE.contains(s.split("\\s+")[0].toLowerCase())) { chain = false; break; }
+        if (chain) Commands.execute("do " + String.join(" ; ", segs));
+        else for (String s : segs) Commands.execute(s);
     }
 
     /** .macro <key> <commands> | .macro list | .macro clear <key> */

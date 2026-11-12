@@ -9,5 +9,5 @@ public class ChatSuffix extends Module {
 
     public ChatSuffix() { super("ChatSuffix", "Adds a tag to the end of your chat messages (.suffix <text>)", Category.CLIENT); showInHud = false; }
 
-    public String apply(String msg) { return isEnabled() && !msg.startsWith("/") ? msg + suffix : msg; }
+    public String apply(String msg) { return isEnabled() && !msg.startsWith("/") && msg.length() + suffix.length() <= 256 ? msg + suffix : msg; }
 }

@@ -81,7 +81,7 @@ public final class Actions {
     }
 
     /** Stop any in-progress mining (call when a task ends). */
-    public static void stopMining() { if (mining != null) { mc().gameMode.stopDestroyBlock(); mining = null; } }
+    public static void stopMining() { if (mining != null) { var gm = mc().gameMode; if (gm != null) gm.stopDestroyBlock(); mining = null; } }
 
     public static Direction faceToward(BlockPos pos) {
         Vec3 d = mc().player.getEyePosition().subtract(Vec3.atCenterOf(pos));

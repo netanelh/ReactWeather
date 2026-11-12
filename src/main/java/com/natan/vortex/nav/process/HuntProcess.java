@@ -20,6 +20,9 @@ public class HuntProcess implements Process {
     private final int limit;
     private LivingEntity target;
     private int kills, searchCooldown;
+    private Goal lastGoal;
+    private net.minecraft.core.BlockPos lastPos;
+    private LivingEntity lastTarget;
 
     public HuntProcess(Predicate<Entity> filter, String label, int limit) { this.filter = filter; this.label = label; this.limit = limit; }
 
@@ -65,7 +68,10 @@ public class HuntProcess implements Process {
 
     @Override
     public Goal goal() {
-        if (target == null) return null;
-        return new Goal.Near(target.blockPosition(), 2.0);
+        if (target == null) { lastGoal = null; lastTarget = null; return null; }
+        var p = target.blockPosition();
+        // only re-plan when the target really moved, so the walk doesn't stutter every tick
+        if (lastGoal == null || target != lastTarget || lastPos.distSqr(p) > 4) { lastTarget = target; lastPos = p; lastGoal = new Goal.Near(p, 2.0); }
+        return lastGoal;
     }
 }

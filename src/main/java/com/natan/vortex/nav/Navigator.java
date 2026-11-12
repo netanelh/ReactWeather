@@ -98,7 +98,7 @@ public final class Navigator {
 
     public void tick() {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.level == null) { if (process != null) stop(false); return; }
+        if (mc.player == null || mc.level == null || mc.gameMode == null) { if (process != null) stop(false); return; }
 
         // automatic death waypoint
         boolean dead = mc.gui.screen() instanceof DeathScreen;
@@ -131,7 +131,7 @@ public final class Navigator {
         Goal goal;
         try {
             goal = process.goal();
-            if (goal == null) { executor = null; pathGoal = null; return; } // process is acting in place
+            if (goal == null) { if (executor != null) Actions.releaseKeys(); executor = null; pathGoal = null; return; } // process is acting in place
 
             BlockPos feet = feet();
             if (goal.isGoal(feet.getX(), feet.getY(), feet.getZ())) {

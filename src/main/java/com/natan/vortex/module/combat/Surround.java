@@ -14,7 +14,7 @@ public class Surround extends Module {
     private final BoolSetting center = add(new BoolSetting("Center", "Snap to the middle of the block first", true));
     private final BoolSetting disableOnJump = add(new BoolSetting("Off On Jump", "Turn off when you jump away", true));
 
-    private int startY;
+    private int startY = Integer.MIN_VALUE;
 
     private final com.natan.vortex.setting.BoolSetting anyBlock = add(new com.natan.vortex.setting.BoolSetting("Any Block", "If no obsidian, seal with any full block", true));
 
@@ -22,6 +22,7 @@ public class Surround extends Module {
 
     @Override
     public void onEnable() {
+        startY = Integer.MIN_VALUE;
         if (!inGame()) return;
         startY = mc.player.getBlockY();
         if (center.on()) {
@@ -34,6 +35,7 @@ public class Surround extends Module {
     @Override
     public void onTick() {
         if (!inGame()) return;
+        if (startY == Integer.MIN_VALUE) startY = mc.player.getBlockY();
         if (disableOnJump.on() && mc.player.getBlockY() > startY) { toggle(); return; }
         int slot = Place.buildBlockSlot(anyBlock.on());
         if (slot == -1) return;

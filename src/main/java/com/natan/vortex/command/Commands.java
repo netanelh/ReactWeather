@@ -49,7 +49,9 @@ public final class Commands {
         });
     }
 
-    public static void execute(String line) { run(line); }
+    public static void execute(String line) {
+        try { run(line); } catch (Exception e) { Chat.error("Command failed: " + e.getMessage()); }
+    }
 
     private static void run(String line) {
         String[] a = line.split("\\s+");

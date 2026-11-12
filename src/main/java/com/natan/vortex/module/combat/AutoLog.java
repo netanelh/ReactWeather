@@ -30,6 +30,9 @@ public class AutoLog extends Module {
         }
         if (reason == null) return;
         if (disableAfter.on()) setEnabledSilently(false);
+        // don't let AutoReconnect put us straight back into danger
+        var reconnect = com.natan.vortex.VortexClient.modules.get(com.natan.vortex.module.player.AutoReconnect.class);
+        if (reconnect != null && reconnect.isEnabled()) reconnect.setEnabledSilently(false);
         mc.getConnection().getConnection().disconnect(Component.literal("[Zephex AutoLog] " + reason));
     }
 }

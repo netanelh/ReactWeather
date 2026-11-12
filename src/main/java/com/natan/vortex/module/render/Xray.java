@@ -41,7 +41,7 @@ public class Xray extends Module {
 
     @Override
     public void onTick() {
-        int h = java.util.Objects.hash(ores.get(), diamonds.get(), emeralds.get(), debris.get(), nether.get(), storage.get(), spawners.get(), valuables.get());
+        int h = java.util.Objects.hash(ores.get(), diamonds.get(), emeralds.get(), debris.get(), nether.get(), storage.get(), spawners.get(), valuables.get(), hideBlocks.get());
         if (h != settingsHash) { settingsHash = h; rebuild(); reload(); }
         if (boxes.on() && scanTimer-- <= 0) { scanTimer = 15; scan(); }
     }
