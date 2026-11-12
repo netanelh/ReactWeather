@@ -132,7 +132,7 @@ final class Safety {
 
     private static void stopEating() {
         eating = false;
-        Minecraft.getInstance()com.natan.vortex.util.Keys.hold(.options.keyUse, false);
+        com.natan.vortex.util.Keys.hold(Minecraft.getInstance().options.keyUse, false);
         if (prevSlot != -1) Inv.select(prevSlot);
         prevSlot = -1;
     }
