@@ -102,7 +102,8 @@ public final class WorldMemory {
         int minY = mc.level.getMinY(), maxY = minY + mc.level.getHeight();
         BlockPos.MutableBlockPos m = new BlockPos.MutableBlockPos();
         // forget what we knew about this chunk (blocks may have been mined)
-        for (Set<Long> s : data.values()) s.removeIf(p -> { BlockPos b = unpack(p); return b.getX() >> 4 == baseX >> 4 && b.getZ() >> 4 == baseZ >> 4; });
+        final int ccx = baseX >> 4, ccz = baseZ >> 4;
+        for (Set<Long> s : data.values()) s.removeIf(p -> ((int) (p >> 38)) >> 4 == ccx && ((int) (p << 26 >> 38)) >> 4 == ccz);
         LevelChunkSection[] sections = chunk.getSections();
         for (int y = minY; y < maxY; y++) {
             int si = chunk.getSectionIndex(y);

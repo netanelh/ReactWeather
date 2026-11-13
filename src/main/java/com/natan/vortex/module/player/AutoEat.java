@@ -54,4 +54,6 @@ public class AutoEat extends Module {
     }
 
     @Override public void onDisable() { if (eating) stop(); }
+
+    @Override public void onWorldChange() { if (eating && mc.options != null) com.natan.vortex.util.Keys.hold(mc.options.keyUse, false); eating = false; prevSlot = -1; }
 }

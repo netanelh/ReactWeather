@@ -212,6 +212,11 @@ public class ClickGuiScreen extends Screen {
         hits.add(new Hit(HitType.BIND, x + 1, ry, w - 1, ROW_H, null, m, null).clip(top, top + viewH));
         ry += ROW_H;
         if (m.category != Category.CLIENT) {
+            g.text(font, "Bind Mode", x + 10, ry + 3, C_DIM, false);
+            String bm = m.holdBind ? "Hold" : "Toggle";
+            g.text(font, bm, x + w - 8 - font.width(bm), ry + 3, a, false);
+            hits.add(new Hit(HitType.BIND_MODE, x + 1, ry, w - 1, ROW_H, null, m, null).clip(top, top + viewH));
+            ry += ROW_H;
             g.text(font, "Toggle Messages", x + 10, ry + 3, C_DIM, false);
             drawSwitch(g, x + w - 26, ry + 3, m.showInHud, a);
             hits.add(new Hit(HitType.HUD_VISIBLE, x + 1, ry, w - 1, ROW_H, null, m, null).clip(top, top + viewH));
@@ -326,10 +331,11 @@ public class ClickGuiScreen extends Screen {
                 case RESET -> { if (doubled && button == 0) h.module.settings.forEach(Setting::reset); }
                 case BIND -> binding = binding == h.module ? null : h.module;
                 case HUD_VISIBLE -> h.module.showInHud = !h.module.showInHud;
+                case BIND_MODE -> { h.module.holdBind = !h.module.holdBind; if (h.module.holdBind && h.module.isEnabled()) h.module.setEnabled(false); }
                 case GROUP -> {
                     boolean allOn = groupAllOn(h.module, h.group);
                     for (Setting<?> st : h.module.settings)
-                        if (st instanceof BoolSetting bb && h.group.equals(st.group)) bb.set(!allOn);
+                        if (st instanceof BoolSetting bb && h.group.equals(st.group) && st.isVisible()) bb.set(!allOn);
                 }
                 case SETTING -> {
                     Setting<?> s = h.setting;
@@ -444,7 +450,7 @@ public class ClickGuiScreen extends Screen {
     }
 
     // ---------------------------------------------------------------- hit testing
-    private enum HitType { TITLE, CATEGORY, MODULE, TOGGLE, CLOSE_SETTINGS, RESET, BIND, HUD_VISIBLE, SETTING, GROUP }
+    private enum HitType { TITLE, CATEGORY, MODULE, TOGGLE, CLOSE_SETTINGS, RESET, BIND, BIND_MODE, HUD_VISIBLE, SETTING, GROUP }
 
     private static final class Hit {
         final HitType type; final int x, y, w, h; final Category category; final Module module; final Setting<?> setting;

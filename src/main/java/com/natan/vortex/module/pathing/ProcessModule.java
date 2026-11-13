@@ -18,7 +18,7 @@ public abstract class ProcessModule extends Module {
         if (!inGame()) { setEnabledSilently(false); return; }
         running = create();
         if (running == null) { setEnabledSilently(false); return; }
-        Navigator.INSTANCE.start(running);
+        if (!Navigator.INSTANCE.start(running)) { running = null; setEnabledSilently(false); }
     }
 
     @Override

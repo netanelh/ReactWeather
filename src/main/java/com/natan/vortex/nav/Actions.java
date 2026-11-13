@@ -20,6 +20,7 @@ public final class Actions {
 
     public static void releaseKeys() {
         var o = mc().options;
+        if (o == null) return;
         o.keyUp.setDown(false); o.keyDown.setDown(false); o.keyLeft.setDown(false); o.keyRight.setDown(false);
         o.keyJump.setDown(false); com.natan.vortex.util.Keys.hold(o.keyShift, false); com.natan.vortex.util.Keys.hold(o.keySprint, false); o.keyAttack.setDown(false);
     }

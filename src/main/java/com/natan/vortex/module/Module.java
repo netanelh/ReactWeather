@@ -16,6 +16,8 @@ public abstract class Module {
     public final List<Setting<?>> settings = new ArrayList<>();
     public int key = Keys.NONE;
     public boolean showInHud = true;
+    /** Hold mode: the module is on only while its key is held. */
+    public boolean holdBind;
     private boolean enabled;
 
     protected Module(String name, String description, Category category) {
@@ -46,6 +48,9 @@ public abstract class Module {
     public void setEnabledSilently(boolean value) { enabled = value; }
 
     protected boolean inGame() { return mc.player != null && mc.level != null && mc.gameMode != null; }
+
+    /** Called when the world/server changes (including disconnect). Reset per-world state here. */
+    public void onWorldChange() {}
 
     public void onEnable() {}
     public void onDisable() {}

@@ -41,6 +41,7 @@ public class ConfigManager {
                 o.addProperty("enabled", m.isEnabled());
                 o.addProperty("key", m.key);
                 o.addProperty("hud", m.showInHud);
+                o.addProperty("hold", m.holdBind);
                 JsonObject s = new JsonObject();
                 for (Setting<?> setting : m.settings) s.add(setting.name, setting.toJson());
                 o.add("settings", s);
@@ -61,18 +62,21 @@ public class ConfigManager {
             JsonObject root = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
             JsonObject mods = root.getAsJsonObject("modules");
             if (mods != null) for (Module m : VortexClient.modules.all()) {
+                try {
                 JsonElement e = mods.get(m.name);
                 if (e == null || !e.isJsonObject()) continue;
                 JsonObject o = e.getAsJsonObject();
                 if (o.has("key")) m.key = o.get("key").getAsInt();
                 if (o.has("hud")) m.showInHud = o.get("hud").getAsBoolean();
-                JsonObject s = o.getAsJsonObject("settings");
+                if (o.has("hold")) m.holdBind = o.get("hold").getAsBoolean();
+                JsonObject s = o.has("settings") && o.get("settings").isJsonObject() ? o.getAsJsonObject("settings") : null;
                 if (s != null) for (Setting<?> setting : m.settings) {
                     JsonElement v = s.get(setting.name);
-                    if (v != null) setting.fromJson(v);
+                    if (v != null) try { setting.fromJson(v); } catch (Exception ex) { VortexClient.LOG.warn("Bad config value {}.{}", m.name, setting.name, ex); }
                 }
                 // Enable last, after settings are loaded. Modules needing a world will just idle until one exists.
-                if (o.has("enabled")) m.setEnabled(o.get("enabled").getAsBoolean());
+                if (o.has("enabled") && !m.holdBind) m.setEnabled(o.get("enabled").getAsBoolean());
+                } catch (Exception ex) { VortexClient.LOG.warn("Bad config entry for {}", m.name, ex); }
             }
             if (root.has("panels")) ClickGuiScreen.loadPanels(root.getAsJsonObject("panels"));
         } catch (Exception e) {

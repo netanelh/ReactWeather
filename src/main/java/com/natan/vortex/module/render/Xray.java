@@ -84,6 +84,7 @@ public class Xray extends Module {
         var level = mc.level;
         BlockPos.MutableBlockPos m = new BlockPos.MutableBlockPos();
         int minY = level.getMinY(), maxY = minY + level.getHeight();
+        outer:
         for (int dx = -r; dx <= r; dx++) for (int dz = -r; dz <= r; dz++) {
             int wx = me.getX() + dx, wz = me.getZ() + dz;
             if (!level.getChunkSource().hasChunk(wx >> 4, wz >> 4)) continue;
@@ -91,10 +92,11 @@ public class Xray extends Module {
                 int wy = me.getY() + dy;
                 if (wy < minY || wy >= maxY) continue;
                 m.set(wx, wy, wz);
-                if (visible.contains(level.getBlockState(m).getBlock())) { hits.add(m.immutable()); if (hits.size() >= 600) break; }
+                if (visible.contains(level.getBlockState(m).getBlock())) { hits.add(m.immutable()); if (hits.size() >= 20000) break outer; }
             }
         }
         hits.sort(Comparator.comparingDouble(p -> p.distSqr(me)));
+        if (hits.size() > 600) hits = new ArrayList<>(hits.subList(0, 600));
         found = hits;
     }
 

@@ -119,6 +119,25 @@ public final class World {
     }
 
     /** Breakable without exposing lava or destroying storage. Returns -1 if not allowed, else a tick-cost estimate. */
+    /** Hotbar snapshot taken by Navigator.calculate, so mining costs reflect the tools we actually have. */
+    public static volatile net.minecraft.world.item.ItemStack[] tools = new net.minecraft.world.item.ItemStack[0];
+    public static volatile boolean creative;
+
+    /** Estimated ticks to mine a block with the best hotbar tool; -1 if it would take too long (executor gives up at 600). */
+    static double mineTicks(BlockState s, float hardness) {
+        if (creative) return 2;
+        if (hardness == 0) return 1;
+        boolean req = s.requiresCorrectToolForDrops();
+        double best = Math.ceil(hardness * (req ? 100 : 30)); // bare hand
+        for (net.minecraft.world.item.ItemStack st : tools) {
+            if (st == null || st.isEmpty()) continue;
+            float sp = st.getDestroySpeed(s);
+            boolean ok = !req || st.isCorrectToolForDrops(s);
+            best = Math.min(best, Math.ceil(hardness * (ok ? 30 : 100) / Math.max(1f, sp)));
+        }
+        return best > 400 ? -1 : best;
+    }
+
     public static double breakCost(int x, int y, int z) {
         BlockState s = state(x, y, z);
         if (s.isAir()) return 0;
@@ -130,6 +149,8 @@ public final class World {
         BlockPos p = new BlockPos(x, y, z);
         float hardness = s.getDestroySpeed(mc().level, p);
         if (hardness < 0) return -1;
+        double t = mineTicks(s, hardness);
+        if (t < 0) return -1;
         // never open a hole into lava or a water column above
         for (Direction d : Direction.values()) {
             if (d == Direction.DOWN) continue;
@@ -139,8 +160,8 @@ public final class World {
         }
         // falling blocks above make tunnels collapse onto the player
         BlockState above = mc().level.getBlockState(p.above());
-        if (above.getBlock() == Blocks.GRAVEL || above.getBlock() == Blocks.SAND || above.getBlock() == Blocks.RED_SAND) return 10 + hardness * 12 + 25;
-        return 10 + hardness * 12;
+        if (above.getBlock() == Blocks.GRAVEL || above.getBlock() == Blocks.SAND || above.getBlock() == Blocks.RED_SAND) return 10 + t + 25;
+        return 10 + t;
     }
 
     public static boolean inWater(int x, int y, int z) { return isWater(state(x, y, z)); }

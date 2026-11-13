@@ -52,7 +52,7 @@ public class ChestIndexProcess implements Process {
         total = 1;
     }
 
-    static boolean isContainer(net.minecraft.world.level.block.Block b) {
+    public static boolean isContainer(net.minecraft.world.level.block.Block b) {
         String id = BuiltInRegistries.BLOCK.getKey(b).getPath();
         return id.equals("chest") || id.equals("trapped_chest") || id.equals("barrel") || id.endsWith("shulker_box");
     }

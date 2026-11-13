@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 public class VortexClient implements ClientModInitializer {
     public static final String MOD_ID = "vortex";
     public static final String NAME = "Zephex";
-    public static final String VERSION = "1.5.8";
+    public static final String VERSION = "1.5.9";
     /** Sodium replaces vanilla chunk meshing, so terrain-hiding hooks never run with it. */
     public static final boolean SODIUM = net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("sodium");
     public static final Logger LOG = LoggerFactory.getLogger(NAME);
@@ -46,7 +46,7 @@ public class VortexClient implements ClientModInitializer {
 
     private void onTick() {
         if (mc.level != lastLevel) { lastLevel = mc.level; com.natan.vortex.module.render.ServerLag.reset();
-            if (modules != null) modules.get(com.natan.vortex.module.movement.Blink.class).clearQueue(); }
+            if (modules != null) modules.onWorldChange(); }
         java.util.List<Integer> keys = new java.util.ArrayList<>();
         for (var m : modules.all()) keys.add(m.key);
         java.util.Set<Integer> fresh = Keys.update(keys);
@@ -54,10 +54,16 @@ public class VortexClient implements ClientModInitializer {
         // Keybinds only fire with no screen open, so typing in chat doesn't toggle modules
         if (mc.gui.screen() == null && mc.player != null && !fresh.isEmpty()) {
             for (var m : modules.all()) {
-                if (!fresh.contains(m.key)) continue;
+                if (!fresh.contains(m.key) || (m.holdBind && m != modules.clickGui())) continue;
                 if (m == modules.clickGui()) mc.gui.setScreen(new ClickGuiScreen());
                 else m.toggle();
             }
+        }
+        // hold-mode binds: on while the key is held (and no screen is open), off when released
+        if (mc.player != null) for (var m : modules.all()) {
+            if (!m.holdBind || m.key == Keys.NONE || m == modules.clickGui()) continue;
+            boolean want = mc.gui.screen() == null && Keys.isDown(m.key);
+            if (want != m.isEnabled()) m.setEnabled(want);
         }
         modules.onTick();
         com.natan.vortex.memory.WorldMemory.INSTANCE.tick();

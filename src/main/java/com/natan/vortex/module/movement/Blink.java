@@ -31,6 +31,9 @@ public class Blink extends Module {
     /** Drops held packets without sending them (world/server changed: they belong to the old connection). */
     public void clearQueue() { queue.clear(); }
 
+    /** New world/server: drop old packets (never flush them to the new connection) and stop blinking. */
+    @Override public void onWorldChange() { queue.clear(); releasing = false; setEnabledSilently(false); }
+
     @Override
     public void onDisable() {
         releasing = false;

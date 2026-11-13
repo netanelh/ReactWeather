@@ -91,6 +91,10 @@ public class ModuleManager {
         for (Module m : modules) if (m instanceof ProcessModule pm) pm.processEnded(p);
     }
 
+    public void onWorldChange() {
+        for (Module m : modules) try { m.onWorldChange(); } catch (Throwable t) { VortexClient.LOG.error("onWorldChange {}", m.name, t); }
+    }
+
     public void onTick() {
         if (VortexClient.mc.player == null || VortexClient.mc.level == null) return;
         for (Module m : modules) {

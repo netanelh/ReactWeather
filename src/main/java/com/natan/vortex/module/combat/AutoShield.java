@@ -29,6 +29,8 @@ public class AutoShield extends Module {
         if (threat) { com.natan.vortex.util.Keys.hold(mc.options.keyUse, true); blocking = true; } else release();
     }
 
+    @Override public void onWorldChange() { if (blocking && mc.options != null) com.natan.vortex.util.Keys.hold(mc.options.keyUse, false); blocking = false; }
+
     private void release() { if (blocking) { com.natan.vortex.util.Keys.hold(mc.options.keyUse, false); blocking = false; } }
 
     @Override public void onDisable() { release(); }

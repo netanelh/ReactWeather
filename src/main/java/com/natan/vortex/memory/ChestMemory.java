@@ -30,6 +30,7 @@ public final class ChestMemory {
     private String key = "";
     public static BlockPos lastInteracted; // set by MultiPlayerGameModeMixin.useItemOn
     private int sinceOpen;
+    private boolean containerOpen;
 
     private ChestMemory() {}
 
@@ -44,8 +45,12 @@ public final class ChestMemory {
         k = k.replaceAll("[^a-zA-Z0-9._-]", "_");
         if (!k.equals(key)) { key = k; load(); }
 
-        if (mc.gui.screen() instanceof AbstractContainerScreen<?> scr && !(scr instanceof InventoryScreen) && !(scr instanceof CreativeModeInventoryScreen)
-            && lastInteracted != null) {
+        boolean open = mc.gui.screen() instanceof AbstractContainerScreen<?> s0 && !(s0 instanceof InventoryScreen) && !(s0 instanceof CreativeModeInventoryScreen);
+        if (open) containerOpen = true;
+        // only real storage blocks: villagers, horses, chest boats, furnaces etc. must not overwrite the last chest
+        if (open && lastInteracted != null && mc.gui.screen() instanceof AbstractContainerScreen<?> scr
+            && (scr.getMenu() instanceof net.minecraft.world.inventory.ChestMenu || scr.getMenu() instanceof net.minecraft.world.inventory.ShulkerBoxMenu)
+            && com.natan.vortex.nav.process.ChestIndexProcess.isContainer(mc.level.getBlockState(lastInteracted).getBlock())) {
             // wait a few ticks so the server has sent the contents
             if (++sinceOpen % 10 != 5) return;
             var menu = scr.getMenu();
@@ -58,7 +63,8 @@ public final class ChestMemory {
             }
             chests.put(WorldMemory.pack(lastInteracted.getX(), lastInteracted.getY(), lastInteracted.getZ()), items);
             if (sinceOpen == 5) save();
-        } else {
+        } else if (!open) {
+            if (containerOpen) { containerOpen = false; lastInteracted = null; }
             if (sinceOpen > 0) save();
             sinceOpen = 0;
         }

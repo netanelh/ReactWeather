@@ -40,13 +40,15 @@ public final class Navigator {
     public Process process() { return process; }
     public Executor executor() { return executor; }
 
-    public void start(Process p) {
+    public boolean start(Process p) {
+        if (!VortexClient.modules.isActive(NavSettings.class)) { Chat.error("Navigator module is off - enable it in the Pathing category."); return false; }
         stop(false);
         process = p;
         failures = 0;
         paused = false;
         World.clearFailed();
         Chat.info("§a" + p.name() + "§r started. Type §e.stop§r to cancel.");
+        return true;
     }
 
     public void stop(boolean announce) {
@@ -200,22 +202,39 @@ public final class Navigator {
         PathFinder.Config cfg = new PathFinder.Config(s.allowBreak.on(), s.allowPlace.on(), s.maxFall.i(), s.sprint.on(),
             s.avoidWater.on(), s.maxNodes.i() * 1000, s.timeout.i() * 1000L, Actions.countThrowaways(), s.parkour.on(), s.longRange.on());
         Process forProcess = process;
+        final Object lvl = Minecraft.getInstance().level;
+        // tool snapshot for tool-aware mining costs (read by World.breakCost on the worker thread)
+        var pl = Minecraft.getInstance().player;
+        if (pl != null) {
+            var inv = pl.getInventory();
+            net.minecraft.world.item.ItemStack[] arr = new net.minecraft.world.item.ItemStack[9];
+            for (int i = 0; i < 9; i++) arr[i] = inv.getItem(i).copy();
+            World.tools = arr;
+            World.creative = pl.isCreative();
+        }
         worker.submit(() -> {
             PathFinder.Result r;
+            boolean crashed = false;
             try {
                 r = new PathFinder(cfg).find(start, goal, myCancel);
             } catch (Throwable t) {
                 VortexClient.LOG.error("Pathfinder crashed", t);
                 r = null;
+                crashed = true;
             }
             PathFinder.Result result = r;
-            Minecraft.getInstance().execute(() -> onResult(result, goal, forProcess, myCancel, s));
+            final boolean crashedF = crashed;
+            Minecraft.getInstance().execute(() -> onResult(result, goal, forProcess, myCancel, s, lvl, crashedF));
         });
     }
 
-    private void onResult(PathFinder.Result r, Goal goal, Process forProcess, AtomicBoolean myCancel, NavSettings s) {
+    private void onResult(PathFinder.Result r, Goal goal, Process forProcess, AtomicBoolean myCancel, NavSettings s, Object lvl, boolean crashed) {
         if (myCancel.get() || process != forProcess) return;
         calculating = false;
+        // world changed while searching (dimension change/respawn): this path is for the old world
+        if (Minecraft.getInstance().level != lvl) { repathCooldown = 5; return; }
+        // the search tripped over a chunk being modified on the main thread: retry, don't count as "no path"
+        if (crashed) { lastCalc = "search error, retrying"; repathCooldown = 20; return; }
         if (r == null || r.steps().size() < 2) {
             failures++;
             lastCalc = "no path (" + (r == null ? 0 : r.expanded()) + " nodes)";

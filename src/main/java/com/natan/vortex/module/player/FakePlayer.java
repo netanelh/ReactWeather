@@ -26,6 +26,8 @@ public class FakePlayer extends Module {
         mc.level.addEntity(dummy);
     }
 
+    @Override public void onWorldChange() { dummy = null; setEnabledSilently(false); }
+
     @Override
     public void onDisable() {
         if (dummy != null && mc.level != null) mc.level.removeEntity(dummy.getId(), Entity.RemovalReason.DISCARDED);
