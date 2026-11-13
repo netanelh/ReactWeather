@@ -220,13 +220,28 @@ public class ClickGuiScreen extends Screen {
         g.fill(x + 8, ry + 2, x + w - 8, ry + 3, 0x20FFFFFF);
         ry += 6;
 
+        String lastGroup = null;
         for (Setting<?> s : m.settings) {
             if (!s.isVisible()) continue;
+            // group header with a master switch that toggles every setting in the group at once
+            if (s.group != null && !s.group.equals(lastGroup)) {
+                boolean allOn = groupAllOn(m, s.group);
+                boolean ghov = mx >= x && mx < x + w && my >= ry && my < ry + ROW_H && my >= top && my < top + viewH;
+                if (ghov) { g.fill(x + 1, ry, x + w, ry + ROW_H, 0x18FFFFFF); hover = s.group + ": turn every option below on or off"; }
+                g.text(font, "§l" + s.group, x + 8, ry + 3, C_TEXT, false);
+                drawSwitch(g, x + w - 26, ry + 3, allOn, a);
+                hits.add(new Hit(HitType.GROUP, x + 1, ry, w - 1, ROW_H, null, m, null).withGroup(s.group).clip(top, top + viewH));
+                ry += ROW_H;
+                lastGroup = s.group;
+            } else if (s.group == null) {
+                lastGroup = null;
+            }
+            int indent = s.group != null ? 8 : 0;
             int rh = s instanceof NumberSetting ? SLIDER_H : ROW_H;
             boolean hov = mx >= x && mx < x + w && my >= ry && my < ry + rh && my >= top && my < top + viewH;
             if (hov) { g.fill(x + 1, ry, x + w, ry + rh, 0x12FFFFFF); hover = s.name + ": " + s.description; }
             if (s instanceof BoolSetting b) {
-                g.text(font, trim(s.name, w - 44), x + 10, ry + 3, C_DIM, false);
+                g.text(font, trim(s.name, w - 44 - indent), x + 10 + indent, ry + 3, C_DIM, false);
                 drawSwitch(g, x + w - 26, ry + 3, b.on(), a);
             } else if (s instanceof ModeSetting mo) {
                 g.text(font, trim(s.name, w / 2), x + 10, ry + 3, C_DIM, false);
@@ -311,6 +326,11 @@ public class ClickGuiScreen extends Screen {
                 case RESET -> { if (doubled && button == 0) h.module.settings.forEach(Setting::reset); }
                 case BIND -> binding = binding == h.module ? null : h.module;
                 case HUD_VISIBLE -> h.module.showInHud = !h.module.showInHud;
+                case GROUP -> {
+                    boolean allOn = groupAllOn(h.module, h.group);
+                    for (Setting<?> st : h.module.settings)
+                        if (st instanceof BoolSetting bb && h.group.equals(st.group)) bb.set(!allOn);
+                }
                 case SETTING -> {
                     Setting<?> s = h.setting;
                     if (s instanceof BoolSetting b) b.toggle();
@@ -325,6 +345,13 @@ public class ClickGuiScreen extends Screen {
         }
         binding = null;
         return super.mouseClicked(click, doubled);
+    }
+
+    private static boolean groupAllOn(Module m, String group) {
+        boolean any = false;
+        for (Setting<?> st : m.settings)
+            if (st instanceof BoolSetting b && group.equals(st.group) && st.isVisible()) { any = true; if (!b.on()) return false; }
+        return any;
     }
 
     private void select(Module m) { selectedModule = m; settingsScroll = 0; }
@@ -417,17 +444,19 @@ public class ClickGuiScreen extends Screen {
     }
 
     // ---------------------------------------------------------------- hit testing
-    private enum HitType { TITLE, CATEGORY, MODULE, TOGGLE, CLOSE_SETTINGS, RESET, BIND, HUD_VISIBLE, SETTING }
+    private enum HitType { TITLE, CATEGORY, MODULE, TOGGLE, CLOSE_SETTINGS, RESET, BIND, HUD_VISIBLE, SETTING, GROUP }
 
     private static final class Hit {
         final HitType type; final int x, y, w, h; final Category category; final Module module; final Setting<?> setting;
         int clipTop = Integer.MIN_VALUE, clipBottom = Integer.MAX_VALUE;
+        String group;
 
         Hit(HitType type, int x, int y, int w, int h, Category c, Module m, Setting<?> s) {
             this.type = type; this.x = x; this.y = y; this.w = w; this.h = h; this.category = c; this.module = m; this.setting = s;
         }
 
         Hit clip(int top, int bottom) { clipTop = top; clipBottom = bottom; return this; }
+        Hit withGroup(String g) { this.group = g; return this; }
 
         boolean contains(double mx, double my) {
             return mx >= x && mx < x + w && my >= y && my < y + h && my >= clipTop && my < clipBottom;

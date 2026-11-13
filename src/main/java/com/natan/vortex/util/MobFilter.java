@@ -48,10 +48,14 @@ public final class MobFilter {
         g.put("Chickens", new Object[]{false, Set.of("chicken")});
         g.forEach((name, v) -> {
             @SuppressWarnings("unchecked") Set<String> ids = (Set<String>) v[1];
-            groups.add(new Group(add(adder, name, "Attack " + name.toLowerCase(), (Boolean) v[0]), ids));
+            BoolSetting bs = add(adder, name, "Attack " + name.toLowerCase(), (Boolean) v[0]);
+            bs.group = "Mobs"; // master "Mobs" toggle controls all of these at once
+            groups.add(new Group(bs, ids));
         });
         otherHostiles = add(adder, "Other Hostiles", "Hostile mobs not listed above", true);
+        otherHostiles.group = "Mobs";
         otherAnimals = add(adder, "Other Animals", "Passive mobs not listed above", false);
+        otherAnimals.group = "Mobs";
     }
 
     private static BoolSetting add(Consumer<BoolSetting> adder, String n, String d, boolean def) {
