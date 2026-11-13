@@ -22,6 +22,19 @@ public final class Place {
 
     private Place() {}
 
+    /** Blocks that react to right-click (would open/toggle instead of getting a block placed on them). */
+    public static boolean isInteractable(BlockPos pos) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level.getBlockEntity(pos) != null) return true; // chests, furnaces, hoppers, signs, beds...
+        var b = mc.level.getBlockState(pos).getBlock();
+        if (b instanceof net.minecraft.world.level.block.DoorBlock || b instanceof net.minecraft.world.level.block.FenceGateBlock
+            || b instanceof net.minecraft.world.level.block.TrapDoorBlock || b instanceof net.minecraft.world.level.block.ButtonBlock
+            || b instanceof net.minecraft.world.level.block.LeverBlock || b instanceof net.minecraft.world.level.block.BedBlock) return true;
+        String id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(b).getPath();
+        return id.contains("crafting_table") || id.contains("anvil") || id.equals("note_block") || id.equals("bell")
+            || id.contains("table") || id.equals("stonecutter") || id.equals("grindstone") || id.equals("loom") || id.equals("repeater") || id.equals("comparator");
+    }
+
     /** Cheap full blocks that are fine to use as building material. */
     public static boolean isThrowaway(ItemStack s) {
         if (!(s.getItem() instanceof BlockItem bi)) return false;
@@ -54,7 +67,7 @@ public final class Place {
         for (Direction d : Direction.values()) {
             if (preferFace != null && d != preferFace && d != preferFace.getOpposite()) continue;
             BlockPos neighbor = pos.relative(d);
-            if (mc.level.getBlockState(neighbor).canBeReplaced()) continue;
+            if (mc.level.getBlockState(neighbor).canBeReplaced() || isInteractable(neighbor)) continue;
             Direction face = d.getOpposite();
             Vec3 hit = Vec3.atCenterOf(neighbor).add(face.getStepX() * 0.5, face.getStepY() * 0.5, face.getStepZ() * 0.5);
             double dist = hit.distanceTo(eye);

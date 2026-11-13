@@ -35,7 +35,7 @@ public class ModuleManager {
         add(new com.natan.vortex.module.player.FakePlayer()); add(new com.natan.vortex.module.player.XCarry()); add(new com.natan.vortex.module.player.AutoMount()); add(new com.natan.vortex.module.player.AutoNametag());
         add(new com.natan.vortex.module.world.EndermanLook());
         add(new com.natan.vortex.module.client.PaperSafe()); add(new com.natan.vortex.module.client.Macros());
-        add(new com.natan.vortex.module.client.Performance()); add(new com.natan.vortex.module.client.AntiCrash());
+        add(new com.natan.vortex.module.client.Performance()); add(new com.natan.vortex.module.client.AntiCrash()); add(new com.natan.vortex.module.client.RotationSettings());
         add(new AutoLog()); add(new ShieldBreaker()); add(new AutoShield()); add(new BowSpam()); add(new SelfTrap());
         // Movement
         add(new Flight()); add(new Speed()); add(new Sprint()); add(new NoFall()); add(new Step());
@@ -48,7 +48,7 @@ public class ModuleManager {
         add(new Fullbright()); add(new Xray()); add(new Esp()); add(new NoWeather()); add(new Radar()); add(new TargetHud());
         add(new DangerAlert()); add(new NoOverlay()); add(new Zoom()); add(new PotionHud()); add(new InventoryHud());
         add(new Keystrokes()); add(new PingHud()); add(new ClockHud()); add(new BlockInfo()); add(new NearbyPlayers());
-        add(new Compass()); add(new ServerInfo()); add(new TotemCounter()); add(new LogoutSpots()); add(new WaypointMarkers()); add(new BlockRadar());
+        add(new Compass()); add(new ServerInfo()); add(new TotemCounter()); add(new LogoutSpots()); add(new WaypointMarkers()); add(new BlockRadar()); add(new StorageEsp());
         // Player
         add(new AutoEat()); add(new AutoTool()); add(new ChestStealer()); add(new AutoRespawn());
         add(new AntiAfk()); add(new AutoFish()); add(new FastPlace()); add(new FastBreak()); add(new AutoReplenish());

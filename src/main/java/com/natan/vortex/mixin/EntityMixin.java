@@ -36,6 +36,15 @@ public abstract class EntityMixin {
         return VortexClient.modules.get(com.natan.vortex.module.render.Esp.class).glowColor(self) != null;
     }
 
+    /** ESP Show Invisible: highlighted invisible entities render (translucent, like spectator view). Client-side only. */
+    @Inject(method = "isInvisibleTo", at = @At("HEAD"), cancellable = true)
+    private void vortex$showInvisible(net.minecraft.world.entity.player.Player viewer, CallbackInfoReturnable<Boolean> cir) {
+        if (VortexClient.modules == null) return;
+        Entity self = (Entity) (Object) this;
+        if (!self.level().isClientSide()) return;
+        if (VortexClient.modules.get(com.natan.vortex.module.render.Esp.class).showsInvisible(self)) cir.setReturnValue(false);
+    }
+
     /** NoSlow: soul sand / honey speed factor -> treat as stone. */
     @ModifyExpressionValue(method = "getBlockSpeedFactor", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/state/BlockState;getBlock()Lnet/minecraft/world/level/block/Block;"))
     private Block vortex$speedFactor(Block original) {

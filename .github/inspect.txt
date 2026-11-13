@@ -29,3 +29,10 @@ net.minecraft.client.Options
 net.minecraft.client.renderer.chunk.VisGraph
 net.minecraft.world.level.dimension.DimensionType
 net.minecraft.world.level.BlockAndTintGetter
+net.minecraft.world.level.block.NoteBlock
+net.minecraft.world.level.block.state.properties.NoteBlockInstrument
+net.minecraft.world.level.block.state.properties.BlockStateProperties
+net.minecraft.world.item.CrossbowItem
+net.minecraft.network.protocol.game.ClientboundAddEntityPacket
+net.minecraft.network.protocol.game.ServerboundPlayerActionPacket
+net.minecraft.world.level.block.RespawnAnchorBlock

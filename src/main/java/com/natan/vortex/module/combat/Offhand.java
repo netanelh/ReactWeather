@@ -33,6 +33,9 @@ public class Offhand extends Module {
             default -> Items.GOLDEN_APPLE;
         };
         if (mc.player.getOffhandItem().is(want)) return;
+        // AutoTotem has priority: don't swap its totem out (or race it to the slot) while it wants one
+        if (want != Items.TOTEM_OF_UNDYING && com.natan.vortex.VortexClient.modules.get(AutoTotem.class).wantsTotem()
+            && (mc.player.getOffhandItem().is(Items.TOTEM_OF_UNDYING) || Inv.findAny(s -> s.is(Items.TOTEM_OF_UNDYING)) != -1)) return;
         int slot = Inv.findAny(s -> s.is(want));
         if (slot == -1 && want == Items.GOLDEN_APPLE) slot = Inv.findAny(s -> s.is(Items.ENCHANTED_GOLDEN_APPLE));
         if (slot == -1) return;

@@ -27,6 +27,14 @@ public class AutoTotem extends Module {
         return Integer.toString(count);
     }
 
+    /** True while AutoTotem wants a totem in the offhand (Offhand yields to it, so they don't fight). */
+    public boolean wantsTotem() {
+        if (!isEnabled() || !inGame()) return false;
+        if (!mode.is("Smart")) return true;
+        float hearts = (mc.player.getHealth() + mc.player.getAbsorptionAmount()) / 2f;
+        return hearts <= health.d() || mc.player.fallDistance > 10 || mc.player.isFallFlying();
+    }
+
     @Override
     public void onTick() {
         if (!inGame()) return;

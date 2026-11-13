@@ -13,6 +13,9 @@ public class AutoReplenish extends Module {
     private final NumberSetting threshold = add(new NumberSetting("Threshold", "Refill a hotbar stack when it drops to this", 8, 1, 63, 1));
     private final NumberSetting delay = add(new NumberSetting("Delay", "Ticks between refills", 2, 0, 20, 1));
     private int timer;
+    // no-op detection: a refill that didn't grow the stack (already full) skips that slot until its count changes
+    private int pendingSlot = -1, pendingCount;
+    private final int[] stuckCount = {-1, -1, -1, -1, -1, -1, -1, -1, -1};
 
     public AutoReplenish() { super("AutoReplenish", "Refills hotbar stacks from your inventory", Category.PLAYER); }
 
@@ -22,15 +25,22 @@ public class AutoReplenish extends Module {
         if (mc.gui.screen() instanceof AbstractContainerScreen<?> && !(mc.gui.screen() instanceof InventoryScreen)) return;
         if (!mc.player.containerMenu.getCarried().isEmpty()) return;
         var inv = mc.player.getInventory();
+        if (pendingSlot != -1) {
+            if (inv.getItem(pendingSlot).getCount() <= pendingCount) stuckCount[pendingSlot] = inv.getItem(pendingSlot).getCount();
+            pendingSlot = -1;
+        }
         for (int h = 0; h < 9; h++) {
             ItemStack hs = inv.getItem(h);
             if (hs.isEmpty() || !hs.isStackable() || hs.getCount() > threshold.i()) continue;
+            if (stuckCount[h] == hs.getCount()) continue;
+            stuckCount[h] = -1;
             for (int i = 9; i < 36; i++) {
                 ItemStack st = inv.getItem(i);
                 if (st.isEmpty() || !ItemStack.isSameItemSameComponents(st, hs)) continue;
                 Inv.click(Inv.toMenuSlot(i), 0, ContainerInput.PICKUP);
                 Inv.click(Inv.toMenuSlot(h), 0, ContainerInput.PICKUP);
                 if (!mc.player.containerMenu.getCarried().isEmpty()) Inv.click(Inv.toMenuSlot(i), 0, ContainerInput.PICKUP);
+                pendingSlot = h; pendingCount = hs.getCount();
                 timer = delay.i();
                 return;
             }

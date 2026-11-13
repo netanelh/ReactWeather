@@ -53,5 +53,6 @@ public final class Rotations {
     public static void sendSilent(float yaw, float pitch) {
         Minecraft mc = Minecraft.getInstance();
         mc.getConnection().send(new ServerboundMovePlayerPacket.Rot(yaw, pitch, mc.player.onGround(), mc.player.horizontalCollision));
+        RotationManager.request(yaw, pitch); // Rotations module on: also hold it for the next movement packet
     }
 }

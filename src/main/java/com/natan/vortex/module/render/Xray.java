@@ -17,14 +17,14 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class Xray extends Module {
-    private final BoolSetting ores = add(new BoolSetting("Ores", "Coal, iron, copper, gold, redstone, lapis", true));
-    private final BoolSetting diamonds = add(new BoolSetting("Diamonds", "Diamond ore", true));
-    private final BoolSetting emeralds = add(new BoolSetting("Emeralds", "Emerald ore", true));
-    private final BoolSetting debris = add(new BoolSetting("Ancient Debris", "Netherite source", true));
-    private final BoolSetting nether = add(new BoolSetting("Nether Ores", "Nether gold and quartz", true));
-    private final BoolSetting storage = add(new BoolSetting("Storage", "Chests, barrels, shulkers, ender chests", true));
-    private final BoolSetting spawners = add(new BoolSetting("Spawners", "Mob spawners and trial spawners", true));
-    private final BoolSetting valuables = add(new BoolSetting("Valuables", "Mineral blocks, beacons, obsidian", false));
+    private final BoolSetting ores = add(new BoolSetting("Ores", "Coal, iron, copper, gold, redstone, lapis", true).group("Blocks"));
+    private final BoolSetting diamonds = add(new BoolSetting("Diamonds", "Diamond ore", true).group("Blocks"));
+    private final BoolSetting emeralds = add(new BoolSetting("Emeralds", "Emerald ore", true).group("Blocks"));
+    private final BoolSetting debris = add(new BoolSetting("Ancient Debris", "Netherite source", true).group("Blocks"));
+    private final BoolSetting nether = add(new BoolSetting("Nether Ores", "Nether gold and quartz", true).group("Blocks"));
+    private final BoolSetting storage = add(new BoolSetting("Storage", "Chests, barrels, shulkers, ender chests", true).group("Blocks"));
+    private final BoolSetting spawners = add(new BoolSetting("Spawners", "Mob spawners and trial spawners", true).group("Blocks"));
+    private final BoolSetting valuables = add(new BoolSetting("Valuables", "Mineral blocks, beacons, obsidian", false).group("Blocks"));
 
     private final NumberSetting range = add(new NumberSetting("Range", "How far to highlight ores (blocks)", 24, 8, 48, 4));
     private final BoolSetting realXray = add(new BoolSetting("Real Xray", "See-through terrain like Meteor (works with Sodium)", true));

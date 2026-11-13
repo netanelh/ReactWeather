@@ -116,7 +116,13 @@ final class HudElements {
             if (br.storage.on()) { want.add(net.minecraft.world.level.block.Blocks.CHEST); want.add(net.minecraft.world.level.block.Blocks.BARREL); want.add(net.minecraft.world.level.block.Blocks.SHULKER_BOX); }
             if (br.portals.on()) { want.add(net.minecraft.world.level.block.Blocks.NETHER_PORTAL); want.add(net.minecraft.world.level.block.Blocks.END_PORTAL_FRAME); }
             var me = mc.player.blockPosition();
-            var list = com.natan.vortex.memory.WorldMemory.INSTANCE.nearest(want, me, br.lines.i());
+            // nearest() allocates and sorts every remembered position: refresh twice a second, not every frame
+            long now = mc.level.getGameTime(); int key = want.hashCode() * 31 + br.lines.i();
+            if (radarCache == null || key != radarKey || Math.abs(now - radarTime) >= 10) {
+                radarCache = com.natan.vortex.memory.WorldMemory.INSTANCE.nearest(want, me, br.lines.i());
+                radarKey = key; radarTime = now;
+            }
+            var list = radarCache;
             String[] arrows = {"\u2191", "\u2197", "\u2192", "\u2198", "\u2193", "\u2199", "\u2190", "\u2196"};
             for (var p : list) {
                 double dx = p.getX() + 0.5 - mc.player.getX(), dz = p.getZ() + 0.5 - mc.player.getZ();
@@ -128,6 +134,10 @@ final class HudElements {
             }
         }
     }
+
+    private static java.util.List<net.minecraft.core.BlockPos> radarCache;
+    private static int radarKey;
+    private static long radarTime;
 
     private static int line(GuiGraphicsExtractor g, Font f, String a, String b, int x, int y, int color) {
         int tw = f.width(a + b);

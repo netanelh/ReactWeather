@@ -34,6 +34,7 @@ public final class HudRenderer {
         float pt = delta.getGameTimeDeltaPartialTick(false);
         EspRender.render(g, mc, pt);
         BlockEspRender.render(g, mc);
+        StorageEspRender.render(g, mc);
         HudMore.render(g, mc, gui);
         HudExtras.render(g, mc, gui);
         VortexClient.modules.get(com.natan.vortex.module.render.LogoutSpots.class).renderMarkers(g);

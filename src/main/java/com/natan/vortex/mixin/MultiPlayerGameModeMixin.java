@@ -31,7 +31,9 @@ public abstract class MultiPlayerGameModeMixin {
 
     @Inject(method = "attack", at = @At("TAIL"))
     private void vortex$afterAttack(Player player, Entity target, CallbackInfo ci) {
-        if (VortexClient.modules != null) VortexClient.modules.get(Criticals.class).afterAttack();
+        if (VortexClient.modules == null) return;
+        VortexClient.modules.get(Criticals.class).afterAttack();
+        VortexClient.modules.get(com.natan.vortex.module.combat.SuperKnockback.class).afterAttack();
     }
 
     /** Remember which block we right-clicked (ChestMemory uses it to know which chest a screen belongs to). */

@@ -26,6 +26,17 @@ public abstract class LocalPlayerMixin {
         return VortexClient.modules.get(com.natan.vortex.module.movement.Sprint.class).omniActive();
     }
 
+    /** Rotations module: movement packets carry the latest silent aura/scaffold look instead of snapping back. */
+    @Inject(method = "sendPosition", at = @At("HEAD"))
+    private void vortex$rotHead(org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+        com.natan.vortex.util.RotationManager.beforeSend((LocalPlayer) (Object) this);
+    }
+
+    @Inject(method = "sendPosition", at = @At("RETURN"))
+    private void vortex$rotReturn(org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+        com.natan.vortex.util.RotationManager.afterSend((LocalPlayer) (Object) this);
+    }
+
     @Inject(method = "isMovingSlowly", at = @At("HEAD"), cancellable = true)
     private void vortex$noSlowSneak(CallbackInfoReturnable<Boolean> cir) {
         if (VortexClient.modules == null) return;

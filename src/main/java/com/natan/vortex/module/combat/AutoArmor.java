@@ -21,6 +21,14 @@ public class AutoArmor extends Module {
     private final BoolSetting keepElytra = add(new BoolSetting("Keep Elytra", "Never swap an elytra for a chestplate", true));
 
     private int timer;
+    // failure detection: a worn piece that doesn't come off (curse of binding) is skipped until it changes
+    private final ItemStack[] lastWorn = new ItemStack[4];
+    private final int[] removeTries = new int[4];
+
+    private boolean hasFreeSlot() {
+        for (int i = 0; i < 36; i++) if (mc.player.getInventory().getItem(i).isEmpty()) return true;
+        return false;
+    }
 
     public AutoArmor() { super("AutoArmor", "Equips the best armor in your inventory", Category.COMBAT); }
 
@@ -42,12 +50,18 @@ public class AutoArmor extends Module {
                 ItemStack st = mc.player.getInventory().getItem(i);
                 var eq = st.get(DataComponents.EQUIPPABLE);
                 if (eq == null || eq.slot() != slot || st.is(Items.ELYTRA)) continue;
+                String id = com.natan.vortex.util.Items2.id(st); // pumpkins/heads are "equippable" but aren't armor
+                if (id.contains("pumpkin") || id.contains("head") || id.contains("skull")) continue;
                 double sc = score(st);
                 if (sc > bestScore) { bestScore = sc; bestIdx = i; }
             }
             if (bestIdx == -1) continue;
             if (!worn.isEmpty()) {
-                if (!upgrade.on()) continue;
+                if (!upgrade.on() || !hasFreeSlot()) continue;
+                if (lastWorn[s] != null && ItemStack.isSameItemSameComponents(lastWorn[s], worn)) {
+                    if (removeTries[s] >= 2) continue; // didn't come off twice: stop trying
+                } else removeTries[s] = 0;
+                lastWorn[s] = worn.copy(); removeTries[s]++;
                 // take the old piece off first (shift-click moves it to the inventory)
                 Inv.click(ARMOR_MENU_SLOT[s], 0, net.minecraft.world.inventory.ContainerInput.QUICK_MOVE);
             }

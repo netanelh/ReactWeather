@@ -131,7 +131,7 @@ public final class WorldMemory {
             if (s != null) for (long p : s) out.add(unpack(p));
         }
         out.sort(Comparator.comparingDouble(p -> p.distSqr(from)));
-        return out.size() > max ? out.subList(0, max) : out;
+        return out.size() > max ? new ArrayList<>(out.subList(0, max)) : out;
     }
 
     public int count() { int c = 0; for (Set<Long> s : data.values()) c += s.size(); return c; }

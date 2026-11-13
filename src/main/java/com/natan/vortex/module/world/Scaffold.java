@@ -24,7 +24,7 @@ public class Scaffold extends Module {
     @Override
     public void onTick() {
         if (!inGame()) return;
-        int slot = Inv.findHotbar(s -> s.getItem() instanceof BlockItem bi && bi.getBlock().defaultBlockState().isSolidRender());
+        int slot = Inv.findHotbar(com.natan.vortex.util.Place::isThrowaway); // cheap building blocks only (no TNT/ores/tables)
         if (slot == -1) return;
         int prev = Inv.selected();
 
@@ -47,7 +47,7 @@ public class Scaffold extends Module {
         if (!mc.level.getBlockState(pos).canBeReplaced()) return false;
         for (Direction d : Direction.values()) {
             BlockPos neighbor = pos.relative(d);
-            if (mc.level.getBlockState(neighbor).canBeReplaced()) continue;
+            if (mc.level.getBlockState(neighbor).canBeReplaced() || com.natan.vortex.util.Place.isInteractable(neighbor)) continue;
             Direction face = d.getOpposite();
             Vec3 hit = Vec3.atCenterOf(neighbor).add(face.getStepX() * 0.5, face.getStepY() * 0.5, face.getStepZ() * 0.5);
             if (hit.distanceTo(mc.player.getEyePosition()) > 4.5) continue;

@@ -23,13 +23,29 @@ import net.minecraft.world.phys.Vec3;
 public class CrystalAura extends Module {
     private final NumberSetting range = add(new NumberSetting("Range", "Place/break range", 4.5, 2, 6, 0.5));
     private final NumberSetting targetRange = add(new NumberSetting("Target Range", "Enemy search range", 10, 4, 16, 1));
-    private final NumberSetting delay = add(new NumberSetting("Delay", "Ticks between actions", 2, 0, 10, 1));
+    private final NumberSetting delay = add(new NumberSetting("Delay", "Ticks between placements", 2, 0, 10, 1));
+    private final NumberSetting breakDelay = add(new NumberSetting("Break Delay", "Ticks between breaking crystals", 1, 0, 10, 1));
+    private final NumberSetting maxSelf = add(new NumberSetting("Max Self", "Anti Suicide: max estimated damage to you (HP)", 8, 1, 36, 1));
     private final BoolSetting place = add(new BoolSetting("Place", "Place crystals", true));
     private final BoolSetting autoSwitch = add(new BoolSetting("Auto Switch", "Switch to crystals in the hotbar", true));
-    private final BoolSetting antiSuicide = add(new BoolSetting("Anti Suicide", "Never place closer to you than to the target", true));
+    private final BoolSetting antiSuicide = add(new BoolSetting("Anti Suicide", "Skip crystals that would hurt you more than the target (or too much)", true));
 
     private Player target;
-    private int timer;
+    private int timer, breakTimer;
+
+    /** Rough crystal damage (power 6, full exposure, no armor) at distance d. Used to rank and filter spots. */
+    private static double crystalDamage(double d) {
+        if (d >= 12) return 0;
+        double imp = 1 - d / 12;
+        return (imp * imp + imp) / 2 * 7 * 12 + 1;
+    }
+
+    private boolean safeFor(Vec3 explosion) {
+        if (!antiSuicide.on()) return true;
+        double self = crystalDamage(explosion.distanceTo(mc.player.position()));
+        double tgt = crystalDamage(explosion.distanceTo(target.position()));
+        return self <= maxSelf.d() && self < mc.player.getHealth() + mc.player.getAbsorptionAmount() && self < tgt;
+    }
 
     public CrystalAura() { super("CrystalAura", "Auto places and explodes end crystals at enemies", Category.COMBAT); }
 
@@ -44,28 +60,35 @@ public class CrystalAura extends Module {
             double d = p.distanceTo(mc.player);
             if (d < best) { best = d; target = p; }
         }
-        if (target == null || timer-- > 0) return;
+        if (timer > 0) timer--;
+        if (breakTimer > 0) breakTimer--;
+        if (target == null) return;
 
-        // 1) break the nearest crystal close to the target
-        for (Entity e : mc.level.entitiesForRendering()) {
+        // 1) break the crystal that hurts the target most (own break timer, so place can follow in the same tick)
+        Entity bestCrystal = null; double bestDmg = 0;
+        if (breakTimer == 0) for (Entity e : mc.level.entitiesForRendering()) {
             if (!(e instanceof EndCrystal) || e.distanceTo(mc.player) > range.d()) continue;
-            if (e.distanceTo(target) > 6) continue;
+            if (e.distanceTo(target) > 6 || !safeFor(e.position())) continue;
+            double dmg = crystalDamage(e.position().distanceTo(target.position()));
+            if (dmg > bestDmg) { bestDmg = dmg; bestCrystal = e; }
+        }
+        if (bestCrystal != null) {
+            Entity e = bestCrystal;
             Vec3 c = e.getBoundingBox().getCenter();
             float[] a = Rotations.anglesTo(c);
             Rotations.sendSilent(a[0], a[1]);
             mc.gameMode.attack(mc.player, e);
             mc.player.swing(InteractionHand.MAIN_HAND);
-            timer = delay.i();
-            return;
+            breakTimer = breakDelay.i();
         }
-        if (!place.on()) return;
+        if (!place.on() || timer > 0) return;
 
         // 2) place a crystal on obsidian/bedrock next to the target
         int slot = Inv.findHotbar(s -> s.is(Items.END_CRYSTAL));
         boolean offhand = mc.player.getOffhandItem().is(Items.END_CRYSTAL);
         if (!offhand && (slot == -1 || !autoSwitch.on() && !mc.player.getMainHandItem().is(Items.END_CRYSTAL))) return;
 
-        BlockPos bestPos = null; double bestScore = Double.MAX_VALUE;
+        BlockPos bestPos = null; double bestScore = -Double.MAX_VALUE;
         BlockPos tp = target.blockPosition();
         for (BlockPos p : BlockPos.betweenClosed(tp.offset(-2, -2, -2), tp.offset(2, 1, 2))) {
             var b = mc.level.getBlockState(p).getBlock();
@@ -74,9 +97,10 @@ public class CrystalAura extends Module {
             Vec3 top = Vec3.atCenterOf(p).add(0, 0.5, 0);
             if (top.distanceTo(mc.player.getEyePosition()) > range.d()) continue;
             if (!mc.level.getEntities((Entity) null, new AABB(p.above()).expandTowards(0, 1, 0), e -> true).isEmpty()) continue;
-            double toTarget = top.distanceTo(target.position()), toMe = top.distanceTo(mc.player.position());
-            if (antiSuicide.on() && toMe < toTarget + 1) continue;
-            if (toTarget < bestScore) { bestScore = toTarget; bestPos = p.immutable(); }
+            Vec3 boom = Vec3.atBottomCenterOf(p.above()); // crystal sits on top of the block
+            if (!safeFor(boom)) continue;
+            double score = crystalDamage(boom.distanceTo(target.position())) - crystalDamage(boom.distanceTo(mc.player.position())) * 0.5;
+            if (score > bestScore) { bestScore = score; bestPos = p.immutable(); }
         }
         if (bestPos == null) return;
         InteractionHand hand = offhand ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
