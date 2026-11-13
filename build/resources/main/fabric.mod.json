@@ -1,0 +1,22 @@
+{
+	"schemaVersion": 1,
+	"id": "lyricsplus",
+	"version": "2.5.0",
+	"name": "Lyrics Plus",
+	"icon": "assets/lyricsplus/icon.png",
+	"description": "Synced Spotify lyrics in Minecraft with a customization panel: colors, display modes (side, subtitle, center, floating in the world), word-by-word and karaoke styles, song title cards and more. Based on Spotify Lyrics by HBome200 (MIT).",
+	"authors": ["Netanel"],
+	"contributors": ["HBome200 (original Spotify Lyrics backend)"],
+	"license": "MIT",
+	"environment": "client",
+	"entrypoints": {
+		"client": ["dev.netanel.lyricsplus.LyricsPlusClient"]
+	},
+	"mixins": ["lyricsplus.mixins.json"],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
