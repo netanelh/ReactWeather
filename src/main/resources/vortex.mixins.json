@@ -3,6 +3,8 @@
   "package": "com.natan.vortex.mixin",
   "compatibilityLevel": "JAVA_25",
   "client": [
+    "sodium.SodiumBlockRendererMixin",
+    "sodium.SodiumBlockContextMixin",
     "MinecraftAccessor",
     "LocalPlayerJumpMixin",
     "KeyboardInputMixin",

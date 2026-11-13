@@ -27,7 +27,8 @@ public class Xray extends Module {
     private final BoolSetting valuables = add(new BoolSetting("Valuables", "Mineral blocks, beacons, obsidian", false));
 
     private final NumberSetting range = add(new NumberSetting("Range", "How far to highlight ores (blocks)", 24, 8, 48, 4));
-    private final BoolSetting boxes = add(new BoolSetting("Boxes", "Draw boxes around ores through walls (works with Sodium)", true).visibleWhen(() -> !com.natan.vortex.VortexClient.SODIUM));
+    private final BoolSetting realXray = add(new BoolSetting("Real Xray", "See-through terrain like Meteor (works with Sodium)", true));
+    private final BoolSetting boxes = add(new BoolSetting("Boxes", "Also draw boxes around ores through walls", false));
     private final BoolSetting hideBlocks = add(new BoolSetting("Hide Terrain", "Also make stone invisible (needs a non-Sodium chunk renderer)", false).visibleWhen(() -> !com.natan.vortex.VortexClient.SODIUM));
 
     private volatile Set<Block> visible = Set.of(); // swapped atomically: read from chunk-building threads
@@ -41,7 +42,7 @@ public class Xray extends Module {
 
     @Override
     public void onTick() {
-        int h = java.util.Objects.hash(ores.get(), diamonds.get(), emeralds.get(), debris.get(), nether.get(), storage.get(), spawners.get(), valuables.get(), hideBlocks.get());
+        int h = java.util.Objects.hash(ores.get(), diamonds.get(), emeralds.get(), debris.get(), nether.get(), storage.get(), spawners.get(), valuables.get(), hideBlocks.get(), realXray.get());
         if (h != settingsHash) { settingsHash = h; rebuild(); reload(); }
         if (boxesOn() && scanTimer-- <= 0) { scanTimer = 15; scan(); }
     }
@@ -50,10 +51,13 @@ public class Xray extends Module {
     public boolean shows(Block b) { return visible.contains(b); }
 
     /** Pipeline hiding only applies when Hide Terrain is on (otherwise boxes do the work, Sodium-safe). */
-    public boolean hideTerrain() { return hideBlocks.on() && !com.natan.vortex.VortexClient.SODIUM; }
+    public boolean hideTerrain() { return (hideBlocks.on() || realXray.on()) && !com.natan.vortex.VortexClient.SODIUM; }
 
-    /** With Sodium, boxes are the only way Xray can show anything, so they are always on. */
-    public boolean boxesOn() { return boxes.on() || com.natan.vortex.VortexClient.SODIUM; }
+    /** Real see-through Xray (via the Sodium mixins, or the vanilla pipeline without Sodium). */
+    public boolean realXray() { return realXray.on(); }
+
+    /** Boxes: on when chosen, or as the fallback under Sodium when real Xray is off. */
+    public boolean boxesOn() { return boxes.on() || (com.natan.vortex.VortexClient.SODIUM && !realXray.on()); }
 
     public List<BlockPos> found() { return found; }
 
