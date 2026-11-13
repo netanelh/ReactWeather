@@ -397,11 +397,23 @@ public final class Commands {
         }
     }
 
+    private static boolean tryElytra(Minecraft mc, Navigator nav, int x, int y, int z, String label) {
+        if (!VortexClient.modules.get(com.natan.vortex.module.pathing.NavSettings.class).autoElytra.on()) return false;
+        if (mc.player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST).getItem() != net.minecraft.world.item.Items.ELYTRA) return false;
+        if (com.natan.vortex.util.Inv.findHotbar(st -> st.is(net.minecraft.world.item.Items.FIREWORK_ROCKET)) == -1) return false;
+        double dist = Math.hypot(x + 0.5 - mc.player.getX(), z + 0.5 - mc.player.getZ());
+        if (dist < 200) return false;
+        nav.start(new com.natan.vortex.nav.process.FlyProcess(new net.minecraft.core.BlockPos(x, y, z), label));
+        Chat.info("Flying to " + label + " with the elytra (" + (int) dist + " blocks).");
+        return true;
+    }
+
     private static void gotoCmd(String[] a) {
         Minecraft mc = Minecraft.getInstance();
         Navigator nav = Navigator.INSTANCE;
         if (a.length == 4) {
             int x = coord(a[1], mc.player.getBlockX()), y = coord(a[2], mc.player.getBlockY()), z = coord(a[3], mc.player.getBlockZ());
+            if (tryElytra(mc, nav, x, y, z, x + " " + y + " " + z)) return;
             nav.start(new GotoProcess(new Goal.Block(x, y, z), x + " " + y + " " + z));
         } else if (a.length == 3) {
             int x = coord(a[1], mc.player.getBlockX()), z = coord(a[2], mc.player.getBlockZ());

@@ -14,6 +14,7 @@ public class NavSettings extends Module {
     public final BoolSetting showPath = add(new BoolSetting("Show Path", "Draw the planned path on screen", true));
     public final BoolSetting sprint = add(new BoolSetting("Sprint", "Sprint on long straight stretches", true));
     public final BoolSetting parkour = add(new BoolSetting("Parkour", "Sprint-jump over 1-2 block gaps instead of walking around", true));
+    public final BoolSetting autoElytra = add(new BoolSetting("Auto Elytra", "Use the elytra for far .goto targets (needs elytra worn + fireworks)", false));
     public final BoolSetting longRange = add(new BoolSetting("Long Range", "Plan across chunks you have explored before but are not loaded now (re-checks as they load)", true));
     public final BoolSetting mlg = add(new BoolSetting("MLG Water", "Place a water bucket to survive long falls, then scoop it back", true));
     public final BoolSetting mobAvoid = add(new BoolSetting("Avoid Mobs", "Route around hostile mobs when planning", true));
