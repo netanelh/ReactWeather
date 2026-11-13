@@ -15,12 +15,13 @@ import java.util.Map;
 
 /** Named positions per server/world and dimension, saved to config/vortex-waypoints.json. */
 public final class Waypoints {
+    // GSON must be initialized before INSTANCE: the constructor calls load(), which uses it.
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     public static final Waypoints INSTANCE = new Waypoints();
     public record Point(int x, int y, int z, String dim) {
         public BlockPos pos() { return new BlockPos(x, y, z); }
     }
 
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private final Path file = FabricLoader.getInstance().getConfigDir().resolve("vortex-waypoints.json");
     private Map<String, Map<String, Point>> data = new LinkedHashMap<>();
 
