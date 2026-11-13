@@ -57,7 +57,8 @@ public final class LyricsConfigScreen extends Screen {
     private static int page; // remembered while the game runs
     private double scroll;
     private Row dragging;
-    private boolean rebuildPending;
+    // static: a search started before the panel was reopened must refresh the new panel
+    private static volatile boolean rebuildPending;
     private final List<Row> rows = new ArrayList<>();
 
     private int px, py, pw, ph, cx, cw, contentTop, contentBottom;
@@ -67,7 +68,7 @@ public final class LyricsConfigScreen extends Screen {
     private static String searchText = "";
     private static volatile List<SongSearch.Hit> results = List.of();
     private static volatile String searchState = "idle"; // idle, searching, done, failed
-    private static String lastQuery = "";
+    private static volatile String lastQuery = "";
     private long typedAt;
 
     public LyricsConfigScreen(Screen parent) {
@@ -330,7 +331,7 @@ public final class LyricsConfigScreen extends Screen {
         boolean doneHover = inside(mouseX, mouseY, px + 8, dy, SIDEBAR_W - 16, 18);
         g.fill(px + 8, dy, px + SIDEBAR_W - 8, dy + 18, doneHover ? accent : CARD_HOVER);
         g.centeredText(font, Component.translatable("lyricsplus.done"), px + SIDEBAR_W / 2, dy + 5, doneHover ? 0xFF101010 : TEXT);
-        small(g, Component.literal("v2.4"), px + 10, dy - 11, 0xFF55555F);
+        small(g, Component.literal("v2.5"), px + 10, dy - 11, 0xFF55555F);
 
         // content header
         g.pose().pushMatrix();
@@ -406,9 +407,15 @@ public final class LyricsConfigScreen extends Screen {
 
     @Override
     public void onClose() {
+        this.minecraft.gui.setScreen(parent);
+    }
+
+    /** Runs however the panel is left (Esc, death screen, disconnect), so demo never sticks. */
+    @Override
+    public void removed() {
+        super.removed();
         cfg.save();
         LyricsPlusClient.engine().setDemo(false);
-        this.minecraft.gui.setScreen(parent);
     }
 
     // =================================================================== input

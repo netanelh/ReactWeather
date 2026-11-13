@@ -34,7 +34,7 @@ public final class LyricsFetcher {
     private int answered;
     private boolean transientError;
 
-    private static final String USER_AGENT = "LyricsPlus/2.0 (Minecraft Fabric mod)";
+    private static final String USER_AGENT = "LyricsPlus/2.5 (Minecraft Fabric mod)";
 
     private final HttpClient client = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(6))
@@ -42,6 +42,15 @@ public final class LyricsFetcher {
     private final LyricsManager parser = new LyricsManager();
 
     public Result fetch(String artist, String title, String album, long durationSec) {
+        return fetch(artist, title, album, durationSec, () -> false);
+    }
+
+    /** cancelled is checked before every request, so skipping songs never queues up stale lookups. */
+    public Result fetch(String artist, String title, String album, long durationSec,
+                        java.util.function.BooleanSupplier cancelled) {
+        if (cancelled.getAsBoolean()) {
+            return Result.FAILED;
+        }
         answered = 0;
         transientError = false;
         String plainFallback = null;
@@ -61,7 +70,15 @@ public final class LyricsFetcher {
         }
 
         // 2. searches, best guesses first
+        String titleOnly = titleOnlyQuery(title);
+        String titleOnlyUrl = textSearch(titleOnly);
+        String wantTitle = norm(titleOnly);
         for (String url : searchUrls(artist, title)) {
+            if (cancelled.getAsBoolean()) {
+                return Result.FAILED;
+            }
+            // A title-only search can return any song with that name: insist the title matches.
+            boolean needMatch = url.equals(titleOnlyUrl) && !wantTitle.isEmpty();
             try {
                 JsonArray results = getArray(url);
                 if (results == null) {
@@ -72,6 +89,7 @@ public final class LyricsFetcher {
                 for (JsonElement el : results) {
                     if (!el.isJsonObject()) continue;
                     JsonObject o = el.getAsJsonObject();
+                    if (needMatch && !titleMatches(wantTitle, field(o, "trackName"))) continue;
                     if (field(o, "syncedLyrics") != null) {
                         long diff = durationSec > 0 && o.has("duration") && !o.get("duration").isJsonNull()
                                 ? Math.abs(Math.round(o.get("duration").getAsDouble()) - durationSec) : 0;
@@ -140,8 +158,35 @@ public final class LyricsFetcher {
             urls.add(textSearch(ytArtist + " " + ytTitle));
         }
         urls.add(textSearch(cleanArtist + " " + cleanTitle));
-        urls.add(textSearch(ytTitle != null && !ytTitle.isEmpty() ? ytTitle : cleanTitle));
+        urls.add(textSearch(titleOnlyQuery(title)));
         return new ArrayList<>(urls);
+    }
+
+    /** The song name alone, used for the last-resort title-only search. */
+    private static String titleOnlyQuery(String title) {
+        String cleanTitle = cleanTitle(title);
+        int dash = indexOfDash(cleanTitle);
+        if (dash > 0) {
+            String ytTitle = cleanTitle.substring(dash + 3).trim();
+            if (!ytTitle.isEmpty()) return ytTitle;
+        }
+        return cleanTitle;
+    }
+
+    /** Lowercase, no Hebrew vowel points, letters and digits only. */
+    static String norm(String s) {
+        if (s == null) return "";
+        StringBuilder b = new StringBuilder(s.length());
+        s.toLowerCase(java.util.Locale.ROOT).codePoints().forEach(c -> {
+            if (c >= 0x0591 && c <= 0x05C7) return;
+            if (Character.isLetterOrDigit(c)) b.appendCodePoint(c);
+        });
+        return b.toString();
+    }
+
+    private static boolean titleMatches(String wantNorm, String trackName) {
+        String got = norm(trackName);
+        return !got.isEmpty() && (got.contains(wantNorm) || wantNorm.contains(got));
     }
 
     private static String fieldSearch(String artist, String title) {
@@ -163,12 +208,14 @@ public final class LyricsFetcher {
     /** "Song (feat. X) [Official Music Video] - Remastered 2011 | HD" -> "Song" */
     static String cleanTitle(String title) {
         String t = title;
-        t = t.replaceAll("(?i)[(\\[](feat\\.?|ft\\.?|with|prod\\.?)[^)\\]]*[)\\]]", "");
-        t = t.replaceAll("(?i)[(\\[][^)\\]]*(official|video|audio|lyric|lyrics|visualizer|clip|hd|4k|hq|live|remaster|mv|m/v|קליפ|רשמי)[^)\\]]*[)\\]]", "");
+        t = t.replaceAll("(?i)[(\\[](feat\\.?|ft\\.?|with|prod\\.?|מארח|מארחת|מארחים|בהשתתפות)[^)\\]]*[)\\]]", "");
+        t = t.replaceAll("(?i)[(\\[][^)\\]]*(official|video|audio|lyric|lyrics|visualizer|clip|hd|4k|hq|live|remaster|mv|m/v|קליפ|רשמי|מילים|לייב|הופעה|אודיו)[^)\\]]*[)\\]]", "");
         t = t.replaceAll("(?i)\\s+-\\s+[^-]*(remaster|version|edit|mix)[^-]*$", "");
         t = t.replaceAll("(?i)\\b(official (music )?video|official audio|lyric video|lyrics|hd|4k)\\b", "");
         t = t.replaceAll("(?i)\\s+(feat\\.?|ft\\.?)\\s+.*$", "");
-        t = t.replaceAll("\\s{2,}", " ").replaceAll("[\\s|\\-–—]+$", "").trim();
+        // \\b ignores Hebrew letters, so match the Hebrew "official clip" by spaces instead.
+        t = t.replaceAll("(?:^|\\s)(הקליפ הרשמי|קליפ רשמי)(?=\\s|$)", " ");
+        t = t.replaceAll("\\s{2,}", " ").replaceAll("[\\s|\\-–—]+$", "").replaceAll("^[\\s|\\-–—]+", "").trim();
         return t.isEmpty() ? title : t;
     }
 
@@ -219,7 +266,8 @@ public final class LyricsFetcher {
     }
 
     private static String stripTimestamps(String lrc) {
-        return lrc == null ? null : lrc.replaceAll("(?m)^\\s*\\[[0-9:.]+\\]\\s*", "");
+        return lrc == null ? null : lrc.replaceAll("(?m)^\\s*(\\[[0-9:.]+\\])+\\s*", "")
+                .replaceAll("<\\d+:\\d+(?:\\.\\d+)?>", "");
     }
 
     // ------------------------------------------------------------------ http

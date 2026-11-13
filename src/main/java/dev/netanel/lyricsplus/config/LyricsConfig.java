@@ -166,6 +166,7 @@ public final class LyricsConfig {
         scale = Math.max(0.5f, Math.min(3.0f, scale));
         delayMs = Math.max(-5000, Math.min(5000, delayMs));
         if (songDelays == null) songDelays = new java.util.HashMap<>();
+        songDelays.values().removeIf(java.util.Objects::isNull);
         backgroundOpacity = Math.max(0f, Math.min(1f, backgroundOpacity));
         worldDistance = Math.max(2f, Math.min(8f, worldDistance));
     }

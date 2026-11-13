@@ -191,23 +191,6 @@ public final class HudRenderer {
         }
     }
 
-    /** In world mode the lyrics are 3D; the HUD only keeps a small "now playing" corner. */
-    private static void drawWorldCompanion(GuiGraphicsExtractor g, Font font, Snapshot s, LyricsConfig cfg) {
-        if (!cfg.nowPlaying && !cfg.progressBar) {
-            return;
-        }
-        int w = 140;
-        int x = MARGIN;
-        int y = MARGIN;
-        background(g, cfg, x - PAD, y - PAD, x + w + PAD, y + 16 + PAD);
-        if (cfg.nowPlaying) {
-            drawScaled(g, font, nowPlaying(s), x, y, 0.75f, 0xFFFFFFFF, cfg.shadow);
-        }
-        if (cfg.progressBar) {
-            progressBar(g, font, s, cfg, x, y + 10, w, false);
-        }
-    }
-
     // ------------------------------------------------------------- title card
 
     private static void drawTitleCard(GuiGraphicsExtractor g, Font font, Snapshot s, LyricsConfig cfg) {

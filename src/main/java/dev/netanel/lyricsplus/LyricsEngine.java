@@ -125,11 +125,13 @@ public final class LyricsEngine {
 
         String a;
         String t;
+        long durSec;
         try {
             a = music.getArtist();
             t = music.getTitle();
+            durSec = music.getDuration();
         } catch (Exception e) {
-            music = windows ? music : null; // Linux: Spotify probably closed, reconnect later
+            dropLinuxPlayer();
             status = Status.NO_PLAYER;
             trackKey = "";
             return;
@@ -152,7 +154,7 @@ public final class LyricsEngine {
         blankSince = -1;
         // Ads: hide everything until music comes back. The song before the ad keeps its key,
         // so if it simply resumes we don't replay the title card.
-        adPlaying = isAd(a, t, music.getDuration());
+        adPlaying = isAd(a, t, durSec);
         if (adPlaying) {
             return;
         }
@@ -190,6 +192,19 @@ public final class LyricsEngine {
             music = windows ? new WindowsMusicManager() : new LinuxMusicManager();
         } catch (Throwable e) {
             music = null;
+        }
+    }
+
+    /** Linux: Spotify probably closed. Drop the D-Bus player and reconnect later. Windows keeps its poller. */
+    private void dropLinuxPlayer() {
+        if (windows || music == null) {
+            return;
+        }
+        MusicManager m = music;
+        music = null;
+        try {
+            m.close();
+        } catch (Exception ignored) {
         }
     }
 
@@ -237,8 +252,16 @@ public final class LyricsEngine {
                 return;
             }
             String album = safe(player::getAlbum);
-            long durationSec = player.getDuration();
-            LyricsFetcher.Result result = fetcher.fetch(a, t, album, durationSec);
+            long durationSec;
+            try {
+                durationSec = player.getDuration();
+            } catch (Exception e) {
+                durationSec = 0;
+            }
+            LyricsFetcher.Result result = fetcher.fetch(a, t, album, durationSec, () -> gen != generation);
+            if (gen != generation) {
+                return; // song changed mid-fetch: don't cache a possibly cut-short result
+            }
             if (!result.failed()) {
                 synchronized (cache) {
                     cache.put(key, result);
@@ -251,9 +274,9 @@ public final class LyricsEngine {
                 lines = result.lines();
                 estimated = result.estimated();
                 status = result.lines().isEmpty() ? Status.NOT_FOUND : Status.READY;
-            }
-            if (result.failed()) {
-                retryAt = System.currentTimeMillis() + 30_000;
+                if (result.failed()) {
+                    retryAt = System.currentTimeMillis() + 30_000;
+                }
             }
         });
     }
@@ -267,16 +290,27 @@ public final class LyricsEngine {
             return build("Lyrics Plus Demo", "Netanel", pos, DEMO_LENGTH, true,
                     Status.READY, DEMO_LINES, now - trackChangedAt, true, false);
         }
-        if (music == null) {
+        MusicManager m = music;
+        if (m == null) {
             return build("", "", 0, 0, false, Status.NO_PLAYER, null, now - trackChangedAt, false, false);
         }
         if (adPlaying) {
             return build("", "", 0, 0, false, Status.AD, null, now - trackChangedAt, false, false);
         }
+        long rawPos;
+        long durMs;
+        boolean playing;
+        try {
+            rawPos = m.getPosition();
+            durMs = m.getDuration() * 1000L;
+            playing = m.isPlaying();
+        } catch (Exception e) {
+            // Linux: the player vanished between ticks. Never let that crash the HUD.
+            return build("", "", 0, 0, false, Status.NO_PLAYER, null, now - trackChangedAt, false, false);
+        }
         // Show lyrics slightly ahead so entry animations finish on the beat, then apply delays.
-        long pos = music.getPosition() + DISPLAY_LEAD_MS - cfg.delayMs - cfg.songDelay(trackKey);
-        long durMs = music.getDuration() * 1000L;
-        return build(title, artist, pos, durMs, music.isPlaying(), status, lines,
+        long pos = rawPos + DISPLAY_LEAD_MS - cfg.delayMs - cfg.songDelay(trackKey);
+        return build(title, artist, pos, durMs, playing, status, lines,
                 now - trackChangedAt, false, estimated);
     }
 

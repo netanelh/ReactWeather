@@ -7,4 +7,8 @@ public abstract class MusicManager { //I changed it to abstract class, u cannot 
     public abstract long getDuration();
     public abstract long getPosition();
     public abstract boolean isPlaying();
+
+    /** Releases the player connection. Default: nothing to release. */
+    public void close() {
+    }
 }

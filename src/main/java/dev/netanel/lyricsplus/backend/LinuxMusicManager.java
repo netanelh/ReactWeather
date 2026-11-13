@@ -5,115 +5,79 @@ import org.freedesktop.dbus.connections.impl.DBusConnectionBuilder;
 import org.freedesktop.dbus.interfaces.Properties;
 import org.freedesktop.dbus.types.UInt64;
 
-import java.net.http.HttpResponse;
-import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.List;
 
+/** Spotify on Linux through MPRIS (D-Bus). Lyrics are fetched by LyricsFetcher, not here. */
 public class LinuxMusicManager extends MusicManager {
 
-    private DBusConnection connection;
+    private static final String PLAYER = "org.mpris.MediaPlayer2.Player";
+
+    private final DBusConnection connection;
     private final Properties properties;
 
-    private final List<LyricsLine> lyrics;
-    private final LyricsManager lyricsManager;
-
     public LinuxMusicManager() throws Exception {
+        connection = DBusConnectionBuilder.forSessionBus().build();
         try {
-            connection = DBusConnectionBuilder
-                    .forSessionBus()
-                    .build();
-            System.out.println("Connected to D-Bus!");
+            properties = connection.getRemoteObject("org.mpris.MediaPlayer2.spotify", "/org/mpris/MediaPlayer2", Properties.class);
+            properties.Get(PLAYER, "PlaybackStatus"); // throws if Spotify is not running
         } catch (Exception e) {
-            e.printStackTrace();
+            close();
+            throw e;
         }
-        properties = connection.getRemoteObject("org.mpris.MediaPlayer2.spotify", "/org/mpris/MediaPlayer2", Properties.class);
-        System.out.println("Spotify status: " + getPlaybackStatus());
-        LinkedHashMap<String, Object> metadata = getMetadata();
-
-        String artist = ((List<String>) metadata.get("xesam:artist")).get(0);
-        String title = (String) metadata.get("xesam:title");
-        String album = (String) metadata.get("xesam:album");
-        long duration = ((UInt64) metadata.get("mpris:length")).longValue() / 1_000_000;
-
-        System.out.println("Artist: " + artist);
-        System.out.println("Title: " + title);
-        System.out.println("Album: " + album);
-        System.out.println("Duration: " + duration);
-
-
-        this.lyricsManager = new LyricsManager();
-
-        HttpResponse<String> response =
-                lyricsManager.fetchLyrics(artist, title, album, duration);
-
-        String syncedLyrics =
-                lyricsManager.getSyncedLyrics(response);
-        System.out.println("SYNCED LYRICS IS NULL: " + (syncedLyrics == null));
-        System.out.println("SYNCED LYRICS: " + syncedLyrics);
-
-        this.lyrics =
-                lyricsManager.parseLyrics(syncedLyrics);
-
-        System.out.println("HTTP status: " + response.statusCode());
-        System.out.println("HTTP status: " + response.statusCode());
-        System.out.println("Lyrics lines: " + lyrics.size());
-
-
-
     }
-    public String getPlaybackStatus() {
-        return properties.Get("org.mpris.MediaPlayer2.Player", "PlaybackStatus");
+
+    private Map<String, Object> metadata() {
+        Map<String, Object> m = properties.Get(PLAYER, "Metadata");
+        return m == null ? Map.of() : m;
     }
-    public LinkedHashMap<String, Object> getMetadata() {
-        return properties.Get("org.mpris.MediaPlayer2.Player", "Metadata");
-    }
+
+    @Override
     public long getPosition() {
-        long position = properties.Get("org.mpris.MediaPlayer2.Player", "Position");
-        return position / 1000;
+        Object position = properties.Get(PLAYER, "Position");
+        return position instanceof Number n ? n.longValue() / 1000 : 0;
     }
 
     @Override
     public boolean isPlaying() {
-        String status = properties.Get("org.mpris.MediaPlayer2.Player", "PlaybackStatus");
-        return status.equals("Playing");
+        Object status = properties.Get(PLAYER, "PlaybackStatus");
+        return "Playing".equals(status);
     }
 
-    public List<LyricsLine> getLyrics() {
-        return lyrics;
-    }
-    public LyricsLine getCurrentLine(
-            List<LyricsLine> lyrics,
-            long position
-    ) {
-        LyricsLine current = null;
-
-        for (LyricsLine line : lyrics) {
-            if (line.getTimeStamp() <= position) {
-                current = line;
-            } else {
-                break;
-            }
-        }
-
-        return current;
-    }
-    public LyricsLine getCurrentLine() {
-        long position = getPosition() / 1000;
-        return lyricsManager.getCurrentLine(
-                lyrics,
-                position
-        );
-    }
+    @Override
     public String getArtist() {
-        return ((List<String>) getMetadata().get("xesam:artist")).getFirst();
+        Object a = metadata().get("xesam:artist");
+        if (a instanceof List<?> list && !list.isEmpty() && list.getFirst() != null) {
+            return list.getFirst().toString();
+        }
+        return a instanceof String s ? s : "";
     }
+
+    @Override
     public String getTitle() {
-        return (String) getMetadata().get("xesam:title");
+        Object t = metadata().get("xesam:title");
+        return t instanceof String s ? s : null;
     }
+
+    @Override
     public String getAlbum() {
-        return (String) getMetadata().get("xesam:album");
+        Object al = metadata().get("xesam:album");
+        return al instanceof String s ? s : "";
     }
+
+    @Override
     public long getDuration() {
-        return ((UInt64) getMetadata().get("mpris:length")).longValue() / 1_000_000;
+        Object len = metadata().get("mpris:length");
+        if (len instanceof UInt64 u) return u.longValue() / 1_000_000;
+        if (len instanceof Number n) return n.longValue() / 1_000_000;
+        return 0;
+    }
+
+    @Override
+    public void close() {
+        try {
+            connection.close();
+        } catch (Exception ignored) {
+        }
     }
 }

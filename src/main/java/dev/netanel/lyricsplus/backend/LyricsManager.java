@@ -1,205 +1,70 @@
 package dev.netanel.lyricsplus.backend;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+/** Parses LRC text: several time tags per line, [offset:N], and enhanced &lt;mm:ss.xx&gt; word tags. */
 public class LyricsManager {
-    private final HttpClient client = HttpClient.newHttpClient();
+
+    private static final Pattern TIME_TAG = Pattern.compile("^\\[(\\d+):(\\d+)(?:[.:](\\d{1,3}))?\\]");
+    private static final Pattern OFFSET_TAG = Pattern.compile("^\\[offset:\\s*([+-]?\\d+)\\s*\\]$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern WORD_TAG = Pattern.compile("<\\d+:\\d+(?:[.:]\\d+)?>");
+
     public List<LyricsLine> parseLyrics(String syncedLyrics) {
         List<LyricsLine> lyrics = new ArrayList<>();
-
         if (syncedLyrics == null || syncedLyrics.isBlank()) {
             return lyrics;
         }
 
-        String[] lines = syncedLyrics.split("\\R");
-
-        for (String line : lines) {
-            line = line.trim();
-
-            if (!line.startsWith("[") || !line.contains("]")) {
-                continue;
+        long offset = 0;
+        for (String raw : syncedLyrics.split("\\R")) {
+            Matcher off = OFFSET_TAG.matcher(raw.trim());
+            if (off.matches()) {
+                try {
+                    offset = Long.parseLong(off.group(1));
+                } catch (NumberFormatException ignored) {
+                }
             }
+        }
 
+        for (String raw : syncedLyrics.split("\\R")) {
+            String line = raw.trim();
+            List<Long> stamps = new ArrayList<>(2);
+            Matcher m = TIME_TAG.matcher(line);
             try {
-                int closingBracket = line.indexOf("]");
-
-                String timestampStr =
-                        line.substring(1, closingBracket);
-
-                String text =
-                        line.substring(closingBracket + 1).trim();
-
-                String[] timeParts = timestampStr.split(":");
-
-                if (timeParts.length != 2) {
-                    continue;
-                }
-
-                long minutes = Long.parseLong(timeParts[0]);
-
-                String[] secondParts =
-                        timeParts[1].split("\\.", 2);
-
-                long seconds =
-                        Long.parseLong(secondParts[0]);
-
-                long milliseconds = 0;
-
-                if (secondParts.length > 1) {
-                    String fraction = secondParts[1];
-
-                    if (fraction.length() == 1) {
-                        milliseconds = Long.parseLong(fraction) * 100;
-                    } else if (fraction.length() == 2) {
-                        milliseconds = Long.parseLong(fraction) * 10;
-                    } else {
-                        milliseconds = Long.parseLong(
-                                fraction.substring(0, 3)
-                        );
+                while (m.find()) {
+                    long minutes = Long.parseLong(m.group(1));
+                    long seconds = Long.parseLong(m.group(2));
+                    long ms = 0;
+                    String frac = m.group(3);
+                    if (frac != null) {
+                        ms = switch (frac.length()) {
+                            case 1 -> Long.parseLong(frac) * 100;
+                            case 2 -> Long.parseLong(frac) * 10;
+                            default -> Long.parseLong(frac);
+                        };
                     }
+                    stamps.add((minutes * 60 + seconds) * 1000 + ms);
+                    line = line.substring(m.end()).trim();
+                    m = TIME_TAG.matcher(line);
                 }
-
-                long timestamp =
-                        (minutes * 60 + seconds) * 1000
-                                + milliseconds;
-
-                lyrics.add(new LyricsLine(timestamp, text));
-
-            } catch (NumberFormatException ignored) {
-                // Invalid timestamp. Ignore this line.
+            } catch (NumberFormatException e) {
+                continue; // invalid timestamp: skip the line
+            }
+            if (stamps.isEmpty()) {
+                continue; // metadata like [ar:..] or plain text
+            }
+            String text = WORD_TAG.matcher(line).replaceAll("").replaceAll("\\s{2,}", " ").trim();
+            for (long ts : stamps) {
+                // positive offset = lyrics come earlier
+                lyrics.add(new LyricsLine(Math.max(0, ts - offset), text));
             }
         }
 
+        lyrics.sort(Comparator.comparingLong(LyricsLine::getTimeStamp)); // stable: equal times keep file order
         return lyrics;
-    }
-
-    private String buildUrl(
-            String artist,
-            String title,
-            String album,
-            long duration
-    ) {
-        return "https://lrclib.net/api/get?"
-                + "artist_name="
-                + URLEncoder.encode(artist, StandardCharsets.UTF_8)
-                + "&track_name="
-                + URLEncoder.encode(title, StandardCharsets.UTF_8)
-                + "&album_name="
-                + URLEncoder.encode(album, StandardCharsets.UTF_8)
-                + "&duration="
-                + duration;
-    }
-
-    public HttpResponse<String> fetchLyrics(
-            String artist,
-            String title,
-            String album,
-            long duration
-    ) throws Exception {
-
-        String url = buildUrl(
-                artist,
-                title,
-                album,
-                duration
-        );
-
-
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header(
-                        "User-Agent",
-                        "MinecraftSpotifyLyricsMod/1.2.0 (https://github.com/HBome200/Minecraft-Spotify-Lyrics)"
-                )
-                .GET()
-                .build();
-
-        try {
-
-
-            HttpResponse<String> response = client.send(
-                    request,
-                    HttpResponse.BodyHandlers.ofString()
-            );
-            if(response.statusCode() != 200) {
-                System.err.println("lrclib returned " + response.statusCode());
-                return null;
-            }
-            return response;
-        } catch (IOException e) {
-            System.err.println("Failed to fetch lyrics" + e.getMessage());
-            return null;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return null;
-        }
-
-    }
-    public String getSyncedLyrics(HttpResponse<String> response) {
-        if(response == null) {
-            return null;
-        }
-        if(response.statusCode() != 200) {
-            return null;
-        }
-        try {
-
-
-            JsonObject json =
-                    JsonParser.parseString(response.body()).getAsJsonObject();
-
-
-            if (!json.has("syncedLyrics") || json.get("syncedLyrics").isJsonNull()) {
-                return null;
-            }
-
-            return json.get("syncedLyrics").getAsString();
-        } catch (RuntimeException e) {
-            System.err.println("Failed to parse lrclib response" + e.getMessage());
-            return null;
-        }
-    }
-
-    public LyricsLine getCurrentLine(List<LyricsLine> lyrics, long position) {
-        LyricsLine currentLine = null;
-
-        for (LyricsLine line : lyrics) {
-            if (line.getTimeStamp() > position) {
-                break;
-            }
-            if(!line.getText().isBlank())
-                currentLine = line;
-        }
-
-        return currentLine;
-    }
-    public int getCurrentLineIndex(List<LyricsLine> lyrics, long position) {
-
-        int currentIndex = -1;
-
-        for (int i = 0; i < lyrics.size(); i++) {
-            LyricsLine line = lyrics.get(i);
-
-            if (line.getTimeStamp() > position) {
-                break;
-            }
-
-            if (!line.getText().isBlank()) {
-                currentIndex = i;
-            }
-        }
-
-        return currentIndex;
     }
 }

@@ -29,7 +29,7 @@ public final class SongSearch {
     }
 
     private static final HttpClient CLIENT = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(6)).build();
-    private static final String UA = "LyricsPlus/2.4 (Minecraft Fabric mod)";
+    private static final String UA = "LyricsPlus/2.5 (Minecraft Fabric mod)";
     private static final int MAX = 8;
 
     private SongSearch() {
