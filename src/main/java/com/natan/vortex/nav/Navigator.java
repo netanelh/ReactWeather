@@ -208,7 +208,10 @@ public final class Navigator {
         if (pl != null) {
             var inv = pl.getInventory();
             net.minecraft.world.item.ItemStack[] arr = new net.minecraft.world.item.ItemStack[9];
-            for (int i = 0; i < 9; i++) arr[i] = inv.getItem(i).copy();
+            for (int i = 0; i < 9; i++) {
+                var st = inv.getItem(i); // same rule as Actions.selectBestTool: nearly broken tools aren't used
+                arr[i] = (st.isDamageableItem() && st.getMaxDamage() - st.getDamageValue() < 3) ? net.minecraft.world.item.ItemStack.EMPTY : st.copy();
+            }
             World.tools = arr;
             World.creative = pl.isCreative();
         }

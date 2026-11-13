@@ -5,6 +5,9 @@
   "client": [
     "sodium.SodiumBlockRendererMixin",
     "sodium.SodiumBlockContextMixin",
+    "sodium.SodiumWorldRendererMixin",
+    "sodium.SodiumFluidRendererMixin",
+    "VisGraphMixin",
     "MinecraftAccessor",
     "LocalPlayerJumpMixin",
     "KeyboardInputMixin",

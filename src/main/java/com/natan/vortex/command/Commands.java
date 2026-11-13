@@ -73,7 +73,8 @@ public final class Commands {
             case "home" -> {
                 var p = Waypoints.INSTANCE.get("home");
                 if (p == null) Chat.error("No home set here. Use .sethome");
-                else nav.start(new GotoProcess(new Goal.Near(p.pos(), 1.5), "home"));
+                else if (!tryElytra(mc, nav, p.x(), p.y(), p.z(), new Goal.Near(p.pos(), 1.5), "home"))
+                    nav.start(new GotoProcess(new Goal.Near(p.pos(), 1.5), "home"));
             }
             case "sethome" -> { Waypoints.INSTANCE.set("home", mc.player.blockPosition()); Chat.info("Home set to " + mc.player.blockPosition().toShortString()); }
             case "wp", "waypoint" -> waypoint(a);
@@ -397,13 +398,19 @@ public final class Commands {
         }
     }
 
-    private static boolean tryElytra(Minecraft mc, Navigator nav, int x, int y, int z, String label) {
+    /** Elytra flight for far targets, then walks the rest of the way to {@code finish}. */
+    private static boolean tryElytra(Minecraft mc, Navigator nav, int x, int y, int z, Goal finish, String label) {
         if (!VortexClient.modules.get(com.natan.vortex.module.pathing.NavSettings.class).autoElytra.on()) return false;
-        if (mc.player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST).getItem() != net.minecraft.world.item.Items.ELYTRA) return false;
+        if (mc.level.dimension() == net.minecraft.world.level.Level.NETHER) return false; // roof: walk instead
+        var chest = mc.player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST);
+        if (chest.getItem() != net.minecraft.world.item.Items.ELYTRA) return false;
+        if (chest.getMaxDamage() - chest.getDamageValue() <= 20) { Chat.info("Elytra almost broken, walking instead."); return false; }
         if (com.natan.vortex.util.Inv.findHotbar(st -> st.is(net.minecraft.world.item.Items.FIREWORK_ROCKET)) == -1) return false;
         double dist = Math.hypot(x + 0.5 - mc.player.getX(), z + 0.5 - mc.player.getZ());
         if (dist < 200) return false;
-        nav.start(new com.natan.vortex.nav.process.FlyProcess(new net.minecraft.core.BlockPos(x, y, z), label));
+        nav.start(new com.natan.vortex.nav.process.SequenceProcess(java.util.List.of(
+            new com.natan.vortex.nav.process.FlyProcess(new net.minecraft.core.BlockPos(x, y, z), label),
+            new GotoProcess(finish, label)), label));
         Chat.info("Flying to " + label + " with the elytra (" + (int) dist + " blocks).");
         return true;
     }
@@ -413,7 +420,7 @@ public final class Commands {
         Navigator nav = Navigator.INSTANCE;
         if (a.length == 4) {
             int x = coord(a[1], mc.player.getBlockX()), y = coord(a[2], mc.player.getBlockY()), z = coord(a[3], mc.player.getBlockZ());
-            if (tryElytra(mc, nav, x, y, z, x + " " + y + " " + z)) return;
+            if (tryElytra(mc, nav, x, y, z, new Goal.Block(x, y, z), x + " " + y + " " + z)) return;
             nav.start(new GotoProcess(new Goal.Block(x, y, z), x + " " + y + " " + z));
         } else if (a.length == 3) {
             int x = coord(a[1], mc.player.getBlockX()), z = coord(a[2], mc.player.getBlockZ());
@@ -421,6 +428,7 @@ public final class Commands {
         } else if (a.length == 2) {
             var p = Waypoints.INSTANCE.get(a[1]);
             if (p == null) { Chat.error("No waypoint '" + a[1] + "' in this world/dimension."); return; }
+            if (tryElytra(mc, nav, p.x(), p.y(), p.z(), new Goal.Near(p.pos(), 1.5), a[1])) return;
             nav.start(new GotoProcess(new Goal.Near(p.pos(), 1.5), a[1]));
         } else Chat.error("Usage: .goto x y z | .goto x z | .goto <waypoint>");
     }

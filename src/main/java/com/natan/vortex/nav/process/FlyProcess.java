@@ -83,6 +83,10 @@ public class FlyProcess implements Process {
                     if (horiz < 6) { phase = Phase.LAND; return; }
                     phase = Phase.TAKEOFF; takeoffTicks = 0; return;
                 }
+                var chest = p.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST);
+                if (chest.is(Items.ELYTRA) && chest.getMaxDamage() - chest.getDamageValue() < 10) {
+                    Chat.error("Elytra almost broken, landing."); phase = Phase.DESCEND; return;
+                }
                 int cruiseY = Math.max(ty, groundAhead(mc, dx, dz) + 32);
                 aimTravel(p, dx, dz, cruiseY);
                 Vec3 v = p.getDeltaMovement();
@@ -102,7 +106,7 @@ public class FlyProcess implements Process {
             }
             case LAND -> {
                 if (p.getY() - groundBelow(mc) < 3 && p.isFallFlying()) p.setXRot(-40); // flare to slow
-                if (p.onGround()) { Actions.releaseKeys(); phase = Phase.DONE; Chat.info("Arrived at " + label + "."); }
+                if (p.onGround()) { Actions.releaseKeys(); phase = Phase.DONE; Chat.info("Landed near " + label + "."); }
                 else if (!p.isFallFlying() && p.getY() - groundBelow(mc) < 1) { phase = Phase.DONE; }
             }
             default -> {}
@@ -120,8 +124,10 @@ public class FlyProcess implements Process {
     private boolean boostIfPossible(Minecraft mc) {
         int fw = Inv.findHotbar(s -> s.is(Items.FIREWORK_ROCKET));
         if (fw == -1) return false;
+        int prev = Inv.selected();
         Inv.select(fw);
         mc.gameMode.useItem(mc.player, InteractionHand.MAIN_HAND);
+        Inv.select(prev); // don't leave the player holding rockets after landing
         return true;
     }
 

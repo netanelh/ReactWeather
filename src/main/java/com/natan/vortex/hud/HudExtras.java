@@ -30,6 +30,21 @@ import java.util.List;
 final class HudExtras {
     private HudExtras() {}
 
+    // smoothed horizontal speed (blocks/s) for the nav ETA, sampled once per game tick
+    private static double speedEma = 0, lastX, lastZ;
+    private static long lastSample = Long.MIN_VALUE;
+
+    private static void sampleSpeed(Minecraft mc) {
+        long t = mc.level.getGameTime();
+        if (t == lastSample) return;
+        double x = mc.player.getX(), z = mc.player.getZ();
+        if (lastSample != Long.MIN_VALUE && t == lastSample + 1) {
+            double v = Math.hypot(x - lastX, z - lastZ) * 20;
+            if (v < 100) speedEma = speedEma * 0.95 + v * 0.05; // ignore teleports
+        }
+        lastSample = t; lastX = x; lastZ = z;
+    }
+
     static void render(GuiGraphicsExtractor g, Minecraft mc, ClickGui gui) {
         var mods = VortexClient.modules;
         int w = g.guiWidth(), h = g.guiHeight();
@@ -49,7 +64,8 @@ final class HudExtras {
                     ang = ((ang % 360) + 360) % 360;
                     String[] arrows = {"\u2191", "\u2197", "\u2192", "\u2198", "\u2193", "\u2199", "\u2190", "\u2196"};
                     arrow = arrows[(int) Math.round(ang / 45.0) % 8];
-                    int etaSec = (int) (dist / 4.3);
+                    sampleSpeed(mc);
+                    int etaSec = (int) (dist / Math.max(1.0, speedEma > 0.5 ? speedEma : 4.3));
                     extra = String.format(" \u00b7 %dm \u00b7 ~%d:%02d", Math.round(dist), etaSec / 60, etaSec % 60);
                 }
                 String text = arrow + " " + st + extra;

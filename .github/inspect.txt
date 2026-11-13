@@ -26,3 +26,6 @@ net.minecraft.world.level.block.WebBlock
 net.minecraft.client.renderer.LevelRenderer
 net.minecraft.client.gui.Gui
 net.minecraft.client.Options
+net.minecraft.client.renderer.chunk.VisGraph
+net.minecraft.world.level.dimension.DimensionType
+net.minecraft.world.level.BlockAndTintGetter

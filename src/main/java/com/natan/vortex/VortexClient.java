@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 public class VortexClient implements ClientModInitializer {
     public static final String MOD_ID = "vortex";
     public static final String NAME = "Zephex";
-    public static final String VERSION = "1.6.0";
+    public static final String VERSION = "1.6.1";
     /** Sodium replaces vanilla chunk meshing, so terrain-hiding hooks never run with it. */
     public static final boolean SODIUM = net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("sodium");
     public static final Logger LOG = LoggerFactory.getLogger(NAME);
@@ -43,9 +43,11 @@ public class VortexClient implements ClientModInitializer {
     }
 
     private static Object lastLevel;
+    private static final java.util.Set<com.natan.vortex.module.Module> holdLatched = new java.util.HashSet<>();
 
     private void onTick() {
         if (mc.level != lastLevel) { lastLevel = mc.level; com.natan.vortex.module.render.ServerLag.reset();
+            holdLatched.clear();
             if (modules != null) modules.onWorldChange(); }
         java.util.List<Integer> keys = new java.util.ArrayList<>();
         for (var m : modules.all()) keys.add(m.key);
@@ -62,8 +64,11 @@ public class VortexClient implements ClientModInitializer {
         // hold-mode binds: on while the key is held (and no screen is open), off when released
         if (mc.player != null) for (var m : modules.all()) {
             if (!m.holdBind || m.key == Keys.NONE || m == modules.clickGui()) continue;
-            boolean want = mc.gui.screen() == null && Keys.isDown(m.key);
-            if (want != m.isEnabled()) m.setEnabled(want);
+            boolean down = mc.gui.screen() == null && Keys.isDown(m.key);
+            // latch: enable once per press (a module that turns itself off isn't restarted every tick),
+            // disable only on release of a press that enabled it (GUI/.toggle enables are left alone)
+            if (down && fresh.contains(m.key) && !m.isEnabled()) { m.setEnabled(true); holdLatched.add(m); }
+            else if (!down && holdLatched.remove(m) && m.isEnabled()) m.setEnabled(false);
         }
         modules.onTick();
         com.natan.vortex.memory.WorldMemory.INSTANCE.tick();
