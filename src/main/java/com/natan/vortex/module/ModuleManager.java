@@ -48,7 +48,7 @@ public class ModuleManager {
         add(new Fullbright()); add(new Xray()); add(new Esp()); add(new NoWeather()); add(new Radar()); add(new TargetHud());
         add(new DangerAlert()); add(new NoOverlay()); add(new Zoom()); add(new PotionHud()); add(new InventoryHud());
         add(new Keystrokes()); add(new PingHud()); add(new ClockHud()); add(new BlockInfo()); add(new NearbyPlayers());
-        add(new Compass()); add(new ServerInfo()); add(new TotemCounter()); add(new LogoutSpots()); add(new BlockRadar());
+        add(new Compass()); add(new ServerInfo()); add(new TotemCounter()); add(new LogoutSpots()); add(new WaypointMarkers()); add(new BlockRadar());
         // Player
         add(new AutoEat()); add(new AutoTool()); add(new ChestStealer()); add(new AutoRespawn());
         add(new AntiAfk()); add(new AutoFish()); add(new FastPlace()); add(new FastBreak()); add(new AutoReplenish());

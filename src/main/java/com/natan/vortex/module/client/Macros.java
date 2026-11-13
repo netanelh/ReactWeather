@@ -43,10 +43,11 @@ public class Macros extends Module {
     @Override
     public void onTick() {
         if (!loaded) load();
-        if (mc.gui.screen() != null) return;
+        // keep tracking key state while a menu is open, so closing a menu with the bound key doesn't fire it
+        boolean screen = mc.gui.screen() != null;
         for (var e : binds.entrySet()) {
             boolean down = Keys.isDown(e.getKey());
-            if (down && !was.getOrDefault(e.getKey(), false))
+            if (!screen && down && !was.getOrDefault(e.getKey(), false))
                 runLine(e.getValue());
             was.put(e.getKey(), down);
         }

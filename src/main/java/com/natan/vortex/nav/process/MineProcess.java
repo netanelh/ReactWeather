@@ -67,7 +67,14 @@ public class MineProcess implements Process {
         phaseTicks++;
         if (scanCooldown-- <= 0) { scan(); scanCooldown = 40; }
 
-        if (depositHome && Actions.inventoryFull() && phase != Phase.GO_HOME && phase != Phase.DEPOSIT) {
+        if (depositHome && Actions.inventoryFull() && phase != Phase.GO_HOME && phase != Phase.DEPOSIT
+            && !(phase == Phase.RETURN && phaseTicks <= 20)) {
+            if (phase == Phase.RETURN) {
+                // still full right after unloading (chest full / only kept items): don't loop home forever
+                Chat.error("Inventory still full after unloading (chest full?). Stopping.");
+                mined = Integer.MAX_VALUE / 2;
+                return;
+            }
             if (Waypoints.INSTANCE.get("home") == null) {
                 Chat.error("Inventory full and no 'home' waypoint (.sethome). Stopping.");
                 mined = Integer.MAX_VALUE / 2; // isDone() with limit 0 is false -> force stop below
@@ -106,6 +113,21 @@ public class MineProcess implements Process {
     }
 
     private void setPhase(Phase p) { phase = p; phaseTicks = 0; }
+
+    /** One unreachable ore / wander point shouldn't end the whole task. */
+    @Override
+    public boolean onPathFailed() {
+        return switch (phase) {
+            case SEARCH -> wander != null && wander.onPathFailed();
+            case MINE -> {
+                if (current == null) yield false;
+                blacklist.add(current); found.remove(current); setPhase(Phase.SEARCH);
+                yield true;
+            }
+            case PICKUP, RETURN -> { setPhase(Phase.SEARCH); yield true; }
+            default -> false;
+        };
+    }
 
     @Override
     public Goal goal() {

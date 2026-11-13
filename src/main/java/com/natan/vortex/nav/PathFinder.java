@@ -41,6 +41,18 @@ public final class PathFinder {
         this.walk = cfg.sprint() ? 3.564 : 4.633;
     }
 
+    /** Per-search cache: lava next to a cell (same level or one below) makes walking there riskier. */
+    private final Map<Long, Double> lavaCache = new HashMap<>();
+    private static final int[][] SIDES = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+
+    private double lavaPenalty(int x, int y, int z) {
+        return lavaCache.computeIfAbsent(key(x, y, z), k -> {
+            int n = 0;
+            for (int[] d : SIDES) for (int dy = -1; dy <= 0; dy++) if (World.isLavaAt(x + d[0], y + dy, z + d[1])) n++;
+            return Math.min(30.0, n * 6.0);
+        });
+    }
+
     private static long key(int x, int y, int z) { return ((long) x & 0x3FFFFFFL) << 38 | ((long) z & 0x3FFFFFFL) << 12 | (y & 0xFFFL); }
 
     public Result find(BlockPos start, Goal goal, AtomicBoolean cancel) {
@@ -71,7 +83,7 @@ public final class PathFinder {
             for (Candidate c : neighbors(cur)) {
                 long k = key(c.x, c.y, c.z);
                 Node n = nodes.get(k);
-                double g = cur.g + c.cost + World.hostilePenalty(c.x, c.y, c.z)
+                double g = cur.g + c.cost + World.hostilePenalty(c.x, c.y, c.z) + lavaPenalty(c.x, c.y, c.z)
                     + World.failPenalty(c.x, c.y, c.z) * (c.move() == Step.Move.PARKOUR ? 3 : 1);
                 if (n == null) {
                     n = new Node(c.x, c.y, c.z);

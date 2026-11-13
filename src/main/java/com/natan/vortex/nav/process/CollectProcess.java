@@ -13,6 +13,7 @@ public class CollectProcess implements Process {
     private final int radius;
     private ItemEntity target;
     private int picked, idleTicks;
+    private final java.util.Set<Integer> ignored = new java.util.HashSet<>(); // unreachable items
 
     public CollectProcess(String itemFilter, int radius) { this.itemFilter = itemFilter == null ? null : itemFilter.toLowerCase(); this.radius = radius; }
 
@@ -27,7 +28,7 @@ public class CollectProcess implements Process {
         if (target == null) {
             double best = radius;
             for (Entity e : mc.level.entitiesForRendering()) {
-                if (!(e instanceof ItemEntity it) || !it.isAlive()) continue;
+                if (!(e instanceof ItemEntity it) || !it.isAlive() || ignored.contains(it.getId())) continue;
                 if (itemFilter != null && !Items2.id(it.getItem()).contains(itemFilter)) continue;
                 double d = it.distanceTo(mc.player);
                 if (d < best) { best = d; target = it; }
@@ -37,5 +38,6 @@ public class CollectProcess implements Process {
     }
 
     @Override public Goal goal() { return target == null ? null : new Goal.Block(target.blockPosition()); }
+    @Override public boolean onPathFailed() { if (target == null) return false; ignored.add(target.getId()); target = null; return true; }
     @Override public void atGoal() { /* item gets picked up by walking over it */ }
 }

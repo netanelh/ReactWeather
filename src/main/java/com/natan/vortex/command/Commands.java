@@ -328,7 +328,7 @@ public final class Commands {
     }
 
     private static boolean isNavCommand(String c) {
-        return Set.of("goto", "g", "home", "mine", "follow", "explore", "farm", "tunnel", "hunt", "kill", "collect", "pickup", "find", "surface", "up", "flee", "run", "patrol", "locate", "scout", "fetch", "indexchests", "scanchests", "do", "chain", "fly", "build", "fill", "clear", "replace", "walls", "shell", "sphere", "paste").contains(c.toLowerCase());
+        return Set.of("goto", "g", "home", "mine", "follow", "explore", "farm", "tunnel", "hunt", "kill", "collect", "pickup", "find", "surface", "up", "flee", "run", "patrol", "locate", "scout", "fetch", "indexchests", "scanchests", "do", "chain", "fly", "build", "fill", "clear", "replace", "walls", "shell", "sphere", "paste", "y", "ylevel").contains(c.toLowerCase());
     }
 
     private static void help() {

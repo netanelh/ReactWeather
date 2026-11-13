@@ -37,6 +37,7 @@ public final class HudRenderer {
         HudMore.render(g, mc, gui);
         HudExtras.render(g, mc, gui);
         VortexClient.modules.get(com.natan.vortex.module.render.LogoutSpots.class).renderMarkers(g);
+        VortexClient.modules.get(com.natan.vortex.module.render.WaypointMarkers.class).renderMarkers(g);
         if (!hud.isEnabled()) return;
 
         int by = h - 11;

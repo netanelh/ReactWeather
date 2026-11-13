@@ -22,6 +22,7 @@ public abstract class EntityMixin {
     @Inject(method = "getPickRadius", at = @At("HEAD"), cancellable = true)
     private void vortex$hitboxes(CallbackInfoReturnable<Float> cir) {
         if (VortexClient.modules == null) return;
+        if (!((Entity) (Object) this).level().isClientSide()) return; // not the integrated server's entities
         float extra = VortexClient.modules.get(Hitboxes.class).extra((Entity) (Object) this);
         if (extra > 0) cir.setReturnValue(extra);
     }

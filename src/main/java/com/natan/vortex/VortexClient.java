@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 public class VortexClient implements ClientModInitializer {
     public static final String MOD_ID = "vortex";
     public static final String NAME = "Zephex";
-    public static final String VERSION = "1.5.5";
+    public static final String VERSION = "1.5.6";
     /** Sodium replaces vanilla chunk meshing, so terrain-hiding hooks never run with it. */
     public static final boolean SODIUM = net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("sodium");
     public static final Logger LOG = LoggerFactory.getLogger(NAME);
@@ -45,7 +45,8 @@ public class VortexClient implements ClientModInitializer {
     private static Object lastLevel;
 
     private void onTick() {
-        if (mc.level != lastLevel) { lastLevel = mc.level; com.natan.vortex.module.render.ServerLag.reset(); }
+        if (mc.level != lastLevel) { lastLevel = mc.level; com.natan.vortex.module.render.ServerLag.reset();
+            if (modules != null) modules.get(com.natan.vortex.module.movement.Blink.class).clearQueue(); }
         java.util.List<Integer> keys = new java.util.ArrayList<>();
         for (var m : modules.all()) keys.add(m.key);
         java.util.Set<Integer> fresh = Keys.update(keys);

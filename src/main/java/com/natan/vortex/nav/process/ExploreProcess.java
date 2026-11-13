@@ -29,4 +29,6 @@ public class ExploreProcess implements Process {
     @Override public Goal goal() { return goal; }
     @Override public void atGoal() { visited++; next(); }
     @Override public boolean isDone() { return false; }
+    /** An unreachable spiral point (ocean, void, wall) just skips to the next one. */
+    @Override public boolean onPathFailed() { next(); return true; }
 }

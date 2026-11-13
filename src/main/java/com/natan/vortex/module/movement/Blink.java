@@ -13,7 +13,7 @@ import java.util.List;
 public class Blink extends Module {
     private final NumberSetting maxPackets = add(new NumberSetting("Auto Release", "Release automatically after this many packets (0 = never)", 0, 0, 400, 10));
     private final List<Packet<?>> queue = new ArrayList<>();
-    private boolean flushing;
+    private boolean flushing, releasing;
 
     public Blink() { super("Blink", "Freeze for the server, then teleport where you walked", Category.MOVEMENT); }
 
@@ -23,12 +23,17 @@ public class Blink extends Module {
     public boolean intercept(Packet<?> packet) {
         if (!isEnabled() || flushing || !(packet instanceof ServerboundMovePlayerPacket)) return false;
         queue.add(packet);
-        if (maxPackets.i() > 0 && queue.size() >= maxPackets.i()) mc.execute(this::toggle);
+        int cap = maxPackets.i() > 0 ? maxPackets.i() : 1000; // hard cap so the queue can't grow forever
+        if (queue.size() >= cap && !releasing) { releasing = true; mc.execute(() -> { if (isEnabled()) toggle(); }); }
         return true;
     }
 
+    /** Drops held packets without sending them (world/server changed: they belong to the old connection). */
+    public void clearQueue() { queue.clear(); }
+
     @Override
     public void onDisable() {
+        releasing = false;
         if (mc.getConnection() != null) {
             flushing = true;
             for (Packet<?> p : queue) mc.getConnection().send(p);

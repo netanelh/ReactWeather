@@ -23,6 +23,7 @@ public class HuntProcess implements Process {
     private Goal lastGoal;
     private net.minecraft.core.BlockPos lastPos;
     private LivingEntity lastTarget;
+    private final java.util.Set<Integer> ignored = new java.util.HashSet<>(); // unreachable mobs
 
     public HuntProcess(Predicate<Entity> filter, String label, int limit) { this.filter = filter; this.label = label; this.limit = limit; }
 
@@ -52,6 +53,7 @@ public class HuntProcess implements Process {
             for (Entity e : mc.level.entitiesForRendering()) {
                 if (!(e instanceof LivingEntity le) || e == mc.player || e instanceof Player || !le.isAlive() || !filter.test(e)) continue;
                 if (e.hasCustomName()) continue; // never hunt named pets
+                if (ignored.contains(e.getId())) continue;
                 double d = e.distanceTo(mc.player);
                 if (d < best) { best = d; target = le; }
             }
@@ -64,6 +66,13 @@ public class HuntProcess implements Process {
                 mc.player.swing(InteractionHand.MAIN_HAND);
             }
         }
+    }
+
+    @Override
+    public boolean onPathFailed() {
+        if (target == null) return false;
+        ignored.add(target.getId()); target = null; lastGoal = null; lastTarget = null;
+        return true;
     }
 
     @Override

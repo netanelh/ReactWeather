@@ -49,7 +49,7 @@ public class ClickGuiScreen extends Screen {
     private Module binding;
     private int listContentH, settingsContentH;
 
-    public ClickGuiScreen() { super(Component.literal("Zephex")); }
+    public ClickGuiScreen() { super(Component.literal(VortexClient.NAME)); }
 
     private ClickGui cfg() { return VortexClient.modules.clickGui(); }
     private int acc(int i) { return cfg().accent(i); }
@@ -87,10 +87,10 @@ public class ClickGuiScreen extends Screen {
         g.fill(x, y, x + w, y + h, C_BG);
         g.fill(x, y, x + w, y + TITLE_H, C_TITLE);
         g.fill(x, y + TITLE_H - 1, x + w, y + TITLE_H, acc(0));
-        g.text(font, "Zephex", x + 8, y + 7, acc(0), true);
+        g.text(font, VortexClient.NAME, x + 8, y + 7, acc(0), true);
         int enabled = 0, total = VortexClient.modules.all().size();
         for (Module m : VortexClient.modules.all()) if (m.isEnabled() && m.category != Category.CLIENT) enabled++;
-        g.text(font, enabled + " on · " + total + " modules", x + 8 + font.width("Zephex") + 8, y + 7, C_FAINT, false);
+        g.text(font, enabled + " on · " + total + " modules", x + 8 + font.width(VortexClient.NAME) + 8, y + 7, C_FAINT, false);
         hits.add(new Hit(HitType.TITLE, x, y, w - 170, TITLE_H, null, null, null));
 
         // search box (top right)
@@ -138,8 +138,9 @@ public class ClickGuiScreen extends Screen {
         // footer
         int fy = y + h - FOOTER_H;
         g.fill(x, fy, x + w, y + h, C_TITLE);
-        String foot = hover != null ? hover : "LMB toggle  ·  RMB settings  ·  MMB bind  ·  drag the title bar to move";
-        g.text(font, trim(foot, w - 12), x + 6, fy + 3, hover != null ? C_TEXT : C_FAINT, false);
+        boolean showHover = hover != null && cfg().descriptions.on();
+        String foot = showHover ? hover : "LMB toggle  ·  RMB settings  ·  MMB bind  ·  drag the title bar to move";
+        g.text(font, trim(foot, w - 12), x + 6, fy + 3, showHover ? C_TEXT : C_FAINT, false);
     }
 
     private String drawModuleList(GuiGraphicsExtractor g, int mx, int my, int x, int y, int w, int h) {
@@ -171,7 +172,7 @@ public class ClickGuiScreen extends Screen {
                 g.text(font, "...", cx + cardW - 13, cyy + 7, C_FAINT, false);
             }
             hits.add(new Hit(HitType.MODULE, cx, cyy, cardW, CARD_H, null, m, null).clip(y, y + h));
-            if (hov) hover = m.name + ": " + m.description;
+            if (hov) hover = search.isEmpty() ? m.name + ": " + m.description : m.name + " [" + m.category.display + "]: " + m.description;
         }
         if (mods.isEmpty()) g.text(font, "No modules match \"" + search + "\"", x + 10, y + 10, C_FAINT, false);
         g.disableScissor();
@@ -187,7 +188,13 @@ public class ClickGuiScreen extends Screen {
         g.fill(x + 1, y, x + w, y + h, 0x60000000);
 
         // header (not scrolled)
-        g.text(font, trim(m.name, w - 56), x + 8, y + 6, C_TEXT, true);
+        g.text(font, trim(m.name, m.settings.isEmpty() ? w - 56 : w - 72), x + 8, y + 6, C_TEXT, true);
+        if (!m.settings.isEmpty()) {
+            boolean rh = mx >= x + w - 62 && mx < x + w - 48 && my >= y + 3 && my < y + 17;
+            g.text(font, "R", x + w - 58, y + 6, rh ? C_TEXT : C_DIM, false);
+            hits.add(new Hit(HitType.RESET, x + w - 62, y + 3, 14, 14, null, m, null));
+            if (rh) hover = "Double-click: reset all settings of " + m.name;
+        }
         drawSwitch(g, x + w - 26, y + 6, m.isEnabled(), a);
         hits.add(new Hit(HitType.TOGGLE, x + w - 30, y + 3, 26, 14, null, m, null));
         hits.add(new Hit(HitType.CLOSE_SETTINGS, x + w - 46, y + 3, 14, 14, null, null, null));
@@ -271,7 +278,8 @@ public class ClickGuiScreen extends Screen {
             List<Module> out = new ArrayList<>();
             String q = search.toLowerCase();
             for (Module m : VortexClient.modules.all())
-                if (m.name.toLowerCase().contains(q) || m.description.toLowerCase().contains(q)) out.add(m);
+                if (m.name.toLowerCase().contains(q) || m.description.toLowerCase().contains(q)
+                    || m.settings.stream().anyMatch(st -> st.name.toLowerCase().contains(q))) out.add(m);
             return out;
         }
         return VortexClient.modules.byCategory(selectedCategory);
@@ -300,6 +308,7 @@ public class ClickGuiScreen extends Screen {
                 }
                 case TOGGLE -> h.module.toggle();
                 case CLOSE_SETTINGS -> selectedModule = null;
+                case RESET -> { if (doubled && button == 0) h.module.settings.forEach(Setting::reset); }
                 case BIND -> binding = binding == h.module ? null : h.module;
                 case HUD_VISIBLE -> h.module.showInHud = !h.module.showInHud;
                 case SETTING -> {
@@ -341,7 +350,8 @@ public class ClickGuiScreen extends Screen {
     @Override
     public boolean mouseScrolled(double mx, double my, double horizontal, double vertical) {
         // Ctrl/Shift + wheel over a number setting nudges its value
-        if (vertical != 0 && (Keys.isDown(GLFW.GLFW_KEY_LEFT_CONTROL) || Keys.isDown(GLFW.GLFW_KEY_LEFT_SHIFT))) {
+        if (vertical != 0 && (Keys.isDown(GLFW.GLFW_KEY_LEFT_CONTROL) || Keys.isDown(GLFW.GLFW_KEY_RIGHT_CONTROL)
+            || Keys.isDown(GLFW.GLFW_KEY_LEFT_SHIFT) || Keys.isDown(GLFW.GLFW_KEY_RIGHT_SHIFT))) {
             for (Hit h : hits) {
                 if (h.type == HitType.SETTING && h.contains(mx, my) && h.setting instanceof NumberSetting n) {
                     double st = n.step > 0 ? n.step : (n.max - n.min) / 100;
@@ -407,7 +417,7 @@ public class ClickGuiScreen extends Screen {
     }
 
     // ---------------------------------------------------------------- hit testing
-    private enum HitType { TITLE, CATEGORY, MODULE, TOGGLE, CLOSE_SETTINGS, BIND, HUD_VISIBLE, SETTING }
+    private enum HitType { TITLE, CATEGORY, MODULE, TOGGLE, CLOSE_SETTINGS, RESET, BIND, HUD_VISIBLE, SETTING }
 
     private static final class Hit {
         final HitType type; final int x, y, w, h; final Category category; final Module module; final Setting<?> setting;

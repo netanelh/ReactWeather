@@ -13,6 +13,7 @@ import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.core.registries.BuiltInRegistries;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
@@ -20,7 +21,8 @@ import java.util.function.Supplier;
 /**
  * Registers every chat command as a real "/" client command too, so Minecraft gives tab-completion
  * for each word (module names, block ids, waypoints). The "." chat prefix still works as before;
- * these just forward to the same dispatcher (Commands.execute).
+ * these just forward to the same dispatcher (Commands.execute). Every command also lives under "/vortex <cmd>";
+ * names that clash with vanilla/server commands (SHADOWED) are only registered there.
  */
 public final class ClientCommands {
     private ClientCommands() {}
@@ -62,21 +64,33 @@ public final class ClientCommands {
         new Cmd(Vocab.NONE, "spam"), new Cmd(Vocab.NONE, "panic"), new Cmd(Vocab.NONE, "modules")
     );
 
+    /** Names that are also vanilla (or common server plugin) commands: only reachable as ".name" or "/vortex name",
+     *  so "/kill", "/tp", "/fill" etc. keep going to the server. */
+    private static final Set<String> SHADOWED = Set.of("help", "stop", "kill", "clear", "fill", "tp", "locate", "seed",
+        "waypoint", "home", "sethome", "fly");
+
     public static void register() {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, access) -> {
+            LiteralArgumentBuilder<FabricClientCommandSource> root = LiteralArgumentBuilder.<FabricClientCommandSource>literal("vortex")
+                .executes(ctx -> { Commands.execute("help"); return 1; });
             for (Cmd c : COMMANDS) {
                 String canonical = c.names()[0];
                 SuggestionProvider<FabricClientCommandSource> sugg = provider(c.vocab());
                 for (String name : c.names()) {
-                    LiteralArgumentBuilder<FabricClientCommandSource> node = LiteralArgumentBuilder.<FabricClientCommandSource>literal(name)
-                        .executes(ctx -> { Commands.execute(canonical); return 1; })
-                        .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("args", StringArgumentType.greedyString())
-                            .suggests(sugg)
-                            .executes(ctx -> { Commands.execute(canonical + " " + StringArgumentType.getString(ctx, "args")); return 1; }));
-                    dispatcher.register(node);
+                    root.then(node(name, canonical, sugg));
+                    if (!SHADOWED.contains(name)) dispatcher.register(node(name, canonical, sugg));
                 }
             }
+            dispatcher.register(root);
         });
+    }
+
+    private static LiteralArgumentBuilder<FabricClientCommandSource> node(String name, String canonical, SuggestionProvider<FabricClientCommandSource> sugg) {
+        return LiteralArgumentBuilder.<FabricClientCommandSource>literal(name)
+            .executes(ctx -> { Commands.execute(canonical); return 1; })
+            .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("args", StringArgumentType.greedyString())
+                .suggests(sugg)
+                .executes(ctx -> { Commands.execute(canonical + " " + StringArgumentType.getString(ctx, "args")); return 1; }));
     }
 
     private static SuggestionProvider<FabricClientCommandSource> provider(Vocab v) {

@@ -18,8 +18,10 @@ public class GuiMove extends Module {
     public void onTick() {
         if (!inGame() || mc.gui.screen() == null || mc.gui.screen() instanceof ChatScreen) return;
         var o = mc.options;
-        pass(o.keyUp); pass(o.keyDown); pass(o.keyLeft); pass(o.keyRight); pass(o.keyJump); pass(o.keySprint);
-        if (sneak.on()) pass(o.keyShift);
+        pass(o.keyUp); pass(o.keyDown); pass(o.keyLeft); pass(o.keyRight); pass(o.keyJump);
+        // toggle keys flip on every setDown(true): leave them alone when toggle sprint/sneak is on
+        if (!o.toggleSprint().get()) pass(o.keySprint);
+        if (sneak.on() && !o.toggleCrouch().get()) pass(o.keyShift);
     }
 
     private void pass(KeyMapping k) {
