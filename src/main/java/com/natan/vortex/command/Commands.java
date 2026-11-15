@@ -315,6 +315,16 @@ public final class Commands {
                 else Chat.info("Spam messages: " + String.join(" | ", list) + "   (.spam add <text> / .spam clear)");
             }
             case "panic" -> VortexClient.modules.get(com.natan.vortex.module.client.Panic.class).setEnabled(true);
+            case "test", "selftest" -> {
+                int ok = 0; java.util.List<String> fails = new java.util.ArrayList<>();
+                for (var m : VortexClient.modules.all()) {
+                    String err = m.selfTest();
+                    if (err == null) ok++; else fails.add(m.name + " (" + err + ")");
+                }
+                Chat.info("\u00a7lSelf-test:\u00a7r \u00a7a" + ok + " OK\u00a7r / " + VortexClient.modules.all().size() + " modules");
+                if (fails.isEmpty()) Chat.info("\u00a7aNo modules threw errors.");
+                else { Chat.error(fails.size() + " had errors:"); for (String f : fails) Chat.error("  " + f); }
+            }
             case "modules" -> {
                 StringBuilder sb = new StringBuilder();
                 for (Module m : VortexClient.modules.all()) sb.append(m.isEnabled() ? "§a" : "§7").append(m.name).append("§r, ");

@@ -47,6 +47,21 @@ public abstract class Module {
     /** Flip the state without running onEnable/onDisable (used when something else already stopped the work). */
     public void setEnabledSilently(boolean value) { enabled = value; }
 
+    /** Safely exercises this module (enable -> one tick for render/client -> disable) and
+     *  returns null if nothing threw, or a short error string. Used by the .test command. */
+    public String selfTest() {
+        boolean was = enabled;
+        try {
+            if (!was) { enabled = true; onEnable(); }
+            if (category == Category.RENDER || category == Category.CLIENT) onTick();
+            if (!was) { onDisable(); enabled = false; }
+            return null;
+        } catch (Throwable t) {
+            try { if (!was) { onDisable(); enabled = false; } } catch (Throwable ignored) {}
+            return t.getClass().getSimpleName() + (t.getMessage() != null ? ": " + t.getMessage() : "");
+        }
+    }
+
     protected boolean inGame() { return mc.player != null && mc.level != null && mc.gameMode != null; }
 
     /** Called when the world/server changes (including disconnect). Reset per-world state here. */
