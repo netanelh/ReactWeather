@@ -1,0 +1,18 @@
+{
+  "providers": [
+    {
+      "type": "ttf",
+      "file": "lyricsplus:elegant.ttf",
+      "shift": [
+        0,
+        0.5
+      ],
+      "size": 10,
+      "oversample": 6
+    },
+    {
+      "type": "reference",
+      "id": "minecraft:default"
+    }
+  ]
+}
