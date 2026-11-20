@@ -109,6 +109,13 @@ public final class HudRenderer {
         if (maxW == 0) {
             return;
         }
+        // Long lines: shrink to fit the screen instead of running off the edge.
+        int avail = g.guiWidth() - 2 * MARGIN - 2 * PAD;
+        if (maxW > avail && avail > 0) {
+            sc *= avail / (float) maxW;
+            lineH = Math.round((font.lineHeight + 3) * sc);
+            maxW = avail;
+        }
         maxW = Math.max(maxW, 90);
 
         int extra = cfg.progressBar ? 6 : 0;
@@ -116,7 +123,7 @@ public final class HudRenderer {
         boolean right = cfg.sidePosition == SidePosition.TOP_RIGHT || cfg.sidePosition == SidePosition.MIDDLE_RIGHT;
         boolean middle = cfg.sidePosition == SidePosition.MIDDLE_LEFT || cfg.sidePosition == SidePosition.MIDDLE_RIGHT;
         int x = right ? g.guiWidth() - MARGIN - maxW : MARGIN;
-        int y = middle ? g.guiHeight() / 2 - boxH / 2 : MARGIN + (cfg.nowPlaying ? 26 : 0);
+        int y = middle ? g.guiHeight() / 2 - boxH / 2 : MARGIN + cfg.topOffset + (cfg.nowPlaying ? 26 : 0);
 
         background(g, cfg, x - PAD, y - PAD, x + maxW + PAD, y + boxH + PAD - 2);
 
@@ -141,8 +148,9 @@ public final class HudRenderer {
 
     private static void drawSubtitle(GuiGraphicsExtractor g, Font font, Snapshot s, LyricsConfig cfg, Component current) {
         float sc = cfg.scale * 1.25f;
+        sc = Math.min(sc, (g.guiWidth() - 40) / (float) Math.max(1, font.width(current)));
         int cx = g.guiWidth() / 2;
-        int y = g.guiHeight() - 72 - Math.round(font.lineHeight * sc);
+        int y = g.guiHeight() - 72 - cfg.bottomOffset - Math.round(font.lineHeight * sc);
 
         long intoLine = s.positionMs() - s.lineStartMs();
         float anim = cfg.animations ? Math.clamp(intoLine / 200f, 0f, 1f) : 1f;
@@ -170,6 +178,7 @@ public final class HudRenderer {
         long intoLine = s.positionMs() - s.lineStartMs();
         float pop = cfg.animations ? 0.8f + 0.2f * Math.clamp(intoLine / 160f, 0f, 1f) : 1f;
         float sc = cfg.scale * 2.0f * pop;
+        sc = Math.min(sc, (g.guiWidth() - 40) / (float) Math.max(1, font.width(current)));
         int cx = g.guiWidth() / 2;
         int y = Math.round(g.guiHeight() * 0.30f);
 
@@ -215,10 +224,11 @@ public final class HudRenderer {
         Component title = LineFormatter.colorize(s.title(), Paint.text(cfg), 0);
         Component artist = Component.literal(s.artist()).withStyle(LineFormatter.style(0xAAAAAA, s.artist()));
 
-        float ts = 2.4f;
+        float ts = Math.min(2.4f, (g.guiWidth() - 60) / (float) Math.max(1, font.width(title)));
+        float as = Math.min(1.3f, (g.guiWidth() - 60) / (float) Math.max(1, font.width(artist)));
         int titleW = Math.round(font.width(title) * ts);
-        int maxW = Math.max(titleW, Math.round(font.width(artist) * 1.3f));
-        int boxH = 8 + Math.round(font.lineHeight * ts) + 4 + Math.round(font.lineHeight * 1.3f);
+        int maxW = Math.max(titleW, Math.round(font.width(artist) * as));
+        int boxH = 8 + Math.round(font.lineHeight * ts) + 4 + Math.round(font.lineHeight * as);
 
         if (cfg.background) {
             int bgA = Math.round(cfg.backgroundOpacity * a * 255);
@@ -237,8 +247,8 @@ public final class HudRenderer {
         int lw = Math.round(font.width(label) * 0.75f);
         drawScaled(g, font, label, cx - lw / 2, y, 0.75f, argb, cfg.shadow);
         drawScaled(g, font, title, cx - titleW / 2, y + 8, ts, argb, true);
-        int aw = Math.round(font.width(artist) * 1.3f);
-        drawScaled(g, font, artist, cx - aw / 2, y + 12 + Math.round(font.lineHeight * ts), 1.3f, argb, cfg.shadow);
+        int aw = Math.round(font.width(artist) * as);
+        drawScaled(g, font, artist, cx - aw / 2, y + 12 + Math.round(font.lineHeight * ts), as, argb, cfg.shadow);
     }
 
     /** Small rounded-looking pill at the top: cover, title — artist, thin progress line. */
@@ -251,7 +261,7 @@ public final class HudRenderer {
         int h = 20;
         int w = (art ? 22 : 12) + textW + 10;
         int x = g.guiWidth() / 2 - w / 2;
-        int y = 4;
+        int y = 4 + cfg.topOffset;
         g.fill(x + 1, y, x + w - 1, y + h, 0xC0101014);
         g.fill(x, y + 1, x + w, y + h - 1, 0xC0101014);
         int tx = x + 8;
@@ -269,6 +279,9 @@ public final class HudRenderer {
             long period = (fullW - textW) * 40L + 3000;
             long t = System.currentTimeMillis() % period;
             scrollX = (int) Math.max(0, Math.min(fullW - textW, (t - 1500) / 40));
+            if (LineFormatter.isRtl(s.title())) {
+                scrollX = (fullW - textW) - scrollX; // Hebrew starts on the right
+            }
         }
         drawScaled(g, font, text, tx - scrollX, y + 7, ts, 0xFFFFFFFF, false);
         g.disableScissor();

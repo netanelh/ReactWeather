@@ -55,6 +55,9 @@ public final class LyricsConfig {
     public int highlightColor = 0x1ED760;
     public boolean highlightRainbow = false;
     public float scale = 1.0f;
+    /** Push the HUD down / up to make room for boss bars, effects and the action bar. */
+    public int topOffset = 0;
+    public int bottomOffset = 0;
     /** Delay for all songs in ms: positive = lyrics later, negative = earlier. */
     public int delayMs = 0;
     /** Extra delay remembered per song ("artist - title" -> ms). */
@@ -164,6 +167,8 @@ public final class LyricsConfig {
         wordSpacing = Math.max(0.3f, Math.min(3f, wordSpacing));
         worldHeight = Math.max(-1.5f, Math.min(1.5f, worldHeight));
         scale = Math.max(0.5f, Math.min(3.0f, scale));
+        topOffset = Math.max(0, Math.min(80, topOffset));
+        bottomOffset = Math.max(0, Math.min(80, bottomOffset));
         delayMs = Math.max(-5000, Math.min(5000, delayMs));
         if (songDelays == null) songDelays = new java.util.HashMap<>();
         songDelays.values().removeIf(java.util.Objects::isNull);
@@ -214,7 +219,7 @@ public final class LyricsConfig {
             }
             case MINIMAL -> {
                 displayMode = DisplayMode.SIDE;
-                sidePosition = SidePosition.MIDDLE_RIGHT;
+                sidePosition = SidePosition.MIDDLE_LEFT; // the server scoreboard sits on the right
                 revealMode = RevealMode.LINE;
                 font = FontStyle.MINECRAFT;
                 textColor = 0xFFFFFF;

@@ -13,6 +13,7 @@ public final class WindowsMusicManager extends MusicManager implements AutoClose
 
     private volatile State state = State.EMPTY;
     private volatile boolean running = true;
+    private long lastErrorLog;
     private final Thread worker;
 
     public WindowsMusicManager() {
@@ -38,8 +39,12 @@ public final class WindowsMusicManager extends MusicManager implements AutoClose
                             state = new State(tad[1], tad[0], tad[2], duration, position, System.nanoTime(), playing);
                         }
                     } catch (Throwable e) {
-                        // Keep the last snapshot if one read fails.
-                        System.err.println("[Lyrics Plus] Windows media read failed: " + e.getMessage());
+                        // Keep the last snapshot if one read fails. Log at most once a minute.
+                        long nowMs = System.currentTimeMillis();
+                        if (nowMs - lastErrorLog > 60_000) {
+                            lastErrorLog = nowMs;
+                            System.err.println("[Lyrics Plus] Windows media read failed: " + e.getMessage());
+                        }
                     } finally {
                         media.endPoll();
                     }

@@ -53,12 +53,21 @@ public final class LyricsFetcher {
         }
         answered = 0;
         transientError = false;
+        // Music videos are often longer than the song itself (intro, outro), so allow more slack.
+        String lowArtist = artist.toLowerCase(java.util.Locale.ROOT);
+        boolean video = !cleanTitle(title).equals(title) || indexOfDash(title) > 0
+                || lowArtist.endsWith("vevo") || lowArtist.endsWith("- topic");
+        long maxDiff = video ? 20 : 8;
         String plainFallback = null;
 
         // 1. exact match
         try {
             JsonObject exact = getObject(exactUrl(artist, title, album, durationSec));
             if (exact != null) {
+                if (exact.has("instrumental") && !exact.get("instrumental").isJsonNull()
+                        && exact.get("instrumental").getAsBoolean()) {
+                    return new Result(List.of(new LyricsLine(0, "")), false, false); // shows the ♪ dots
+                }
                 String synced = field(exact, "syncedLyrics");
                 if (synced != null) {
                     return synced(synced);
@@ -102,7 +111,7 @@ public final class LyricsFetcher {
                     }
                 }
                 // Accept a synced version only if its length roughly matches the song.
-                if (bestSynced != null && (durationSec <= 0 || bestDiff <= 8)) {
+                if (bestSynced != null && (durationSec <= 0 || bestDiff <= maxDiff)) {
                     return synced(field(bestSynced, "syncedLyrics"));
                 }
                 if (bestSynced != null && plainFallback == null) {

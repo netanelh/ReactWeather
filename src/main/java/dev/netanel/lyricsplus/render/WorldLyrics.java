@@ -510,7 +510,7 @@ public final class WorldLyrics {
 
     private static void remove(ClientLevel level, Piece p) {
         lastTransform.remove(p.entity.getId());
-        if (level != null && p.entity.level() == level) {
+        if (level != null && p.entity.level() == level && level.getEntity(p.entity.getId()) == p.entity) {
             level.removeEntity(p.entity.getId(), Entity.RemovalReason.DISCARDED);
         }
     }

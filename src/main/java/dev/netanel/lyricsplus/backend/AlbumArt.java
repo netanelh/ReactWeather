@@ -107,7 +107,7 @@ public final class AlbumArt {
     }
 
     private static BufferedImage fetch(String artist, String title) throws Exception {
-        String term = URLEncoder.encode(artist + " " + title, StandardCharsets.UTF_8);
+        String term = URLEncoder.encode(LyricsFetcher.cleanArtist(artist) + " " + LyricsFetcher.cleanTitle(title), StandardCharsets.UTF_8);
         HttpResponse<String> search = CLIENT.send(HttpRequest.newBuilder(
                         URI.create("https://itunes.apple.com/search?entity=song&limit=1&term=" + term))
                 .timeout(Duration.ofSeconds(8)).GET().build(), HttpResponse.BodyHandlers.ofString());

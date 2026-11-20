@@ -83,6 +83,9 @@ public final class LyricsEngine {
     private final Object stateLock = new Object();
     private long blankSince = -1;
     private volatile long retryAt = -1;
+    private int retryCount;
+    private long lastRawPos = -1;
+    private String lastPosKey = "";
     private boolean demo;
     private long demoStart;
 
@@ -164,7 +167,7 @@ public final class LyricsEngine {
             onTrackChanged(key, a, t);
         } else if (retryAt > 0 && System.currentTimeMillis() >= retryAt) {
             retryAt = -1; // last lookup failed because of the network: try again
-            startFetch(key, a, t);
+            startFetch(key, a, t, true);
         }
     }
 
@@ -209,12 +212,13 @@ public final class LyricsEngine {
     }
 
     private void onTrackChanged(String key, String a, String t) {
-        retryAt = -1;
         LyricsFetcher.Result cached;
         synchronized (cache) {
             cached = cache.get(key);
         }
         synchronized (stateLock) {
+            retryAt = -1;
+            retryCount = 0;
             trackKey = key;
             artist = a;
             title = t;
@@ -228,17 +232,20 @@ public final class LyricsEngine {
         }
         dev.netanel.lyricsplus.backend.AlbumArt.request(a, t);
         if (cached == null) {
-            startFetch(key, a, t);
+            startFetch(key, a, t, false);
         }
     }
 
-    private void startFetch(String key, String a, String t) {
+    private void startFetch(String key, String a, String t, boolean retry) {
         int gen;
         synchronized (stateLock) {
             gen = generation;
-            lines = null;
-            estimated = false;
-            status = Status.LOADING;
+            if (!retry) {
+                // A quiet retry keeps the current "not found" state so nothing flashes or respawns.
+                lines = null;
+                estimated = false;
+                status = Status.LOADING;
+            }
         }
         MusicManager player = music;
         fetchThread.submit(() -> {
@@ -275,7 +282,13 @@ public final class LyricsEngine {
                 estimated = result.estimated();
                 status = result.lines().isEmpty() ? Status.NOT_FOUND : Status.READY;
                 if (result.failed()) {
-                    retryAt = System.currentTimeMillis() + 30_000;
+                    // Back off: 30s, 60s, 2m, 4m, 5m, 5m, then give up for this song.
+                    if (retryCount < 6) {
+                        retryAt = System.currentTimeMillis() + Math.min(300_000L, 30_000L << retryCount);
+                        retryCount++;
+                    }
+                } else {
+                    retryCount = 0;
                 }
             }
         });
@@ -308,6 +321,12 @@ public final class LyricsEngine {
             // Linux: the player vanished between ticks. Never let that crash the HUD.
             return build("", "", 0, 0, false, Status.NO_PLAYER, null, now - trackChangedAt, false, false);
         }
+        // Windows estimates the position and can step back a little: hold it so lines don't flicker.
+        if (playing && trackKey.equals(lastPosKey) && rawPos < lastRawPos && lastRawPos - rawPos < 600) {
+            rawPos = lastRawPos;
+        }
+        lastRawPos = playing ? rawPos : -1;
+        lastPosKey = trackKey;
         // Show lyrics slightly ahead so entry animations finish on the beat, then apply delays.
         long pos = rawPos + DISPLAY_LEAD_MS - cfg.delayMs - cfg.songDelay(trackKey);
         return build(title, artist, pos, durMs, playing, status, lines,

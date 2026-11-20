@@ -168,7 +168,7 @@ public final class LyricsConfigScreen extends Screen {
                 }
                 rows.add(new ToggleRow("title_card", () -> cfg.titleCard, v -> cfg.titleCard = v).desc());
                 rows.add(new SectionRow("timing"));
-                rows.add(new SliderRow("offset", -3000, 3000, 50, () -> cfg.delayMs, v -> cfg.delayMs = (int) Math.round(v),
+                rows.add(new SliderRow("offset", -5000, 5000, 50, () -> cfg.delayMs, v -> cfg.delayMs = (int) Math.round(v),
                         v -> String.format(Locale.ROOT, "%+.2fs", v / 1000.0)).desc());
             }
             case "look" -> {
@@ -183,6 +183,10 @@ public final class LyricsConfigScreen extends Screen {
                 rows.add(new SectionRow("text"));
                 rows.add(new SliderRow("scale", 0.5, 3.0, 0.1, () -> cfg.scale, v -> cfg.scale = (float) v,
                         v -> String.format(Locale.ROOT, "%.1fx", v)).desc());
+                rows.add(new SliderRow("top_offset", 0, 80, 2, () -> cfg.topOffset, v -> cfg.topOffset = (int) Math.round(v),
+                        v -> (int) Math.round(v) + "px").desc());
+                rows.add(new SliderRow("bottom_offset", 0, 80, 2, () -> cfg.bottomOffset, v -> cfg.bottomOffset = (int) Math.round(v),
+                        v -> (int) Math.round(v) + "px").desc());
                 rows.add(new ToggleRow("shadow", () -> cfg.shadow, v -> cfg.shadow = v));
                 rows.add(new ToggleRow("background", () -> cfg.background, v -> cfg.background = v));
                 rows.add(new SliderRow("bg_opacity", 0, 1, 0.05, () -> cfg.backgroundOpacity, v -> cfg.backgroundOpacity = (float) v,
@@ -257,6 +261,8 @@ public final class LyricsConfigScreen extends Screen {
                 rows.add(new SectionRow("reset"));
                 rows.add(new ActionRow("lyricsplus.action.reset", () -> {
                     LyricsConfig fresh = new LyricsConfig();
+                    fresh.songDelays = cfg.songDelays; // keep per-song timing fixes
+                    fresh.seenIntro = cfg.seenIntro;
                     copyInto(fresh, cfg);
                     cfg.save();
                     rebuildPending = true;
@@ -331,7 +337,7 @@ public final class LyricsConfigScreen extends Screen {
         boolean doneHover = inside(mouseX, mouseY, px + 8, dy, SIDEBAR_W - 16, 18);
         g.fill(px + 8, dy, px + SIDEBAR_W - 8, dy + 18, doneHover ? accent : CARD_HOVER);
         g.centeredText(font, Component.translatable("lyricsplus.done"), px + SIDEBAR_W / 2, dy + 5, doneHover ? 0xFF101010 : TEXT);
-        small(g, Component.literal("v2.5"), px + 10, dy - 11, 0xFF55555F);
+        small(g, Component.literal("v2.6"), px + 10, dy - 11, 0xFF55555F);
 
         // content header
         g.pose().pushMatrix();
