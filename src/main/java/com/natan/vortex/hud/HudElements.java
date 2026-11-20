@@ -36,7 +36,7 @@ final class HudElements {
         int acc = gui.accent(0);
         trackClicks(mc);
 
-        // left column, below the watermark (and radar, if it's in the top-left)
+        // left column, at the top left (and radar, if it's in the top-left)
         int y = 4;
         Radar radar = m.get(Radar.class);
         if (radar.isEnabled() && radar.position.is("Top Left")) y += radar.size.i() + 8;

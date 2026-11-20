@@ -49,6 +49,7 @@ public class ModuleManager {
         add(new DangerAlert()); add(new NoOverlay()); add(new Zoom()); add(new PotionHud()); add(new InventoryHud());
         add(new Keystrokes()); add(new PingHud()); add(new ClockHud()); add(new BlockInfo()); add(new NearbyPlayers());
         add(new Compass()); add(new ServerInfo()); add(new TotemCounter()); add(new LogoutSpots()); add(new WaypointMarkers()); add(new BlockRadar()); add(new StorageEsp());
+        add(new com.natan.vortex.module.render.Breadcrumbs());
         // Player
         add(new AutoEat()); add(new AutoTool()); add(new ChestStealer()); add(new AutoRespawn());
         add(new AntiAfk()); add(new AutoFish()); add(new FastPlace()); add(new FastBreak()); add(new AutoReplenish());

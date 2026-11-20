@@ -4,6 +4,7 @@ import com.natan.vortex.module.Category;
 import com.natan.vortex.module.Module;
 
 public class AutoWalk extends Module {
+    @Override public boolean selfTestSafe() { return false; }
     public AutoWalk() { super("AutoWalk", "Holds W for you", Category.MOVEMENT); }
 
     @Override public void onTick() { if (inGame()) mc.options.keyUp.setDown(true); }

@@ -10,6 +10,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.item.Items;
 
 public class Surround extends Module {
+    @Override public boolean selfTestSafe() { return false; }
     private final NumberSetting perTick = add(new NumberSetting("Per Tick", "Blocks placed per tick", 4, 1, 8, 1));
     private final BoolSetting center = add(new BoolSetting("Center", "Snap to the middle of the block first", true));
     private final BoolSetting disableOnJump = add(new BoolSetting("Off On Jump", "Turn off when you jump away", true));

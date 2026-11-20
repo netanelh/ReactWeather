@@ -10,6 +10,7 @@ import net.minecraft.world.item.Items;
 
 /** One-shot: swaps elytra <-> best chestplate, then turns itself off. Bind it to a key. */
 public class ChestSwap extends Module {
+    @Override public boolean selfTestSafe() { return false; }
     public ChestSwap() { super("ChestSwap", "Swap between elytra and chestplate (bind a key)", Category.PLAYER); showInHud = false; }
 
     @Override

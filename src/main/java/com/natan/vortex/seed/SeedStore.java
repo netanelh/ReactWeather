@@ -31,8 +31,9 @@ public final class SeedStore {
 
     public static Long current() { String s = server(); return s == null ? null : map().get(s); }
 
-    public static void set(Long seed) {
-        String s = server();
+    public static void set(Long seed) { set(server(), seed); }
+
+    public static void set(String s, Long seed) {
         if (s == null) return;
         if (seed == null) map().remove(s); else map().put(s, seed);
         try { Files.writeString(file(), new Gson().toJson(map())); } catch (Exception ignored) {}

@@ -53,7 +53,7 @@ public abstract class Module {
         boolean was = enabled;
         try {
             if (!was) { enabled = true; onEnable(); }
-            if (category == Category.RENDER || category == Category.CLIENT) onTick();
+            if (!was && (category == Category.RENDER || category == Category.CLIENT)) onTick();
             if (!was) { onDisable(); enabled = false; }
             return null;
         } catch (Throwable t) {
@@ -61,6 +61,10 @@ public abstract class Module {
             return t.getClass().getSimpleName() + (t.getMessage() != null ? ": " + t.getMessage() : "");
         }
     }
+
+    /** False for modules whose enable/disable has real side effects (moves the player, clicks the
+     *  inventory, stops navigation, releases held keys...): .test skips them when they are off. */
+    public boolean selfTestSafe() { return true; }
 
     protected boolean inGame() { return mc.player != null && mc.level != null && mc.gameMode != null; }
 
@@ -71,6 +75,6 @@ public abstract class Module {
     public void onDisable() {}
     public void onTick() {}
 
-    /** Short suffix shown in the HUD module list, e.g. the current mode. */
+    /** Short info suffix for a module (e.g. the current mode), e.g. the current mode. */
     public String info() { return null; }
 }

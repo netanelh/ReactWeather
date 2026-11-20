@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class Xray extends Module {
+    @Override public boolean selfTestSafe() { return false; }
     private final BoolSetting ores = add(new BoolSetting("Ores", "Coal, iron, copper, gold, redstone, lapis", true).group("Blocks"));
     private final BoolSetting diamonds = add(new BoolSetting("Diamonds", "Diamond ore", true).group("Blocks"));
     private final BoolSetting emeralds = add(new BoolSetting("Emeralds", "Emerald ore", true).group("Blocks"));

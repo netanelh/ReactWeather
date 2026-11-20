@@ -161,8 +161,13 @@ public final class PathFinder {
                 if (!World.passable(nx, y, nz) || !World.passable(nx, y + 1, nz)) continue;
                 if (!World.passable(x + d[0], y, z) || !World.passable(x + d[0], y + 1, z)) continue;
                 if (!World.passable(x, y, z + d[1]) || !World.passable(x, y + 1, z + d[1])) continue;
-                if (!World.standable(nx, y - 1, nz)) continue;
-                out.add(new Candidate(nx, y, nz, walk * SQRT2 * (inWater ? 2 : 1), Step.Move.DIAGONAL, null, null));
+                if (World.standable(nx, y - 1, nz)) {
+                    out.add(new Candidate(nx, y, nz, walk * SQRT2 * (inWater ? 2 : 1), Step.Move.DIAGONAL, null, null));
+                } else if (!inWater && World.passable(nx, y - 1, nz) && !World.inWater(nx, y - 1, nz)
+                        && World.standable(nx, y - 2, nz)) {
+                    // diagonal 1-block step down (hills): same cost shape as a straight 1-block descend
+                    out.add(new Candidate(nx, y - 1, nz, walk * SQRT2 + 1.2, Step.Move.DESCEND, null, null));
+                }
                 continue;
             }
 

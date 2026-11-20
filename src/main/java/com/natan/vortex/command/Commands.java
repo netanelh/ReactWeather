@@ -316,12 +316,13 @@ public final class Commands {
             }
             case "panic" -> VortexClient.modules.get(com.natan.vortex.module.client.Panic.class).setEnabled(true);
             case "test", "selftest" -> {
-                int ok = 0; java.util.List<String> fails = new java.util.ArrayList<>();
+                int ok = 0, skipped = 0; java.util.List<String> fails = new java.util.ArrayList<>();
                 for (var m : VortexClient.modules.all()) {
+                    if (!m.isEnabled() && !m.selfTestSafe()) { skipped++; continue; }
                     String err = m.selfTest();
                     if (err == null) ok++; else fails.add(m.name + " (" + err + ")");
                 }
-                Chat.info("\u00a7lSelf-test:\u00a7r \u00a7a" + ok + " OK\u00a7r / " + VortexClient.modules.all().size() + " modules");
+                Chat.info("\u00a7lSelf-test:\u00a7r \u00a7a" + ok + " OK\u00a7r / " + VortexClient.modules.all().size() + " modules, " + skipped + " skipped (side effects)");
                 if (fails.isEmpty()) Chat.info("\u00a7aNo modules threw errors.");
                 else { Chat.error(fails.size() + " had errors:"); for (String f : fails) Chat.error("  " + f); }
             }

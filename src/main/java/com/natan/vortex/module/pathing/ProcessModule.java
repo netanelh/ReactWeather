@@ -7,6 +7,7 @@ import com.natan.vortex.nav.Process;
 
 /** A module whose on/off state starts/stops a navigator process. */
 public abstract class ProcessModule extends Module {
+    @Override public boolean selfTestSafe() { return false; }
     private Process running;
 
     protected ProcessModule(String name, String description) { super(name, description, Category.PATHING); }

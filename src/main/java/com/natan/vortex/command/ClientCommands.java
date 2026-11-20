@@ -34,6 +34,7 @@ public final class ClientCommands {
 
     private static final List<Cmd> COMMANDS = List.of(
         new Cmd(Vocab.NONE, "help", "h"),
+        new Cmd(Vocab.NONE, "test", "selftest"),
         new Cmd(Vocab.NONE, "stop", "cancel"),
         new Cmd(Vocab.NONE, "pause"), new Cmd(Vocab.NONE, "resume"), new Cmd(Vocab.NONE, "path"),
         new Cmd(Vocab.WAYPOINT, "goto", "g"),
@@ -67,7 +68,7 @@ public final class ClientCommands {
     /** Names that are also vanilla (or common server plugin) commands: only reachable as ".name" or "/vortex name",
      *  so "/kill", "/tp", "/fill" etc. keep going to the server. */
     private static final Set<String> SHADOWED = Set.of("help", "stop", "kill", "clear", "fill", "tp", "locate", "seed",
-        "waypoint", "home", "sethome", "fly");
+        "waypoint", "home", "sethome", "fly", "test");
 
     public static void register() {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, access) -> {

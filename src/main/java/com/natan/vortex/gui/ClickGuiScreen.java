@@ -31,6 +31,8 @@ import java.util.List;
 public class ClickGuiScreen extends Screen {
     // persistent between openings / saved in config
     private static Category selectedCategory = Category.COMBAT;
+    /** Sidebar "Active" view: every enabled module across categories (inside the GUI only, not on the HUD). */
+    private static boolean showActive;
     private static Module selectedModule;
     private static int winX = Integer.MIN_VALUE, winY;
     private static int listScroll, settingsScroll;
@@ -110,7 +112,7 @@ public class ClickGuiScreen extends Screen {
             List<Module> mods = VortexClient.modules.byCategory(c);
             int on = 0;
             for (Module m : mods) if (m.isEnabled()) on++;
-            boolean sel = search.isEmpty() && c == selectedCategory;
+            boolean sel = search.isEmpty() && !showActive && c == selectedCategory;
             boolean hov = mx >= x && mx < x + SIDEBAR_W && my >= cy && my < cy + 18;
             if (sel) { g.fill(x, cy, x + SIDEBAR_W, cy + 18, Colors.withAlpha(acc(c.ordinal()), 0x35)); g.fill(x, cy, x + 2, cy + 18, acc(c.ordinal())); }
             else if (hov) g.fill(x, cy, x + SIDEBAR_W, cy + 18, 0x14FFFFFF);
@@ -120,6 +122,20 @@ public class ClickGuiScreen extends Screen {
             hits.add(new Hit(HitType.CATEGORY, x, cy, SIDEBAR_W, 18, c, null, null));
             if (hov) hover = "Show " + c.display + " modules";
             cy += 19;
+        }
+        {
+            cy += 4;
+            int on = 0;
+            for (Module m : VortexClient.modules.all()) if (m.isEnabled()) on++;
+            boolean sel = search.isEmpty() && showActive;
+            boolean hov = mx >= x && mx < x + SIDEBAR_W && my >= cy && my < cy + 18;
+            if (sel) { g.fill(x, cy, x + SIDEBAR_W, cy + 18, Colors.withAlpha(acc(0), 0x35)); g.fill(x, cy, x + 2, cy + 18, acc(0)); }
+            else if (hov) g.fill(x, cy, x + SIDEBAR_W, cy + 18, 0x14FFFFFF);
+            g.text(font, "Active", x + 9, cy + 5, sel ? C_TEXT : C_DIM, sel);
+            String cnt = String.valueOf(on);
+            g.text(font, cnt, x + SIDEBAR_W - 6 - font.width(cnt), cy + 5, on > 0 ? acc(0) : C_FAINT, false);
+            hits.add(new Hit(HitType.ACTIVE, x, cy, SIDEBAR_W, 18, null, null, null));
+            if (hov) hover = "Show every enabled module";
         }
 
         // content split
@@ -302,6 +318,11 @@ public class ClickGuiScreen extends Screen {
                     || m.settings.stream().anyMatch(st -> st.name.toLowerCase().contains(q))) out.add(m);
             return out;
         }
+        if (showActive) {
+            List<Module> out = new ArrayList<>();
+            for (Module m : VortexClient.modules.all()) if (m.isEnabled()) out.add(m);
+            return out;
+        }
         return VortexClient.modules.byCategory(selectedCategory);
     }
 
@@ -320,7 +341,8 @@ public class ClickGuiScreen extends Screen {
             if (!h.contains(mx, my)) continue;
             switch (h.type) {
                 case TITLE -> { if (button == 0) { draggingWindow = true; dragDX = mx - winX; dragDY = my - winY; } }
-                case CATEGORY -> { selectedCategory = h.category; search = ""; listScroll = 0; }
+                case CATEGORY -> { selectedCategory = h.category; showActive = false; search = ""; listScroll = 0; }
+                case ACTIVE -> { showActive = true; search = ""; listScroll = 0; }
                 case MODULE -> {
                     if (button == 0) { if (h.module == cfg()) select(h.module); else h.module.toggle(); }
                     else if (button == 1) select(selectedModule == h.module ? null : h.module);
@@ -450,7 +472,7 @@ public class ClickGuiScreen extends Screen {
     }
 
     // ---------------------------------------------------------------- hit testing
-    private enum HitType { TITLE, CATEGORY, MODULE, TOGGLE, CLOSE_SETTINGS, RESET, BIND, BIND_MODE, HUD_VISIBLE, SETTING, GROUP }
+    private enum HitType { TITLE, CATEGORY, MODULE, TOGGLE, CLOSE_SETTINGS, RESET, BIND, BIND_MODE, HUD_VISIBLE, SETTING, GROUP, ACTIVE }
 
     private static final class Hit {
         final HitType type; final int x, y, w, h; final Category category; final Module module; final Setting<?> setting;

@@ -6,6 +6,7 @@ import com.natan.vortex.setting.*;
 import com.natan.vortex.util.Move;
 
 public class Sneak extends Module {
+    @Override public boolean selfTestSafe() { return false; }
     public Sneak() { super("Sneak", "Always sneak (others see you crouching)", Category.MOVEMENT); }
 
     @Override public void onTick() { if (inGame() && mc.gui.screen() == null) com.natan.vortex.util.Keys.hold(mc.options.keyShift, true); }

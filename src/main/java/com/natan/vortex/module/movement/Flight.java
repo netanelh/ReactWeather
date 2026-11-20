@@ -6,6 +6,7 @@ import com.natan.vortex.setting.*;
 import com.natan.vortex.util.Move;
 
 public class Flight extends Module {
+    @Override public boolean selfTestSafe() { return false; }
     private final ModeSetting mode = add(new ModeSetting("Mode", "Velocity = direct control, Vanilla = creative-style flying", "Velocity", "Velocity", "Vanilla", "Glide"));
     private final NumberSetting speed = add(new NumberSetting("Speed", "Horizontal speed (blocks/tick)", 1.0, 0.1, 5, 0.1));
     private final NumberSetting vSpeed = add(new NumberSetting("Vertical", "Up/down speed (blocks/tick)", 0.6, 0.1, 3, 0.1).visibleWhen(() -> !mode.is("Glide")));

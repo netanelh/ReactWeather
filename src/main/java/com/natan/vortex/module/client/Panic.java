@@ -8,6 +8,7 @@ import com.natan.vortex.util.Chat;
 
 /** Bind a key to this: one press turns every module off and stops the navigator. */
 public class Panic extends Module {
+    @Override public boolean selfTestSafe() { return false; }
     public Panic() { super("Panic", "Instantly turns off every module (bind a key!)", Category.CLIENT); showInHud = false; }
 
     @Override

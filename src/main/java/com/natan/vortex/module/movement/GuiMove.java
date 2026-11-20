@@ -6,7 +6,9 @@ import com.natan.vortex.module.Category;
 import com.natan.vortex.module.Module;
 import com.natan.vortex.setting.BoolSetting;
 import net.minecraft.client.KeyMapping;
-import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.AnvilScreen;
+import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 
 /** Walk, jump and sprint while inventories and menus are open. */
 public class GuiMove extends Module {
@@ -16,7 +18,11 @@ public class GuiMove extends Module {
 
     @Override
     public void onTick() {
-        if (!inGame() || mc.gui.screen() == null || mc.gui.screen() instanceof ChatScreen) return;
+        // only container screens without a text box: typing in chat, signs, anvils, creative search
+        // or the ClickGUI search must never walk the player
+        var s = mc.gui.screen();
+        if (!inGame() || !(s instanceof AbstractContainerScreen<?>) || s instanceof AnvilScreen
+            || s instanceof CreativeModeInventoryScreen) return;
         var o = mc.options;
         pass(o.keyUp); pass(o.keyDown); pass(o.keyLeft); pass(o.keyRight); pass(o.keyJump);
         // toggle keys flip on every setDown(true): leave them alone when toggle sprint/sneak is on

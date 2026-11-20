@@ -8,6 +8,7 @@ import com.natan.vortex.setting.NumberSetting;
 
 /** Global navigator settings. Toggling it off stops whatever is running. */
 public class NavSettings extends Module {
+    @Override public boolean selfTestSafe() { return false; }
     public final BoolSetting allowBreak = add(new BoolSetting("Allow Break", "Mine through blocks that are in the way", true));
     public final BoolSetting allowPlace = add(new BoolSetting("Allow Place", "Bridge gaps and pillar up with throwaway blocks", true));
     public final NumberSetting maxFall = add(new NumberSetting("Max Fall", "Highest drop it will take without water (blocks)", 3, 1, 20, 1));

@@ -36,6 +36,8 @@ public final class Inv {
 
     public static void click(int menuSlot, int button, ContainerInput type) {
         Minecraft mc = Minecraft.getInstance();
+        // a chest/furnace screen is open: a click on the player menu id would desync, wait until it closes
+        if (mc.player.containerMenu != mc.player.inventoryMenu) return;
         mc.gameMode.handleContainerInput(mc.player.inventoryMenu.containerId, menuSlot, button, type, mc.player);
     }
 

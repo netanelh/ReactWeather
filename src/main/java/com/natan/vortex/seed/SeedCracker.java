@@ -76,14 +76,17 @@ public final class SeedCracker {
             return;
         }
         long hashed = hashedSeed;
+        // file the result under the server the pyramids were seen on, even if the user switched meanwhile
+        String srv = SeedStore.server();
+        if (srv == null) { if (loud) Chat.error("Seed cracking needs a server."); return; }
         running = true;
         Thread t = new Thread(() -> {
             try {
                 Long seed = solveAll(p, hashed);
                 mc.execute(() -> {
                     if (seed != null) {
-                        SeedStore.set(seed);
-                        Chat.info("§aSeed cracked: §f" + seed + "§a. Now .locate works for any structure or biome on this server.");
+                        SeedStore.set(srv, seed);
+                        if (srv.equals(SeedStore.server())) Chat.info("§aSeed cracked: §f" + seed + "§a. Now .locate works for any structure or biome on this server.");
                     } else if (loud) Chat.error("No seed matched (" + status + "). Find another pyramid or two and try again.");
                 });
             } catch (Throwable e) {
