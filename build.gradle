@@ -4,6 +4,11 @@ plugins {
 
 base { archivesName = 'vortex-client' }
 
+repositories {
+	// fallback mirror of Maven Central
+	maven { name = 'CentralMirror'; url = 'https://maven-central.storage-download.googleapis.com/maven2/' }
+}
+
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"

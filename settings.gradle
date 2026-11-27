@@ -2,6 +2,8 @@ pluginManagement {
 	repositories {
 		maven { name = 'Fabric'; url = 'https://maven.fabricmc.net/' }
 		mavenCentral()
+		// fallback mirror of Maven Central (CI builds failed when Central returned 404s)
+		maven { name = 'CentralMirror'; url = 'https://maven-central.storage-download.googleapis.com/maven2/' }
 		gradlePluginPortal()
 	}
 }
