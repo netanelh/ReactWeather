@@ -199,6 +199,13 @@ public final class WorldLyrics {
         float scale = wscale(cfg);
         float space = font.width(" ") * PX * scale * 1.6f * cfg.wordSpacing;
         float maxRow = Math.max(2.5f, dist(cfg) * 1.3f);
+        if (cfg.worldStyle == WorldStyle.BIG) {
+            // One huge word at a time, centered, as wide as the row allows.
+            for (int i = 0; i < n; i++) {
+                sizes[i] = Math.min(2.4f, maxRow / Math.max(0.01f, font.width(words[i]) * PX * scale));
+            }
+            return;
+        }
         float rowHeight = font.lineHeight * PX * scale * 1.35f;
         boolean rtl = LineFormatter.isRtl(s.line(0));
 
@@ -273,9 +280,17 @@ public final class WorldLyrics {
         WordTiming t = LineFormatter.timing(s);
         int reached = t.reached(s.positionMs());
         boolean lineSung = s.positionMs() >= t.singEndMs();
+        boolean big = cfg.worldStyle == WorldStyle.BIG;
 
         for (int i = 0; i < spawned.length && i < t.words().length; i++) {
-            if (spawned[i] == null && i <= reached) {
+            if (big && spawned[i] != null && reached >= 0 && i != reached) {
+                // "One big word": the previous word floats away when the next one is sung.
+                spawned[i].retiredAge = spawned[i].age;
+                retiring.add(spawned[i]);
+                spawned[i] = null;
+                continue;
+            }
+            if (spawned[i] == null && (big ? i == reached : i <= reached)) {
                 spawned[i] = new Piece(spawn(level, base), laterals[i], rows[i], depths[i], tilts[i], sizes[i], i);
             }
             Piece p = spawned[i];
@@ -290,7 +305,7 @@ public final class WorldLyrics {
                 case RANDOM -> new Paint(RANDOM_PALETTE[Math.floorMod(words[i].hashCode() + i, RANDOM_PALETTE.length)], false);
             };
             Component c = Component.literal(t.words()[i]).withStyle(LineFormatter.style(paint.at(i), s.line(0)));
-            float size = wscale(cfg) * p.sizeMul * (current ? cfg.currentWordScale : 1f);
+            float size = wscale(cfg) * p.sizeMul * (current && !big ? cfg.currentWordScale : 1f);
             apply(p, c, cfg, base, right, size, 0f, 255);
         }
     }

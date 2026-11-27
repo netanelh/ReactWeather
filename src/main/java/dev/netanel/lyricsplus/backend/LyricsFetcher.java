@@ -34,7 +34,9 @@ public final class LyricsFetcher {
     private int answered;
     private boolean transientError;
 
-    private static final String USER_AGENT = "LyricsPlus/2.5 (Minecraft Fabric mod)";
+    static final String USER_AGENT = "LyricsPlus/" + net.fabricmc.loader.api.FabricLoader.getInstance()
+            .getModContainer("lyricsplus").map(c -> c.getMetadata().getVersion().getFriendlyString())
+            .orElse("dev") + " (Minecraft Fabric mod)";
 
     private final HttpClient client = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(6))
@@ -60,9 +62,22 @@ public final class LyricsFetcher {
         long maxDiff = video ? 20 : 8;
         String plainFallback = null;
 
-        // 1. exact match
+        // 1. exact match (also tried as "Artist - Song" split out of a YouTube title)
+        List<String[]> exacts = new ArrayList<>();
+        exacts.add(new String[]{artist, title, album});
+        String ctitle = cleanTitle(title);
+        int ydash = indexOfDash(ctitle);
+        if (ydash > 0) {
+            String yArtist = ctitle.substring(0, ydash).trim();
+            String yTitle = ctitle.substring(ydash + 3).trim();
+            if (!yArtist.isEmpty() && !yTitle.isEmpty()) exacts.add(new String[]{yArtist, yTitle, null});
+        }
+        for (String[] ex : exacts) {
+        if (cancelled.getAsBoolean()) {
+            return Result.FAILED;
+        }
         try {
-            JsonObject exact = getObject(exactUrl(artist, title, album, durationSec));
+            JsonObject exact = getObject(exactUrl(ex[0], ex[1], ex[2], durationSec));
             if (exact != null) {
                 if (exact.has("instrumental") && !exact.get("instrumental").isJsonNull()
                         && exact.get("instrumental").getAsBoolean()) {
@@ -72,10 +87,11 @@ public final class LyricsFetcher {
                 if (synced != null) {
                     return synced(synced);
                 }
-                plainFallback = field(exact, "plainLyrics");
+                if (plainFallback == null) plainFallback = field(exact, "plainLyrics");
             }
         } catch (Exception e) {
             System.err.println("[Lyrics Plus] exact lookup failed: " + e.getMessage());
+        }
         }
 
         // 2. searches, best guesses first
@@ -129,7 +145,9 @@ public final class LyricsFetcher {
                 return new Result(est, true, false);
             }
         }
-        return transientError && answered == 0 ? Result.FAILED : Result.NONE;
+        // Any timeout / rate limit means we never got a full answer: let the engine retry later
+        // instead of caching "not found" for the whole session.
+        return transientError ? Result.FAILED : Result.NONE;
     }
 
     private Result synced(String lrc) {
@@ -162,8 +180,13 @@ public final class LyricsFetcher {
         }
 
         urls.add(fieldSearch(cleanArtist, cleanTitle));
+        String primary = primaryArtist(cleanArtist);
+        if (!primary.isEmpty() && !primary.equals(cleanArtist)) {
+            urls.add(fieldSearch(primary, cleanTitle)); // "A & B" / "A x B" / "A feat. B" -> "A"
+        }
         if (ytArtist != null && !ytTitle.isEmpty()) {
             urls.add(fieldSearch(ytArtist, ytTitle));
+            urls.add(fieldSearch(ytTitle, ytArtist)); // Israeli uploads often use "Song - Artist"
             urls.add(textSearch(ytArtist + " " + ytTitle));
         }
         urls.add(textSearch(cleanArtist + " " + cleanTitle));
@@ -226,6 +249,12 @@ public final class LyricsFetcher {
         t = t.replaceAll("(?:^|\\s)(הקליפ הרשמי|קליפ רשמי)(?=\\s|$)", " ");
         t = t.replaceAll("\\s{2,}", " ").replaceAll("[\\s|\\-–—]+$", "").replaceAll("^[\\s|\\-–—]+", "").trim();
         return t.isEmpty() ? title : t;
+    }
+
+    /** "A & B", "A x B", "A feat. B" -> "A" (only used as an extra search, never replaces the artist). */
+    static String primaryArtist(String a) {
+        String[] parts = a.split("(?i)\\s+(?:&|x|feat\\.?|ft\\.?)\\s+");
+        return parts.length == 0 ? a : parts[0].trim();
     }
 
     /** "ArtistVEVO", "Artist - Topic", "Artist Official" -> "Artist" */

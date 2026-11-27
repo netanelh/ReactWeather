@@ -224,8 +224,10 @@ public final class HudRenderer {
         Component title = LineFormatter.colorize(s.title(), Paint.text(cfg), 0);
         Component artist = Component.literal(s.artist()).withStyle(LineFormatter.style(0xAAAAAA, s.artist()));
 
-        float ts = Math.min(2.4f, (g.guiWidth() - 60) / (float) Math.max(1, font.width(title)));
-        float as = Math.min(1.3f, (g.guiWidth() - 60) / (float) Math.max(1, font.width(artist)));
+        // Leave room for the album cover on both sides so it never goes off-screen.
+        int avail = Math.max(40, g.guiWidth() - 60 - (cfg.albumArt && AlbumArt.ready() ? 130 : 0));
+        float ts = Math.min(2.4f, avail / (float) Math.max(1, font.width(title)));
+        float as = Math.min(1.3f, avail / (float) Math.max(1, font.width(artist)));
         int titleW = Math.round(font.width(title) * ts);
         int maxW = Math.max(titleW, Math.round(font.width(artist) * as));
         int boxH = 8 + Math.round(font.lineHeight * ts) + 4 + Math.round(font.lineHeight * as);
@@ -240,7 +242,7 @@ public final class HudRenderer {
         int argb = (alpha << 24) | 0xFFFFFF;
         if (cfg.albumArt && AlbumArt.ready() && alpha > 200) {
             int artS = boxH;
-            int ax = cx - maxW / 2 - 12 - artS - 6;
+            int ax = Math.max(2, cx - maxW / 2 - 12 - artS - 6);
             g.fill(ax - 1, y - 1, ax + artS + 1, y + artS + 1, 0x60000000);
             g.blit(AlbumArt.TEXTURE, ax, y, ax + artS, y + artS, 0f, 1f, 0f, 1f);
         }

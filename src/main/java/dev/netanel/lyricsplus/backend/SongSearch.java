@@ -29,7 +29,7 @@ public final class SongSearch {
     }
 
     private static final HttpClient CLIENT = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(6)).build();
-    private static final String UA = "LyricsPlus/2.5 (Minecraft Fabric mod)";
+    private static final String UA = LyricsFetcher.USER_AGENT;
     private static final int MAX = 8;
 
     private SongSearch() {
@@ -97,15 +97,22 @@ public final class SongSearch {
         try {
             String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
             if (os.contains("win")) {
-                new ProcessBuilder("rundll32", "url.dll,FileProtocolHandler", uri).start();
+                start(new ProcessBuilder("rundll32", "url.dll,FileProtocolHandler", uri));
             } else if (os.contains("mac")) {
-                new ProcessBuilder("open", uri).start();
+                start(new ProcessBuilder("open", uri));
             } else {
-                new ProcessBuilder("xdg-open", uri).start();
+                start(new ProcessBuilder("xdg-open", uri));
             }
         } catch (Exception e) {
             System.err.println("[Lyrics Plus] could not open " + uri + ": " + e.getMessage());
         }
+    }
+
+    /** Starts a helper process without leaking its pipes. */
+    static void start(ProcessBuilder pb) throws java.io.IOException {
+        Process pr = pb.redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                .redirectError(ProcessBuilder.Redirect.DISCARD).start();
+        pr.getOutputStream().close();
     }
 
     private static String get(String url) throws Exception {

@@ -26,19 +26,23 @@ public final class WindowsMusicManager extends MusicManager implements AutoClose
         // The session must be opened, used and closed on this same thread.
         while (running) {
             try (WindowsMediaSession media = WindowsMediaSession.open()) {
+                int fails = 0;
                 while (running) {
                     media.beginPoll();
                     try {
                         if (!media.refreshSession()) {
                             state = State.EMPTY; // player closed: nothing is playing
+                            fails = 0;
                         } else {
                             String[] tad = media.getTitleArtistAlbum();
                             boolean playing = media.isPlaying();
                             long duration = media.getDurationMs();
                             long position = media.getPositionMs(playing);
                             state = new State(tad[1], tad[0], tad[2], duration, position, System.nanoTime(), playing);
+                            fails = 0;
                         }
                     } catch (Throwable e) {
+                        fails++;
                         // Keep the last snapshot if one read fails. Log at most once a minute.
                         long nowMs = System.currentTimeMillis();
                         if (nowMs - lastErrorLog > 60_000) {
@@ -47,6 +51,12 @@ public final class WindowsMusicManager extends MusicManager implements AutoClose
                         }
                     } finally {
                         media.endPoll();
+                    }
+                    if (fails >= 12) {
+                        // ~3 s of failed reads (e.g. Windows media service restarted): stop showing
+                        // the frozen song and reopen the session.
+                        state = State.EMPTY;
+                        break;
                     }
                     Thread.sleep(250);
                 }

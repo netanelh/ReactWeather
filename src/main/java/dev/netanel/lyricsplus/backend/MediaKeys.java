@@ -49,7 +49,7 @@ public final class MediaKeys {
                 keybdEvent.invoke((byte) vk, (byte) 0, 0, 0L);
                 keybdEvent.invoke((byte) vk, (byte) 0, KEYEVENTF_KEYUP, 0L);
             } else {
-                new ProcessBuilder("playerctl", playerctlCommand).start();
+                SongSearch.start(new ProcessBuilder("playerctl", playerctlCommand));
             }
         } catch (Throwable e) {
             System.err.println("[Lyrics Plus] media key failed: " + e.getMessage());

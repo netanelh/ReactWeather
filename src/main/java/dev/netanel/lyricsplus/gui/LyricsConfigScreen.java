@@ -103,6 +103,9 @@ public final class LyricsConfigScreen extends Screen {
             if (query.equals(lastQuery)) {
                 results = found;
                 searchState = found.isEmpty() ? "failed" : "done";
+                if (found.isEmpty()) {
+                    lastQuery = ""; // allow the same text to be searched again (network hiccup)
+                }
                 rebuildPending = true;
             }
         }, "LyricsPlus-SongSearch");
@@ -337,7 +340,7 @@ public final class LyricsConfigScreen extends Screen {
         boolean doneHover = inside(mouseX, mouseY, px + 8, dy, SIDEBAR_W - 16, 18);
         g.fill(px + 8, dy, px + SIDEBAR_W - 8, dy + 18, doneHover ? accent : CARD_HOVER);
         g.centeredText(font, Component.translatable("lyricsplus.done"), px + SIDEBAR_W / 2, dy + 5, doneHover ? 0xFF101010 : TEXT);
-        small(g, Component.literal("v2.6"), px + 10, dy - 11, 0xFF55555F);
+        small(g, Component.literal("v2.7"), px + 10, dy - 11, 0xFF55555F);
 
         // content header
         g.pose().pushMatrix();

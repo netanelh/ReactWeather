@@ -17,7 +17,7 @@ public final class LyricsConfig {
 
     public enum SidePosition { TOP_LEFT, TOP_RIGHT, MIDDLE_LEFT, MIDDLE_RIGHT }
 
-    public enum WorldStyle { WORDS, SCATTER, LINE }
+    public enum WorldStyle { WORDS, SCATTER, LINE, BIG }
 
     public enum ScatterFrom { CENTER, SIDES, BELOW, ABOVE, PLAYER }
 
@@ -131,7 +131,13 @@ public final class LyricsConfig {
                 }
             }
         } catch (Exception e) {
-            System.err.println("[Lyrics Plus] Could not read config, using defaults: " + e.getMessage());
+            // Keep a copy so the next save doesn't wipe the player's settings for good.
+            try {
+                Files.copy(path(), path().resolveSibling("lyricsplus.json.bak"),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } catch (Exception ignored) {
+            }
+            System.err.println("[Lyrics Plus] Could not read config, using defaults (old file kept as lyricsplus.json.bak): " + e.getMessage());
         }
         return new LyricsConfig();
     }

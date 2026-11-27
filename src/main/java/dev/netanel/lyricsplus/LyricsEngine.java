@@ -7,7 +7,7 @@ import dev.netanel.lyricsplus.backend.MusicManager;
 import dev.netanel.lyricsplus.backend.WindowsMusicManager;
 import dev.netanel.lyricsplus.config.LyricsConfig;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -64,7 +64,13 @@ public final class LyricsEngine {
         return t;
     });
     private final LyricsFetcher fetcher = new LyricsFetcher();
-    private final Map<String, LyricsFetcher.Result> cache = new HashMap<>();
+    // Small LRU so long radio sessions don't keep every song's lyrics in memory.
+    private final Map<String, LyricsFetcher.Result> cache = new LinkedHashMap<>(64, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, LyricsFetcher.Result> e) {
+            return size() > 200;
+        }
+    };
     private final boolean windows = System.getProperty("os.name", "").toLowerCase().contains("win");
 
     private MusicManager music;
@@ -96,9 +102,23 @@ public final class LyricsEngine {
         demo = on;
         demoStart = System.currentTimeMillis();
         trackChangedAt = demoStart;
-        if (!on) {
+        if (on) {
+            dev.netanel.lyricsplus.backend.AlbumArt.request("", ""); // don't show the last song's cover
+        } else {
             trackKey = ""; // force a reload of the real song
         }
+    }
+
+    /** Forgets the current song's lyrics and looks them up again on the next tick. */
+    public void reload() {
+        if (demo) {
+            return;
+        }
+        String k = trackKey;
+        synchronized (cache) {
+            cache.remove(k);
+        }
+        trackKey = "";
     }
 
     /** "artist - title" of the current song, or "" (used for per-song timing). */

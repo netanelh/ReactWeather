@@ -59,7 +59,11 @@ public final class LyricsPlusClient implements ClientModInitializer {
                 dispatcher.register(ClientCommands.literal("lyrics").executes(context -> {
                     openPanelNextTick = true; // the chat screen closes right after the command runs
                     return 1;
-                })));
+                }).then(ClientCommands.literal("reload").executes(context -> {
+                    ENGINE.reload(); // look the current song up again (after "not found" / wrong lyrics)
+                    notify(Minecraft.getInstance(), Component.translatable("lyricsplus.msg.reload"));
+                    return 1;
+                }))));
 
         ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
     }
