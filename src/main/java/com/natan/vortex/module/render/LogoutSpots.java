@@ -32,7 +32,7 @@ public class LogoutSpots extends Module {
         if (!inGame() || mc.getConnection() == null) return;
         if (mc.level != level) { level = mc.level; lastSeen.clear(); spots.clear(); pendingPos.clear(); pendingTicks.clear(); }
         Map<String, BlockPos> now = new HashMap<>();
-        for (Player p : mc.level.players()) if (p != mc.player) now.put(p.getName().getString(), p.blockPosition());
+        for (Player p : mc.level.players()) if (p != mc.player && !p.getUUID().equals(com.natan.vortex.module.player.FakePlayer.ID)) now.put(p.getName().getString(), p.blockPosition());
         for (var e : lastSeen.entrySet()) {
             if (now.containsKey(e.getKey())) continue;
             if (!online(e.getKey())) record(e.getKey(), e.getValue());

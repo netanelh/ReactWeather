@@ -45,7 +45,7 @@ public class Macros extends Module {
         if (!loaded) load();
         // keep tracking key state while a menu is open, so closing a menu with the bound key doesn't fire it
         boolean screen = mc.gui.screen() != null;
-        for (var e : binds.entrySet()) {
+        for (var e : new java.util.ArrayList<>(binds.entrySet())) {
             boolean down = Keys.isDown(e.getKey());
             if (!screen && down && !was.getOrDefault(e.getKey(), false))
                 runLine(e.getValue());

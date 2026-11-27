@@ -155,7 +155,7 @@ public class ClickGuiScreen extends Screen {
         int fy = y + h - FOOTER_H;
         g.fill(x, fy, x + w, y + h, C_TITLE);
         boolean showHover = hover != null && cfg().descriptions.on();
-        String foot = showHover ? hover : "LMB toggle  ·  RMB settings  ·  MMB bind  ·  drag the title bar to move";
+        String foot = showHover ? hover : "LMB toggle  ·  RMB settings  ·  MMB bind / reset setting  ·  drag the title bar to move";
         g.text(font, trim(foot, w - 12), x + 6, fy + 3, showHover ? C_TEXT : C_FAINT, false);
     }
 
@@ -361,6 +361,7 @@ public class ClickGuiScreen extends Screen {
                 }
                 case SETTING -> {
                     Setting<?> s = h.setting;
+                    if (button == 2) { s.reset(); return true; } // MMB on any setting = back to default
                     if (s instanceof BoolSetting b) b.toggle();
                     else if (s instanceof ModeSetting m) m.cycle(button == 1 ? -1 : 1);
                     else if (s instanceof NumberSetting n) {

@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 public class VortexClient implements ClientModInitializer {
     public static final String MOD_ID = "vortex";
     public static final String NAME = "Zephex";
-    public static final String VERSION = "1.7.3";
+    public static final String VERSION = "1.7.4";
     /** Sodium replaces vanilla chunk meshing, so terrain-hiding hooks never run with it. */
     public static final boolean SODIUM = net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("sodium");
     public static final Logger LOG = LoggerFactory.getLogger(NAME);
@@ -46,6 +46,8 @@ public class VortexClient implements ClientModInitializer {
     private static final java.util.Set<com.natan.vortex.module.Module> holdLatched = new java.util.HashSet<>();
 
     private void onTick() {
+        // advance the rotation tick first, so every request made during this tick is applied to the next movement packet
+        com.natan.vortex.util.RotationManager.endTick();
         if (mc.level != lastLevel) { lastLevel = mc.level; com.natan.vortex.module.render.ServerLag.reset();
             com.natan.vortex.util.RotationManager.reset();
             if (modules != null) modules.onWorldChange(); }
@@ -71,7 +73,6 @@ public class VortexClient implements ClientModInitializer {
             else if (!down && holdLatched.remove(m) && m.isEnabled()) m.setEnabled(false);
         }
         modules.onTick();
-        com.natan.vortex.util.RotationManager.endTick();
         com.natan.vortex.memory.WorldMemory.INSTANCE.tick();
         com.natan.vortex.memory.ChestMemory.INSTANCE.tick();
         com.natan.vortex.nav.NavMemory.INSTANCE.tick();

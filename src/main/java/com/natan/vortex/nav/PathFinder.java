@@ -161,6 +161,9 @@ public final class PathFinder {
                 if (!World.passable(nx, y, nz) || !World.passable(nx, y + 1, nz)) continue;
                 if (!World.passable(x + d[0], y, z) || !World.passable(x + d[0], y + 1, z)) continue;
                 if (!World.passable(x, y, z + d[1]) || !World.passable(x, y + 1, z + d[1])) continue;
+                // doors/gates/trapdoors count as passable but are only opened on straight moves
+                if (door(nx, y, nz) || door(nx, y + 1, nz) || door(x + d[0], y, z) || door(x + d[0], y + 1, z)
+                        || door(x, y, z + d[1]) || door(x, y + 1, z + d[1])) continue;
                 if (World.standable(nx, y - 1, nz)) {
                     out.add(new Candidate(nx, y, nz, walk * SQRT2 * (inWater ? 2 : 1), Step.Move.DIAGONAL, null, null));
                 } else if (!inWater && World.passable(nx, y - 1, nz) && !World.inWater(nx, y - 1, nz)
@@ -252,4 +255,6 @@ public final class PathFinder {
         }
         return out;
     }
+
+    private static boolean door(int x, int y, int z) { return World.isHandDoor(World.state(x, y, z)); }
 }

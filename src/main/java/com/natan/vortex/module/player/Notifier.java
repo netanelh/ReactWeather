@@ -25,6 +25,8 @@ public class Notifier extends Module {
     private final Set<EquipmentSlot> warned = java.util.EnumSet.noneOf(EquipmentSlot.class);
 
     private Set<String> online = null, visible = new HashSet<>();
+    /** ticks to stay quiet after joining/changing world while the tab list and entities fill in */
+    private int grace;
 
     public Notifier() { super("Notifier", "Join/leave and players-in-range alerts", Category.PLAYER); }
 
@@ -35,19 +37,20 @@ public class Notifier extends Module {
         if (!inGame() || mc.getConnection() == null) return;
         Set<String> nowOnline = new HashSet<>();
         for (PlayerInfo i : mc.getConnection().getOnlinePlayers()) nowOnline.add(i.getProfile().name());
-        if (joins.on() && online != null) {
+        if (joins.on() && online != null && grace == 0) {
             for (String n : nowOnline) if (!online.contains(n)) Chat.info("§a+ " + n + " joined");
             for (String n : online) if (!nowOnline.contains(n)) Chat.info("§c- " + n + " left");
         }
         online = nowOnline;
 
         Set<String> nowVisible = new HashSet<>();
-        for (Player p : mc.level.players()) if (p != mc.player) nowVisible.add(p.getName().getString());
-        if (visualRange.on()) {
+        for (Player p : mc.level.players()) if (p != mc.player && !p.getUUID().equals(FakePlayer.ID)) nowVisible.add(p.getName().getString());
+        if (visualRange.on() && grace == 0) {
             for (String n : nowVisible) if (!visible.contains(n)) Chat.info("§e" + n + " entered your render distance");
             for (String n : visible) if (!nowVisible.contains(n)) Chat.info("§7" + n + " left your render distance");
         }
         visible = nowVisible;
+        if (grace > 0) grace--;
 
         if (durability.i() > 0) for (EquipmentSlot slot : GEAR) {
             ItemStack st = mc.player.getItemBySlot(slot);
@@ -57,6 +60,8 @@ public class Notifier extends Module {
             else if (!low) warned.remove(slot);
         }
     }
+
+    @Override public void onWorldChange() { online = null; visible = new HashSet<>(); warned.clear(); grace = 40; }
 
     @Override public void onDisable() { online = null; visible.clear(); warned.clear(); }
 }

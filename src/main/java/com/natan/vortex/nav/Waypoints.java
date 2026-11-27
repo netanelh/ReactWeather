@@ -39,7 +39,10 @@ public final class Waypoints {
         return mc.level == null ? "?" : mc.level.dimension().identifier().getPath();
     }
 
-    public Map<String, Point> here() { return data.computeIfAbsent(world(), k -> new LinkedHashMap<>()); }
+    /** Waypoints of the current world AND dimension (so "home" in the Nether doesn't replace the Overworld one). */
+    public Map<String, Point> here() { return data.computeIfAbsent(world() + DIM_SEP + dim(), k -> new LinkedHashMap<>()); }
+
+    private static final String DIM_SEP = "#dim=";
 
     public void set(String name, BlockPos p) {
         here().put(name.toLowerCase(), new Point(p.getX(), p.getY(), p.getZ(), dim()));
@@ -61,7 +64,16 @@ public final class Waypoints {
         try {
             if (Files.exists(file)) {
                 Map<String, Map<String, Point>> m = GSON.fromJson(Files.readString(file), new TypeToken<Map<String, Map<String, Point>>>() {}.getType());
-                if (m != null) data = m;
+                if (m != null) {
+                    // migrate old files (keyed per world only) to per world+dimension keys
+                    Map<String, Map<String, Point>> mig = new LinkedHashMap<>();
+                    m.forEach((w, pts) -> {
+                        if (pts == null) return;
+                        if (w.contains(DIM_SEP)) mig.computeIfAbsent(w, k -> new LinkedHashMap<>()).putAll(pts);
+                        else pts.forEach((n, p) -> { if (p != null) mig.computeIfAbsent(w + DIM_SEP + (p.dim() == null ? "overworld" : p.dim()), k -> new LinkedHashMap<>()).putIfAbsent(n, p); });
+                    });
+                    data = mig;
+                }
             }
         } catch (Exception e) {
             VortexClient.LOG.error("Failed to load waypoints", e);

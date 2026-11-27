@@ -24,7 +24,7 @@ public class AutoLog extends Module {
         if (health.d() > 0 && hearts <= health.d()) reason = "Health was " + hearts + " hearts";
         if (reason == null && onPlayer.on()) {
             for (Player p : mc.level.players()) {
-                if (p == mc.player || Friends.is(p.getName().getString())) continue;
+                if (p == mc.player || p.getUUID().equals(com.natan.vortex.module.player.FakePlayer.ID) || Friends.is(p.getName().getString())) continue;
                 if (p.distanceTo(mc.player) <= playerRange.d()) { reason = p.getName().getString() + " came within " + Math.round(p.distanceTo(mc.player)) + " blocks"; break; }
             }
         }

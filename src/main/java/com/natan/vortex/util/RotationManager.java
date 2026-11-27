@@ -4,7 +4,7 @@ import com.natan.vortex.VortexClient;
 import com.natan.vortex.module.client.RotationSettings;
 
 /**
- * Holds the latest silent rotation request. Requests are made at the end of client tick N and are
+ * Holds the latest silent rotation request. Requests are made during client tick N and are
  * applied to the movement packet sent at the start of tick N+1 (LocalPlayer.sendPosition), then dropped.
  */
 public final class RotationManager {
@@ -16,7 +16,7 @@ public final class RotationManager {
     private static float savedYaw, savedPitch;
     private static boolean applied;
 
-    /** Called once per client tick (end of tick). */
+    /** Called once per client tick (start of the end-tick handler, before modules run). */
     public static void endTick() { tick++; }
 
     public static boolean active() {

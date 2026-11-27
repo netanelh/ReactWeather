@@ -31,7 +31,8 @@ public class Freecam extends Module {
 
     @Override
     public void onDisable() {
-        if (mc.player != null) mc.setCameraEntity(mc.player);
+        // only restore the camera if it is still ours (don't kick a spectator off the mob they are viewing)
+        if (mc.player != null && cam != null && mc.getCameraEntity() == cam) mc.setCameraEntity(mc.player);
         cam = null;
     }
 

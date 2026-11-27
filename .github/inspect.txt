@@ -36,3 +36,6 @@ net.minecraft.world.item.CrossbowItem
 net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 net.minecraft.network.protocol.game.ServerboundPlayerActionPacket
 net.minecraft.world.level.block.RespawnAnchorBlock
+c:net.minecraft.client.ToggleKeyMapping
+c:net.minecraft.client.MouseHandler
+c:net.minecraft.client.player.ClientInput

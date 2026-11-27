@@ -30,6 +30,7 @@ public final class Navigator {
     private boolean paused;
     private int failures;
     private int repathCooldown;
+    private int validateTimer;
     private boolean wasDead;
     private String lastCalc = "";
 
@@ -157,6 +158,23 @@ public final class Navigator {
             if (!calculating && repathCooldown <= 0) calculate(goal, s);
             Actions.releaseKeys();
             return;
+        }
+        // re-plan early if the next plain walking steps got blocked since planning (placed blocks, lava flow...)
+        if (++validateTimer >= 10) {
+            validateTimer = 0;
+            var st = executor.steps();
+            for (int i = executor.index(); i < Math.min(st.size(), executor.index() + 10); i++) {
+                Step sp = st.get(i);
+                if (sp.toPlace() != null || (sp.toBreak() != null && !sp.toBreak().isEmpty())) continue;
+                Step.Move mv = sp.move();
+                if (mv != Step.Move.WALK && mv != Step.Move.DIAGONAL && mv != Step.Move.ASCEND && mv != Step.Move.DESCEND) continue;
+                BlockPos q = sp.pos();
+                if (!World.loaded(q.getX(), q.getZ())) continue;
+                if (!World.passable(q.getX(), q.getY(), q.getZ()) || !World.passable(q.getX(), q.getY() + 1, q.getZ())) {
+                    executor = null; Actions.releaseKeys(); repathCooldown = 2; // not the path's fault: no markFailed
+                    return;
+                }
+            }
         }
         Executor.Status status = executor.tick();
         if (status == Executor.Status.DONE) {

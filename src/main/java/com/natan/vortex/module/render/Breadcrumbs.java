@@ -41,7 +41,8 @@ public class Breadcrumbs extends Module {
         Vec3 me = mc.player.position();
         Vec3 prev = null;
         for (Vec3 cur : points) {
-            if (prev != null && prev.distanceToSqr(me) <= r2 && cur.distanceToSqr(me) <= r2)
+            if (prev != null && prev.distanceToSqr(me) <= r2 && cur.distanceToSqr(me) <= r2
+                    && prev.distanceToSqr(cur) <= 256) // don't join points across teleports/respawns
                 Box3D.line(g, prev.x, prev.y + 0.1, prev.z, cur.x, cur.y + 0.1, cur.z, col, w, h, 1);
             prev = cur;
         }

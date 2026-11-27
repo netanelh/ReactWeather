@@ -50,7 +50,14 @@ public class ConfigManager {
             root.add("modules", mods);
             root.add("panels", ClickGuiScreen.savePanels());
             Files.createDirectories(file.getParent());
-            Files.writeString(file, GSON.toJson(root));
+            // write to a temp file and swap it in, so a crash mid-save can't leave a truncated config
+            Path tmp = file.resolveSibling(file.getFileName() + ".tmp");
+            Files.writeString(tmp, GSON.toJson(root));
+            try {
+                Files.move(tmp, file, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+            } catch (java.nio.file.AtomicMoveNotSupportedException ex) {
+                Files.move(tmp, file, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
         } catch (Exception e) {
             VortexClient.LOG.error("Failed to save config", e);
         }
